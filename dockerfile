@@ -1,15 +1,19 @@
 FROM node:20-alpine AS base
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.3.0 --activate
+
 FROM base AS builder
 
 RUN apk add --no-cache gcompat
 WORKDIR /app
 
-COPY package*json tsconfig.json src ./
+COPY package.json pnpm-lock.yaml tsconfig.json ./
+COPY src ./src
 
-RUN npm ci && \
-    npm run build && \
-    npm prune --production
+RUN pnpm install --frozen-lockfile && \
+    pnpm run build && \
+    pnpm prune --prod
 
 FROM base AS runner
 WORKDIR /app
