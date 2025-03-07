@@ -8,6 +8,9 @@
 .idea/usage.statistics.xml
 .idea/shelf
 
+# dist
+dist/
+
 # deps
 node_modules/
 
@@ -26,3 +29,6 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# scripts
+.venv/
