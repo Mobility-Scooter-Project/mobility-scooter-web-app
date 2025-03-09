@@ -1,0 +1,2 @@
+GET http://localhost:3000/
+Authorization: Bearer 1234567890
