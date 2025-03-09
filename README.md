@@ -29,7 +29,7 @@ npm run build
 To build the docker image, run the following command:
 ```
 docker buildx bake ./docker
-``
+```
 
 ## Security
 To generate an API key, run the following command:
