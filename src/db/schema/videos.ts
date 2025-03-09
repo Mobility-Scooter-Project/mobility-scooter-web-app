@@ -4,7 +4,7 @@ export const videos = pgSchema("videos");
 
 export const metadata = videos.table("metadata", {
     id: uuid().primaryKey(),
-    // patient_id: uuid().references(patients),
+    // patientId: uuid().references(patients),
     filename: varchar({ length: 255 }).notNull(),
     url: text().notNull(),
     createdAt: timestamp().defaultNow(),
