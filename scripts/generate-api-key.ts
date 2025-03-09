@@ -2,11 +2,16 @@ import { sql } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { apiKeys } from "../src/db/schema/auth";
 import os from "node:os";
+import fs from "node:fs";
 
 const hostname = os.hostname();
 
 try {
-  const key = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const key =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 8);
+
   await db.insert(apiKeys).values({
     id: sql`gen_random_uuid()`,
     owner: hostname,
@@ -15,9 +20,16 @@ try {
     updatedAt: new Date(),
   });
 
-  console.log(`Successfully generate API key ${key} for device: ${hostname}`);
+  console.log(`Successfully wrote API key to .env file for device ${hostname}`);
+
+  // write to .env file
+  fs.appendFileSync(
+    ".env",
+    `\nTESTING_API_KEY=${key}\n`
+  );
+
+  process.exit(0);
 } catch (e) {
   console.error(e);
+  process.exit(1);
 }
-
-process.exit(0);
