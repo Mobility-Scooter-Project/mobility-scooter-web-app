@@ -3,7 +3,6 @@ import { boolean, pgSchema, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const auth = pgSchema("auth");
 
-//api keys
 export const apiKeys = auth.table("api_keys", {
 	id: uuid().primaryKey().notNull(),
 	encryptedKey: text().notNull(),
