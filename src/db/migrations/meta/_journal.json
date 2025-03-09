@@ -8,6 +8,13 @@
       "when": 1741302760538,
       "tag": "0000_initial_video_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1741483237360,
+      "tag": "0001_supabase_auth",
+      "breakpoints": true
     }
   ]
 }
