@@ -2,7 +2,7 @@ import { pgTable, pgSchema, index, uuid, json, timestamp, unique, varchar, jsonb
 import { sql } from "drizzle-orm"
 
 
-// Generatated by pnpm drizzle-kit pull
+// Generatated by pnpm drizzle-kit pull, based on the supabase postgres schema
 export const auth = pgSchema("auth");
 
 export const auditLogEntriesInAuth = auth.table("audit_log_entries", {
@@ -66,4 +66,16 @@ export const instancesInAuth = auth.table("instances", {
 
 export const schemaMigrationsInAuth = auth.table("schema_migrations", {
 	version: varchar({ length: 255 }).primaryKey().notNull(),
+});
+
+//api keys
+export const apiKeys = auth.table("api_keys", {
+	id: uuid().primaryKey().notNull(),
+	encrypted_key: text().notNull(),
+	owner: text().notNull(),
+	// scopes: jsonb().notNull(),
+	is_active: boolean().default(true),
+	createdAt: timestamp().defaultNow(),
+	updatedAt: timestamp().defaultNow(),
+	deletedAt: timestamp()
 });
