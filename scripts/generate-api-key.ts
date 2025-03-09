@@ -20,13 +20,13 @@ try {
     updatedAt: new Date(),
   });
 
-  console.log(`Successfully wrote API key to .env file for device ${hostname}`);
-
   // write to .env file
   fs.appendFileSync(
     ".env",
     `\nTESTING_API_KEY=${key}\n`
   );
+
+  console.log(`Successfully wrote API key to .env file for device ${hostname}`);
 
   process.exit(0);
 } catch (e) {
