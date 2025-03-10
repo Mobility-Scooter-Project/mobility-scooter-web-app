@@ -29,6 +29,13 @@
       "when": 1741571056496,
       "tag": "0003_update_default_uuid_functions_and_add_admin_user_id",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1741571480070,
+      "tag": "0004_add_unit_id_to_user",
+      "breakpoints": true
     }
   ]
 }

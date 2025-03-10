@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { apiKeys } from "../db/schema/auth";
+import { createUser } from "src/repositories/auth";
 
 /**
  * Retrieves and validates an API key from the database
@@ -33,4 +34,20 @@ export const retrieveApiKey = async (key: string) => {
     return true;
   }
   return false;
+};
+
+export const createUserWithPassword = async (
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  unitId: string
+) => {
+  const newUser = await createUser({
+    email,
+    encryptedPassword: password,
+    firstName,
+    lastName,
+    unitId,
+  });
 };
