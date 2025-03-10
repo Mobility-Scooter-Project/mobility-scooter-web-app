@@ -1,4 +1,3 @@
-import { db } from "@db/client";
 import {
   users,
   providers,
@@ -7,11 +6,12 @@ import {
   refreshTokens,
 } from "@db/schema/auth";
 import { signJWT } from "@lib/jwt";
+import { DB } from "@middleware/db";
 import { HTTPException } from "hono/http-exception";
 
 type NewUser = typeof users.$inferInsert;
 
-export const createUser = async (newUser: NewUser) => {
+const createUser = async (db: DB, newUser: NewUser) => {
   try {
     const data = await db
       .insert(users)
@@ -24,7 +24,8 @@ export const createUser = async (newUser: NewUser) => {
   }
 };
 
-export const createIdentity = async (
+const createIdentity = async (
+  db: DB,
   userId: string,
   provider: (typeof providers.enumValues)[0]
 ) => {
@@ -43,7 +44,7 @@ export const createIdentity = async (
   }
 };
 
-export const createSession = async (userId: string) => {
+const createSession = async (db: DB, userId: string) => {
   try {
     const data = await db.insert(sessions).values({ userId }).returning();
     return data[0];
@@ -53,7 +54,11 @@ export const createSession = async (userId: string) => {
   }
 };
 
-export const createRefreshToken = async (userId: string, sessionId: string) => {
+const createRefreshToken = async (
+  db: DB,
+  userId: string,
+  sessionId: string
+) => {
   try {
     const expiresAt = new Date();
     expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 60 * 24 * 30); // 30 days
@@ -74,4 +79,11 @@ export const createRefreshToken = async (userId: string, sessionId: string) => {
     console.error(`Failed to create refresh token: ${e}`);
     throw new HTTPException(501, { message: "Failed to create refresh token" });
   }
+};
+
+export const authRepository = {
+  createUser,
+  createIdentity,
+  createSession,
+  createRefreshToken,
 };
