@@ -7,3 +7,8 @@ export const createUserWithPasswordSchema = z.object({
   lastName: z.string().nonempty(),
   unitId: z.string().nonempty(),
 });
+
+export const signInWithPasswordSchema = z.object({
+  email: z.string().email({ message: "Invalid email" }),
+  password: z.string().nonempty(),
+});
