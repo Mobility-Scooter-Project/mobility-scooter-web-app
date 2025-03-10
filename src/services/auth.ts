@@ -1,11 +1,10 @@
 import { eq, sql } from "drizzle-orm";
 import { apiKeys } from "../db/schema/auth";
-import { signJWT } from "@lib/jwt";
 import { DB } from "@middleware/db";
-import { userRepository } from "@repositories/user";
+import { ExistingUser, NewUser, userRepository } from "@repositories/user";
 import { identityRepository } from "@repositories/identity";
-import { sessionRepository } from "@repositories/session";
-import { refreshTokenRepository } from "@repositories/refresh-token";
+import { createSession } from "@lib/session";
+import { HTTPException } from "hono/http-exception";
 
 /**
  * Retrieves and validates an API key from the database
@@ -48,39 +47,48 @@ export const createUserWithPassword = async (
   lastName: string,
   unitId: string
 ) => {
-  const newUser = await userRepository.createUser(db, {
-    email,
-    encryptedPassword: password,
-    firstName,
-    lastName,
-    unitId,
-    lastSignedInAt: new Date(),
-  });
+  let user: NewUser | ExistingUser;
+  user = await userRepository.findUserByEmail(db, email);
 
-  await identityRepository.createIdentity(db, newUser.id, "emailpass");
+  if (!user) {
+    user = await userRepository.createUser(db, {
+      email,
+      encryptedPassword: password,
+      firstName,
+      lastName,
+      unitId,
+      lastSignedInAt: new Date(),
+    });
+  }
 
-  const session = await sessionRepository.createSession(db, newUser.id);
+  let identity = await identityRepository.getIdentityByUserId(db, user.id!);
 
-  const expiresAt = new Date();
-  expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 15); // 15 minutes
-  
-  const token = await signJWT({
-    userId: newUser.id,
-    sessionId: session.id,
-    exp: expiresAt,
-    iat: new Date(),
-  });
+  if (!identity || identity.provider !== "emailpass") {
+    identity = await identityRepository.createIdentity(
+      db,
+      user.id!,
+      "emailpass"
+    );
+  }
 
-  const refreshToken = await refreshTokenRepository.createRefreshToken(
-    db,
-    newUser.id,
-    session.id
-  );
+  return await createSession(db, user);
+};
 
-  return { token, refreshToken };
+const signInWithPassword = async (db: DB, email: string, password: string) => {
+  const user = await userRepository.findUserWithPassword(db, email, password);
+  if (!user) {
+    throw new HTTPException(401, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid email or password" })
+      ),
+    });
+  }
+
+  return await createSession(db, user);
 };
 
 export const authService = {
   createUserWithPassword,
+  signInWithPassword,
   retrieveApiKey,
 };
