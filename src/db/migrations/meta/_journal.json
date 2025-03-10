@@ -5,8 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1741302760538,
-      "tag": "0000_initial_video_tables",
+      "when": 1741488916501,
+      "tag": "0000_initial_video_and_auth_schemas",
       "breakpoints": true
     }
   ]

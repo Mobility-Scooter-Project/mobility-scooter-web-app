@@ -1,6 +1,6 @@
 services:
   db:
-    image: "supabase/postgres:15.6.1.113"
+    build: ./docker/postgres
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"

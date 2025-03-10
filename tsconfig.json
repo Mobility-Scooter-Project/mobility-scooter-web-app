@@ -4,14 +4,18 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
-    "verbatimModuleSyntax": true,
+    //"verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "outDir": "./dist",
+    "esModuleInterop": true,
+    "allowJs": true
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "include": ["src/**/*", "**/*.test.ts", "**/*.spec.ts"]
 }
