@@ -1,8 +1,11 @@
 import { eq, sql } from "drizzle-orm";
 import { apiKeys } from "../db/schema/auth";
 import { signJWT } from "@lib/jwt";
-import { authRepository } from "@repositories/auth";
 import { DB } from "@middleware/db";
+import { userRepository } from "@repositories/user";
+import { identityRepository } from "@repositories/identity";
+import { sessionRepository } from "@repositories/session";
+import { refreshTokenRepository } from "@repositories/refresh-token";
 
 /**
  * Retrieves and validates an API key from the database
@@ -45,10 +48,7 @@ export const createUserWithPassword = async (
   lastName: string,
   unitId: string
 ) => {
-  const { createUser, createIdentity, createSession, createRefreshToken } =
-    authRepository;
-
-  const newUser = await createUser(db, {
+  const newUser = await userRepository.createUser(db, {
     email,
     encryptedPassword: password,
     firstName,
@@ -57,19 +57,25 @@ export const createUserWithPassword = async (
     lastSignedInAt: new Date(),
   });
 
-  await createIdentity(db, newUser.id, "emailpass");
+  await identityRepository.createIdentity(db, newUser.id, "emailpass");
 
-  const session = await createSession(db, newUser.id);
+  const session = await sessionRepository.createSession(db, newUser.id);
 
   const expiresAt = new Date();
   expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 15); // 15 minutes
+  
   const token = await signJWT({
     userId: newUser.id,
     sessionId: session.id,
     exp: expiresAt,
     iat: new Date(),
   });
-  const refreshToken = await createRefreshToken(db, newUser.id, session.id);
+
+  const refreshToken = await refreshTokenRepository.createRefreshToken(
+    db,
+    newUser.id,
+    session.id
+  );
 
   return { token, refreshToken };
 };

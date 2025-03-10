@@ -1,6 +1,8 @@
 import {
   boolean,
   jsonb,
+  pgPolicy,
+  pgRole,
   pgSchema,
   text,
   timestamp,
@@ -8,8 +10,12 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { units } from "./tenants";
+import { sql } from "drizzle-orm";
 
 export const auth = pgSchema("auth");
+
+export const user = pgRole("authenticated_user");
+export const anon = pgRole("anonymous_user");
 
 export const apiKeys = auth.table("api_keys", {
   id: uuid().primaryKey().notNull(),
@@ -37,7 +43,14 @@ export const users = auth.table("users", {
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
   deletedAt: timestamp(),
-});
+}, (t) => [pgPolicy('allow unauthenticated users to create an account', 
+  {
+    as: "permissive",
+    to: anon,
+    for: "insert",
+    using: sql``,
+  }
+)]);
 
 export const providers = auth.enum("providers", ["emailpass"]);
 
