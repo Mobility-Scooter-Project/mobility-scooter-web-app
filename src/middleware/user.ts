@@ -3,6 +3,15 @@ import { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { verify } from "hono/jwt";
 
+/**
+ * Middleware function for user authentication.
+ * Verifies the user JWT token and sets userId and sessionId in the context.
+ * 
+ * @param c - The Hono context object
+ * @param next - The next middleware function to be called
+ * @throws {HTTPException} 400 - If no user data is provided in the request
+ * @throws {HTTPException} 401 - If user authentication fails
+ */
 export const userMiddleware = async (c: Context, next: Next) => {
   const { user } = await c.req.json();
 

@@ -3,6 +3,14 @@ import { DB } from "@middleware/db";
 import { sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
+/**
+ * Creates a new identity record in the database.
+ * @param db - The database connection instance
+ * @param userId - The unique identifier of the user
+ * @param provider - The authentication provider type
+ * @returns Promise containing the newly created identity record
+ * @throws {HTTPException} With status 501 if identity creation fails
+ */
 const createIdentity = async (
   db: DB,
   userId: string,
@@ -23,6 +31,13 @@ const createIdentity = async (
   }
 };
 
+/**
+ * Retrieves an identity record from the database based on the user ID.
+ * @param db - The database connection instance
+ * @param userId - The unique identifier of the user
+ * @returns A Promise that resolves to the first matching identity record
+ * @throws {HTTPException} With status 501 if the database query fails
+ */
 const getIdentityByUserId = async (db: DB, userId: string) => {
   try {
     const data = await db
