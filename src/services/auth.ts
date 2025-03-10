@@ -1,7 +1,13 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { apiKeys } from "../db/schema/auth";
-import { createUser } from "src/repositories/auth";
+import {
+  createIdentity,
+  createRefreshToken,
+  createSession,
+  createUser,
+} from "src/repositories/auth";
+import { signJWT } from "@lib/jwt";
 
 /**
  * Retrieves and validates an API key from the database
@@ -49,5 +55,22 @@ export const createUserWithPassword = async (
     firstName,
     lastName,
     unitId,
+    lastSignedInAt: new Date(),
   });
+
+  await createIdentity(newUser.id, "emailpass");
+
+  const session = await createSession(newUser.id);
+
+  const expiresAt = new Date();
+  expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 15); // 15 minutes
+  const token = await signJWT({
+    userId: newUser.id,
+    sessionId: session.id,
+    exp: expiresAt,
+    iat: new Date(),
+  });
+  const refreshToken = await createRefreshToken(newUser.id, session.id);
+
+  return { token, refreshToken };
 };

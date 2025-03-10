@@ -1,5 +1,4 @@
 import { pgSchema, uuid, text, timestamp } from "drizzle-orm/pg-core";
-import { users } from "./auth";
 
 export const tenants = pgSchema("tenants");
 
@@ -16,7 +15,7 @@ export const units = tenants.table("units", {
   tenantId: uuid()
     .references(() => metadata.id)
     .notNull(),
-  adminUserId: uuid().notNull(), // cannot use a circular reference here
+  adminUserId: uuid(), // cannot use a circular reference here
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
   deletedAt: timestamp(),

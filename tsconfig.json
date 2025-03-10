@@ -18,7 +18,9 @@
       "@services/*": ["src/services/*"],
       "@middleware/*": ["src/middleware/*"],
       "@handlers/*": ["src/handlers/*"],
-      "@db/*": ["src/db/*"]
+      "@db/*": ["src/db/*"],
+      "@lib/*": ["src/lib/*"],
+      "@repositories/*": ["src/repositories/*"]
     }
   },
   "exclude": ["node_modules"],
