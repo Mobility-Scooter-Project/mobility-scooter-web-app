@@ -22,5 +22,5 @@ export const validateApiKey = async (c: Context, next: Next) => {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
 
-  next();
+  await next();
 };
