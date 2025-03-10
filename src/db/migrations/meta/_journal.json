@@ -36,6 +36,13 @@
       "when": 1741571480070,
       "tag": "0004_add_unit_id_to_user",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1741579913210,
+      "tag": "0005_update_unit_constraints",
+      "breakpoints": true
     }
   ]
 }
