@@ -1,13 +1,8 @@
 import { eq, sql } from "drizzle-orm";
-import { db } from "../db/client";
 import { apiKeys } from "../db/schema/auth";
-import {
-  createIdentity,
-  createRefreshToken,
-  createSession,
-  createUser,
-} from "src/repositories/auth";
 import { signJWT } from "@lib/jwt";
+import { authRepository } from "@repositories/auth";
+import { DB } from "@middleware/db";
 
 /**
  * Retrieves and validates an API key from the database
@@ -21,7 +16,7 @@ import { signJWT } from "@lib/jwt";
  * }
  * ```
  */
-export const retrieveApiKey = async (key: string) => {
+const retrieveApiKey = async (db: DB, key: string) => {
   const data = await db.query.apiKeys.findFirst({
     where: (fields) =>
       sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${
@@ -43,13 +38,17 @@ export const retrieveApiKey = async (key: string) => {
 };
 
 export const createUserWithPassword = async (
+  db: DB,
   email: string,
   password: string,
   firstName: string,
   lastName: string,
   unitId: string
 ) => {
-  const newUser = await createUser({
+  const { createUser, createIdentity, createSession, createRefreshToken } =
+    authRepository;
+
+  const newUser = await createUser(db, {
     email,
     encryptedPassword: password,
     firstName,
@@ -58,9 +57,9 @@ export const createUserWithPassword = async (
     lastSignedInAt: new Date(),
   });
 
-  await createIdentity(newUser.id, "emailpass");
+  await createIdentity(db, newUser.id, "emailpass");
 
-  const session = await createSession(newUser.id);
+  const session = await createSession(db, newUser.id);
 
   const expiresAt = new Date();
   expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 15); // 15 minutes
@@ -70,7 +69,12 @@ export const createUserWithPassword = async (
     exp: expiresAt,
     iat: new Date(),
   });
-  const refreshToken = await createRefreshToken(newUser.id, session.id);
+  const refreshToken = await createRefreshToken(db, newUser.id, session.id);
 
   return { token, refreshToken };
+};
+
+export const authService = {
+  createUserWithPassword,
+  retrieveApiKey,
 };
