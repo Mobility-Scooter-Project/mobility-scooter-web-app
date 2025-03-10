@@ -1,5 +1,6 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
+import { apiKeys } from "../db/schema/auth";
 
 /**
  * Retrieves and validates an API key from the database
@@ -20,5 +21,16 @@ export const retrieveApiKey = async (key: string) => {
         fields.isActive
       } = ${true}`,
   });
-  return data && data.isActive;
+  if (data && data.isActive) {
+    try {
+      await db
+        .update(apiKeys)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(apiKeys.id, data.id));
+    } catch (e) {
+      console.error(`Failed to update API key: ${e}`);
+    }
+    return true;
+  }
+  return false;
 };

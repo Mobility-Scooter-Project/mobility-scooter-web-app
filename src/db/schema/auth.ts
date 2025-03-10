@@ -7,7 +7,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { metadata } from "./videos";
 
 export const auth = pgSchema("auth");
 
@@ -17,6 +16,7 @@ export const apiKeys = auth.table("api_keys", {
   owner: text().notNull(),
   // scopes: jsonb().notNull(),
   isActive: boolean().default(true),
+  lastUsedAt: timestamp(),
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
   deletedAt: timestamp(),
