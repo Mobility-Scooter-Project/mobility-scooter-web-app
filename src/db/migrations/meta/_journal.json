@@ -22,6 +22,13 @@
       "when": 1741569001045,
       "tag": "0002_add_last_used_at_to_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1741571056496,
+      "tag": "0003_update_default_uuid_functions_and_add_admin_user_id",
+      "breakpoints": true
     }
   ]
 }

@@ -23,7 +23,7 @@ export const apiKeys = auth.table("api_keys", {
 });
 
 export const users = auth.table("users", {
-  id: uuid().primaryKey().notNull(),
+  id: uuid().primaryKey().defaultRandom(),
   email: text().notNull().unique(),
   encryptedPassword: text(),
   permissions: jsonb().default({}),
@@ -38,7 +38,7 @@ export const users = auth.table("users", {
 export const providers = auth.enum("providers", ["emailpass"]);
 
 export const identities = auth.table("identities", {
-  id: uuid().primaryKey().notNull(),
+  id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
     .references(() => users.id)
     .notNull(),
@@ -50,7 +50,7 @@ export const identities = auth.table("identities", {
 });
 
 export const sessions = auth.table("sessions", {
-  id: uuid().primaryKey(),
+  id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
     .references(() => users.id)
     .notNull(),
@@ -60,7 +60,7 @@ export const sessions = auth.table("sessions", {
 });
 
 export const refreshTokens = auth.table("refresh_tokens", {
-  id: uuid().primaryKey(),
+  id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
     .references(() => users.id)
     .notNull(),
