@@ -14,7 +14,7 @@ import { sql } from "drizzle-orm";
 
 export const auth = pgSchema("auth");
 
-export const user = pgRole("authenticated_user");
+export const authenticated = pgRole("authenticated_user");
 export const anon = pgRole("anonymous_user");
 
 export const apiKeys = auth.table("api_keys", {
@@ -29,28 +29,39 @@ export const apiKeys = auth.table("api_keys", {
   deletedAt: timestamp(),
 });
 
-export const users = auth.table("users", {
-  id: uuid().primaryKey().defaultRandom(),
-  unitId: uuid()
-    .references(() => units.id)
-    .notNull(),
-  email: text().notNull().unique(),
-  encryptedPassword: text(),
-  permissions: jsonb().default({}),
-  firstName: varchar({ length: 255 }).notNull(),
-  lastName: varchar({ length: 255 }).notNull(),
-  lastSignedInAt: timestamp(),
-  createdAt: timestamp().defaultNow(),
-  updatedAt: timestamp().defaultNow(),
-  deletedAt: timestamp(),
-}, (t) => [pgPolicy('allow unauthenticated users to create an account', 
+export const users = auth.table(
+  "users",
   {
-    as: "permissive",
-    to: anon,
-    for: "insert",
-    using: sql``,
+    id: uuid().primaryKey().defaultRandom(),
+    unitId: uuid()
+      .references(() => units.id)
+      .notNull(),
+    email: text().notNull().unique(),
+    encryptedPassword: text(),
+    permissions: jsonb().default({}),
+    firstName: varchar({ length: 255 }).notNull(),
+    lastName: varchar({ length: 255 }).notNull(),
+    lastSignedInAt: timestamp(),
+    createdAt: timestamp().defaultNow(),
+    updatedAt: timestamp().defaultNow(),
+    deletedAt: timestamp(),
   }
-)]);
+  /* (t) => [
+    pgPolicy("allow unauthenticated users to create an account", {
+      as: "permissive",
+      to: anon,
+      for: "insert",
+      using: sql``,
+    }),
+    pgPolicy("allow authenticated users to read their own user", {
+      as: "permissive",
+      to: authenticated,
+      for: "select",
+      using: sql``,
+      withCheck: sql`current_user = id`,
+    }),
+  ]*/
+);
 
 export const providers = auth.enum("providers", ["emailpass"]);
 
