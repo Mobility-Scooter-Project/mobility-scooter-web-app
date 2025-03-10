@@ -16,7 +16,7 @@ export const units = tenants.table("units", {
   tenantId: uuid()
     .references(() => metadata.id)
     .notNull(),
-  adminUserId: uuid().references(() => users.id).notNull(),
+  adminUserId: uuid().notNull(), // cannot use a circular reference here
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
   deletedAt: timestamp(),

@@ -7,6 +7,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { units } from "./tenants";
 
 export const auth = pgSchema("auth");
 
@@ -24,6 +25,9 @@ export const apiKeys = auth.table("api_keys", {
 
 export const users = auth.table("users", {
   id: uuid().primaryKey().defaultRandom(),
+  unitId: uuid()
+    .references(() => units.id)
+    .notNull(),
   email: text().notNull().unique(),
   encryptedPassword: text(),
   permissions: jsonb().default({}),
