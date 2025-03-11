@@ -82,16 +82,6 @@ export const createUserWithPassword = async (
     });
   }
 
-  let identity = await identityRepository.getIdentityByUserId(db, user.id!);
-
-  if (!identity || identity.provider !== "emailpass") {
-    identity = await identityRepository.createIdentity(
-      db,
-      user.id!,
-      "emailpass"
-    );
-  }
-
   return await createSession(db, user);
 };
 
