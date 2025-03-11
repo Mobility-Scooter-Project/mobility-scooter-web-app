@@ -1,4 +1,4 @@
-import { users } from "@db/schema/auth";
+import { identities, providers, users } from "@db/schema/auth";
 import { DB } from "@middleware/db";
 import { eq, sql, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
@@ -11,7 +11,8 @@ const createUser = async (db: DB, newUser: NewUser) => {
     ? sql`crypt(${newUser.encryptedPassword}, gen_salt('bf'))`
     : null;
   try {
-    const data = await db
+    const data = await db.transaction(async(tx) => {
+      const data = await db
       .insert(users)
       .values({
         ...newUser,
@@ -20,6 +21,26 @@ const createUser = async (db: DB, newUser: NewUser) => {
         updatedAt: new Date(),
       })
       .returning();
+
+      const identity = await db
+        .select()
+        .from(identities)
+        .where(
+            eq(identities.userId, data[0].id))
+
+      if (!identity[0]) {
+        await db
+          .insert(identities)
+          .values({
+            userId: data[0].id,
+            provider: "emailpass",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        }
+
+      return data;
+    }) 
     return data[0];
   } catch (e: any) {
     if (e.code && e.code === "23505") {
