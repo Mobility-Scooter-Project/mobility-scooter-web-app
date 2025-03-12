@@ -1,4 +1,5 @@
 import { db } from "@middleware/db";
+import { kv } from "@src/lib/kv";
 import { sql } from "drizzle-orm";
 
 const headers = {
@@ -159,4 +160,5 @@ afterAll(async () => {
   await db.execute(
     sql`DELETE FROM auth.users WHERE email = ${SHARED_DATA.EMAIL}`
   );
+  await kv.flushall();
 });
