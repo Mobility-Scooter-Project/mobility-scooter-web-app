@@ -53,10 +53,9 @@ const retrieveApiKey = async (db: DB, key: string) => {
  * 
  * @remarks
  * This function will:
- * 1. Check if user exists by email
- * 2. Create new user if doesn't exist
- * 3. Ensure email/password identity exists
- * 4. Create and return a new session
+ * 1. Create new user if doesn't exist
+ * 2. Ensure email/password identity exists
+ * 3. Create and return a new session
  * 
  * @throws May throw database errors during user/identity creation or lookup
  */
@@ -109,6 +108,14 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
   return await createSession(db, user.id);
 };
 
+/**
+ * Refreshes an authentication session using a refresh token.
+ * 
+ * @param db - Database connection instance
+ * @param refreshToken - The refresh token string to validate
+ * @returns A Promise resolving to a new session with fresh access and refresh tokens
+ * @throws {HTTPException} With status 401 if the refresh token is invalid, revoked, or expired
+ */
 const refreshToken = async (db: DB, refreshToken: string) => {
 const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
 

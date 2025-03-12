@@ -41,11 +41,24 @@ const createRefreshToken = async (
   }
 };
 
+/**
+ * Retrieves a refresh token from the database
+ * @param db - The database instance
+ * @param token - The refresh token string to search for
+ * @returns A promise that resolves to the found refresh token record or null if not found
+ */
 const getRefreshToken = async (db: DB, token: string) => {
   return await db.query.refreshTokens.findFirst({
     where: (fields) => sql`${fields.token} = ${token}`,
   });
 }
+
+/**
+ * Revokes a refresh token by setting its 'revoked' status to true in the database
+ * @param db - The database connection instance
+ * @param token - The refresh token string to be revoked
+ * @throws {HTTPException} - Throws 501 error if token revocation fails
+ */
 const revokeRefreshToken = async (db: DB, token: string) => {
   try {
     await db.update(refreshTokens).set({ revoked: true }).where(eq(refreshTokens.token, token));
