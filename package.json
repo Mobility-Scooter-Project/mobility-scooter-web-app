@@ -4,14 +4,13 @@
   "private": "true",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/src/index.js",
+    "start": "tsx src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
     "generate-api-key": "tsx ./scripts/generate-api-key.ts",
-    "test": "start-server-and-test 3000 'jest --setupFiles dotenv/config --force-exit'"
+    "test": "start-server-and-test 3000 --expect 404 'jest --setupFiles dotenv/config --force-exit'"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
