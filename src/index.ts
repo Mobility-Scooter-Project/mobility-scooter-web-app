@@ -6,6 +6,8 @@ import { DB } from "@middleware/db";
 
 export type Variables = {
   db: DB;
+  userId?: string;
+  sessionId?: string;
 };
 
 export const app = new Hono<{ Variables: Variables }>()

@@ -26,6 +26,9 @@ importers:
       hono-openapi:
         specifier: ^0.4.6
         version: 0.4.6(@hono/zod-validator@0.4.3(hono@4.7.4)(zod@3.24.2))(hono@4.7.4)(zod-openapi@4.2.3(zod@3.24.2))(zod@3.24.2)
+      hono-rate-limiter:
+        specifier: ^0.4.2
+        version: 0.4.2(hono@4.7.4)
       pg:
         specifier: ^8.13.3
         version: 8.13.3
@@ -1400,6 +1403,11 @@ packages:
         optional: true
       zod-openapi:
         optional: true
+
+  hono-rate-limiter@0.4.2:
+    resolution: {integrity: sha512-AAtFqgADyrmbDijcRTT/HJfwqfvhalya2Zo+MgfdrMPas3zSMD8SU03cv+ZsYwRU1swv7zgVt0shwN059yzhjw==}
+    peerDependencies:
+      hono: ^4.1.1
 
   hono@4.7.4:
     resolution: {integrity: sha512-Pst8FuGqz3L7tFF+u9Pu70eI0xa5S3LPUmrNd5Jm8nTHze9FxLTK9Kaj5g/k4UcwuJSXTP65SyHOPLrffpcAJg==}
@@ -3381,6 +3389,10 @@ snapshots:
       hono: 4.7.4
       zod: 3.24.2
       zod-openapi: 4.2.3(zod@3.24.2)
+
+  hono-rate-limiter@0.4.2(hono@4.7.4):
+    dependencies:
+      hono: 4.7.4
 
   hono@4.7.4: {}
 
