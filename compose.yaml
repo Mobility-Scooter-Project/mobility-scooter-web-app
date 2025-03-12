@@ -9,5 +9,14 @@ services:
       - "5432:5432"
     volumes:
       - db:/var/lib/postgresql/data
+    restart: always
+  kv:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+    volumes:
+      - kv:/data
+    restart: always
 volumes:
  db:
+ kv:
