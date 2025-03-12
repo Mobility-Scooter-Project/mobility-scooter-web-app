@@ -45,22 +45,32 @@ export const users = auth.table(
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow(),
     deletedAt: timestamp(),
-  }
-  /* (t) => [
+  },(t) => [
     pgPolicy("allow unauthenticated users to create an account", {
       as: "permissive",
       to: anon,
       for: "insert",
-      using: sql``,
+      withCheck: sql`true`,
     }),
-    pgPolicy("allow authenticated users to read their own user", {
+    pgPolicy("allow unauthenticated users to login", {
+      as: "permissive",
+      to: anon,
+      for: "select",
+      using: sql`true`,
+    }),
+    pgPolicy("allow authenticated users to read their own data", {
       as: "permissive",
       to: authenticated,
       for: "select",
-      using: sql``,
-      withCheck: sql`current_user = id`,
+      using: sql`id = current_setting('app.user_id')::uuid`,
     }),
-  ]*/
+    pgPolicy("allow authenticated users to update their own data", {
+      as: "permissive",
+      to: authenticated,
+      for: "update",
+      using: sql`id = current_setting('app.user_id')::uuid`,
+    }),
+  ]
 );
 
 export const providers = auth.enum("providers", ["emailpass"]);
@@ -75,7 +85,26 @@ export const identities = auth.table("identities", {
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
   deletedAt: timestamp(),
-});
+}, (t) => [
+  pgPolicy("allow authenticated users to read their own identities", {
+    as: "permissive",
+    to: authenticated,
+    for: "select",
+    using: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to create their own identities", {
+    as: "permissive",
+    to: authenticated,
+    for: "insert",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to update their own identities", {
+    as: "permissive",
+    to: authenticated,
+    for: "update",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+]);
 
 export const sessions = auth.table("sessions", {
   id: uuid().primaryKey().defaultRandom(),
@@ -85,7 +114,26 @@ export const sessions = auth.table("sessions", {
   refreshed_at: timestamp().defaultNow(),
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
-});
+}, (t) => [
+  pgPolicy("allow authenticated users to read their own sessions", {
+    as: "permissive",
+    to: authenticated,
+    for: "select",
+    using: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to create their own sessions", {
+    as: "permissive",
+    to: authenticated,
+    for: "insert",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to update their own sessions", {
+    as: "permissive",
+    to: authenticated,
+    for: "update",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+]);
 
 export const refreshTokens = auth.table("refresh_tokens", {
   id: uuid().primaryKey().defaultRandom(),
@@ -100,4 +148,18 @@ export const refreshTokens = auth.table("refresh_tokens", {
   expiresAt: timestamp().notNull(),
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
-});
+}, (t) => [
+  pgPolicy("allow authenticated users to read their own refresh tokens", {
+    as: "permissive",
+    to: authenticated,
+    for: "select",
+    using: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to create their own refresh tokens", {
+    as: "permissive",
+    to: authenticated,
+    for: "insert",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }
+  )
+]);

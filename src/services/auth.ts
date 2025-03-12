@@ -68,11 +68,8 @@ export const createUserWithPassword = async (
   lastName: string,
   unitId: string
 ) => {
-  let user: NewUser | ExistingUser;
-  user = await userRepository.findUserByEmail(db, email);
 
-  if (!user) {
-    user = await userRepository.createUser(db, {
+    const {id} = await userRepository.createUser(db, {
       email,
       encryptedPassword: password,
       firstName,
@@ -80,9 +77,9 @@ export const createUserWithPassword = async (
       unitId,
       lastSignedInAt: new Date(),
     });
-  }
+  
 
-  return await createSession(db, user);
+  return await createSession(db, id);
 };
 
 /**
@@ -104,7 +101,12 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
     });
   }
 
-  return await createSession(db, user);
+  await db.transaction(async (tx) => {
+    await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`));
+    await tx.execute(sql`SET ROLE authenticated_user`);
+  });
+
+  return await createSession(db, user.id);
 };
 
 export const authService = {

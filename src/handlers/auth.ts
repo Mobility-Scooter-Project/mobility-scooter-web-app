@@ -30,10 +30,10 @@ const app = new Hono<{ Variables: Variables }>()
       );
 
       return new Response(
-        JSON.stringify({
+        JSON.stringify({data:{
           token,
           refreshToken,
-        }),
+        }, error: null}),
         { status: 200 }
       );
     }
@@ -54,10 +54,10 @@ const app = new Hono<{ Variables: Variables }>()
       );
 
       return new Response(
-        JSON.stringify({
+        JSON.stringify({data: {
           token,
           refreshToken,
-        }),
+        }, error: null}),
         { status: 200 }
       );
     }
