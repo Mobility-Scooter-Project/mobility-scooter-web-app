@@ -6,15 +6,22 @@
     "strict": true,
     //"verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": [
-      "node",
-      "jest"
-    ],
+    "types": ["node", "jest"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "outDir": "./dist",
     "esModuleInterop": true,
-    "allowJs": true
+    "allowJs": true,
+    "baseUrl": "./",
+    "paths": {
+      "@config/*": ["src/config/*"],
+      "@services/*": ["src/services/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@handlers/*": ["src/handlers/*"],
+      "@db/*": ["src/db/*"],
+      "@lib/*": ["src/lib/*"],
+      "@repositories/*": ["src/repositories/*"]
+    }
   },
   "exclude": ["node_modules"],
   "include": ["src/**/*", "**/*.test.ts", "**/*.spec.ts"]
