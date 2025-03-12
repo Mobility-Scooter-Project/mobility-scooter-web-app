@@ -12,7 +12,7 @@ const createUser = async (db: DB, newUser: NewUser) => {
     : null;
   try {
     const data = await db.transaction(async(tx) => {
-      const data = await db
+      const data = await tx
       .insert(users)
       .values({
         ...newUser,
@@ -20,16 +20,19 @@ const createUser = async (db: DB, newUser: NewUser) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
-      .returning();
+      .returning({ id: users.id });
 
-      const identity = await db
+      await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`));
+      await tx.execute(sql.raw(`SET ROLE authenticated_user`));
+
+      const identity = await tx
         .select()
         .from(identities)
         .where(
             eq(identities.userId, data[0].id))
 
       if (!identity[0]) {
-        await db
+        await tx
           .insert(identities)
           .values({
             userId: data[0].id,
