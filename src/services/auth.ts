@@ -1,5 +1,10 @@
-import { sql } from "drizzle-orm";
-import { db } from "../db/client";
+import { eq, sql } from "drizzle-orm";
+import { apiKeys } from "../db/schema/auth";
+import { DB } from "@middleware/db";
+import { ExistingUser, NewUser, userRepository } from "@repositories/user";
+import { identityRepository } from "@repositories/identity";
+import { createSession } from "@lib/session";
+import { HTTPException } from "hono/http-exception";
 
 /**
  * Retrieves and validates an API key from the database
@@ -13,12 +18,97 @@ import { db } from "../db/client";
  * }
  * ```
  */
-export const retrieveApiKey = async (key: string) => {
+const retrieveApiKey = async (db: DB, key: string) => {
   const data = await db.query.apiKeys.findFirst({
     where: (fields) =>
       sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${
         fields.isActive
       } = ${true}`,
   });
-  return data && data.isActive;
+  if (data && data.isActive) {
+    try {
+      await db
+        .update(apiKeys)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(apiKeys.id, data.id));
+    } catch (e) {
+      console.error(`Failed to update API key: ${e}`);
+    }
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Creates a new user with email/password authentication and returns a session
+ * 
+ * @param db - Database connection instance
+ * @param email - User's email address
+ * @param password - User's password (pre-encryption)
+ * @param firstName - User's first name
+ * @param lastName - User's last name
+ * @param unitId - Associated unit identifier
+ * 
+ * @returns Promise resolving to a user session
+ * 
+ * @remarks
+ * This function will:
+ * 1. Check if user exists by email
+ * 2. Create new user if doesn't exist
+ * 3. Ensure email/password identity exists
+ * 4. Create and return a new session
+ * 
+ * @throws May throw database errors during user/identity creation or lookup
+ */
+export const createUserWithPassword = async (
+  db: DB,
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  unitId: string
+) => {
+  let user: NewUser | ExistingUser;
+  user = await userRepository.findUserByEmail(db, email);
+
+  if (!user) {
+    user = await userRepository.createUser(db, {
+      email,
+      encryptedPassword: password,
+      firstName,
+      lastName,
+      unitId,
+      lastSignedInAt: new Date(),
+    });
+  }
+
+  return await createSession(db, user);
+};
+
+/**
+ * Authenticates a user with their email and password, creating a new session if successful.
+ * 
+ * @param db - The database instance
+ * @param email - The user's email address
+ * @param password - The user's password
+ * @returns A Promise that resolves to the created session
+ * @throws {HTTPException} With status 401 if the email or password is invalid
+ */
+const signInWithPassword = async (db: DB, email: string, password: string) => {
+  const user = await userRepository.findUserWithPassword(db, email, password);
+  if (!user) {
+    throw new HTTPException(401, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid email or password" })
+      ),
+    });
+  }
+
+  return await createSession(db, user);
+};
+
+export const authService = {
+  createUserWithPassword,
+  signInWithPassword,
+  retrieveApiKey,
 };

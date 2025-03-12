@@ -1,0 +1,1 @@
+ALTER TABLE "tenants"."units" ALTER COLUMN "admin_user_id" DROP NOT NULL;
