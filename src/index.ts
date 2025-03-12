@@ -16,6 +16,8 @@ export const app = new Hono<{ Variables: Variables }>()
   .basePath("/v1/api")
   .route("/auth", auth);
 
+export type AppType = typeof app;
+
 serve(
   {
     fetch: app.fetch,
