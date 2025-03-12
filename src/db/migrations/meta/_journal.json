@@ -50,6 +50,13 @@
       "when": 1741804654805,
       "tag": "0006_initial_rls_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1741813722461,
+      "tag": "0007_update_identities_fk_constraint",
+      "breakpoints": true
     }
   ]
 }
