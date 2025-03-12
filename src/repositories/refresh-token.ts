@@ -1,6 +1,7 @@
 import { refreshTokens } from "@db/schema/auth";
 import { signJWT } from "@lib/jwt";
 import { DB } from "@middleware/db";
+import { eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
 /**
@@ -40,6 +41,24 @@ const createRefreshToken = async (
   }
 };
 
+const getRefreshToken = async (db: DB, token: string) => {
+  return await db.query.refreshTokens.findFirst({
+    where: (fields) => sql`${fields.token} = ${token}`,
+  });
+}
+const revokeRefreshToken = async (db: DB, token: string) => {
+  try {
+    await db.update(refreshTokens).set({ revoked: true }).where(eq(refreshTokens.token, token));
+  }
+  catch (e) {
+    console.error(`Failed to revoke refresh token: ${e}`);
+    throw new HTTPException(501, { message: "Failed to revoke refresh token" });
+  }
+};
+
+
 export const refreshTokenRepository = {
   createRefreshToken,
+  getRefreshToken,
+  revokeRefreshToken
 };

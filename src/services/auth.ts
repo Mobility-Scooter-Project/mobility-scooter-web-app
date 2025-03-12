@@ -1,10 +1,10 @@
 import { eq, sql } from "drizzle-orm";
 import { apiKeys } from "../db/schema/auth";
 import { DB } from "@middleware/db";
-import { ExistingUser, NewUser, userRepository } from "@repositories/user";
-import { identityRepository } from "@repositories/identity";
+import { userRepository } from "@repositories/user";
 import { createSession } from "@lib/session";
 import { HTTPException } from "hono/http-exception";
+import { refreshTokenRepository } from "@repositories/refresh-token";
 
 /**
  * Retrieves and validates an API key from the database
@@ -109,8 +109,25 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
   return await createSession(db, user.id);
 };
 
+const refreshToken = async (db: DB, refreshToken: string) => {
+const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
+
+  if (!record || record.revoked || !record.expiresAt || record.expiresAt < new Date()) {
+    throw new HTTPException(401, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid refresh token" })
+      ),
+    });
+  }
+
+  await refreshTokenRepository.revokeRefreshToken(db, refreshToken);
+
+  return await createSession(db, record.userId);
+};
+
 export const authService = {
   createUserWithPassword,
   signInWithPassword,
   retrieveApiKey,
+  refreshToken,
 };
