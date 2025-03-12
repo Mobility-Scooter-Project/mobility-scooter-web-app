@@ -9,8 +9,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:drop": "drizzle-kit drop",
     "generate-api-key": "tsx ./scripts/generate-api-key.ts",
-    "test": "jest --setupFiles dotenv/config --force-exit"
+    "test": "start-server-and-test 3000 'jest --setupFiles dotenv/config --force-exit'"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
@@ -30,6 +31,7 @@
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.5",
     "jest": "^29.7.0",
+    "start-server-and-test": "^2.0.10",
     "ts-jest": "^29.2.6",
     "tsx": "^4.7.1",
     "typescript": "^5.8.2"

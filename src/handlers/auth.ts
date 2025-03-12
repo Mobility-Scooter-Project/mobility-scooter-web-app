@@ -8,7 +8,7 @@ import {
   createUserWithPasswordSchema,
   refreshTokenSchema,
   signInWithPasswordSchema,
-} from "src/validators/auth";
+} from "@validators/auth";
 
 const app = new Hono<{ Variables: Variables }>()
   .post(

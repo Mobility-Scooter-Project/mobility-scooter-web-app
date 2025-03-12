@@ -2,7 +2,6 @@ import { sessionRepository } from "@repositories/session";
 import { signJWT } from "./jwt";
 import { DB } from "@middleware/db";
 import { refreshTokenRepository } from "@repositories/refresh-token";
-import { ExistingUser, NewUser } from "@repositories/user";
 
 /**
  * Creates a new session for a user with associated JWT token and refresh token

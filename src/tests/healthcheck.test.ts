@@ -1,13 +1,7 @@
-import { testClient } from "hono/testing";
-import { app } from "..";
 
-const headers = {
-  Authorization: `Bearer ${process.env.TESTING_API_KEY}`,
-};
-
-
+const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3000";
 it("should return 200 OK", async () => {
-  const response = await testClient(app).healthcheck.$get();
+  const response = await fetch(`${BASE_URL}/healthcheck`);
 
   expect(response.status).toBe(200);
 });
