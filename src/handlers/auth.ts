@@ -1,11 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
-import { dbMiddleware } from "@middleware/db";
+import { db, dbMiddleware } from "@middleware/db";
 import { validateApiKey } from "@middleware/validate-api-key";
 import { authService } from "@services/auth";
 import { Hono } from "hono";
 import { Variables } from "src";
 import {
   createUserWithPasswordSchema,
+  refreshTokenSchema,
   signInWithPasswordSchema,
 } from "src/validators/auth";
 
@@ -61,6 +62,18 @@ const app = new Hono<{ Variables: Variables }>()
         { status: 200 }
       );
     }
-  );
+  ).post('/refresh', dbMiddleware, validateApiKey, zValidator("json", refreshTokenSchema), async (c) => {
+    const {token} = c.req.valid('json')
+
+    const {token: newToken, refreshToken} = await authService.refreshToken(db, token);
+
+    return new Response(
+      JSON.stringify({data: {
+        token: newToken,
+        refreshToken,
+      }, error: null}),
+      {status: 200}
+    )
+  })
 
 export default app;
