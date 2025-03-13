@@ -2,6 +2,7 @@ import { rateLimiter } from "hono-rate-limiter";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { kv } from "@src/lib/kv";
 import RedisStore from "rate-limit-redis";
+import { ENVIRONMENT } from "@src/config/constants";
 
 const sharedStore = new RedisStore({
   // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
@@ -17,6 +18,7 @@ export const signUpRateLimiter = rateLimiter({
   },
   //@ts-ignore
   store: sharedStore,
+  skip: (c) => ENVIRONMENT === "development",
 });
 
 export const signInRateLimiter = rateLimiter({
@@ -30,4 +32,5 @@ export const signInRateLimiter = rateLimiter({
   },
   //@ts-ignore
   store: sharedStore,
+  skip: (c) => ENVIRONMENT === "development",
 });

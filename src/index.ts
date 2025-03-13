@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import auth from "@handlers/auth";
+import storage from "@handlers/storage";
 import { DB } from "@middleware/db";
 
 export type Variables = {
@@ -16,7 +17,8 @@ export const app = new Hono<{ Variables: Variables }>()
     return new Response("OK", { status: 200 });
   })
   .basePath("/v1/api")
-  .route("/auth", auth);
+  .route("/auth", auth)
+  .route("/storage", storage);
 
 export type AppType = typeof app;
 

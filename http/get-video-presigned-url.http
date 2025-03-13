@@ -1,0 +1,23 @@
+### Login
+# @name login
+POST http://localhost:3000/v1/api/auth/emailpass
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
+
+{
+"email": "test@example.com",
+ "password": "test123456789"
+}
+
+### Get Video Presigned URL
+
+POST http://localhost:3000/v1/api/storage/videos/presigned-url
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
+
+{
+ "user": "${{login.response.body.data.token}}",
+ "date": "{{$datetime iso8601}}"
+ "filename": "test.mp4",
+ "patientId": "abc-123-456-789"
+}

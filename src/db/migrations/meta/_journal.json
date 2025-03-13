@@ -57,6 +57,13 @@
       "when": 1741813722461,
       "tag": "0007_update_identities_fk_constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1741835080070,
+      "tag": "0008_add_patient_id_to_video_metadata",
+      "breakpoints": true
     }
   ]
 }
