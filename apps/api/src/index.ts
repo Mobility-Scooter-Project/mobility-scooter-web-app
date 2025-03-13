@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import auth from "@handlers/auth";
 import storage from "@handlers/storage";
-import webhooks from "@handlers/webhooks";
+import webhooks from "@src/handlers/webhook";
 import { DB } from "@middleware/db";
 
 export type Variables = {

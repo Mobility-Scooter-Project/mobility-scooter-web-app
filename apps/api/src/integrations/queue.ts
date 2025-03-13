@@ -1,12 +1,14 @@
 import { Queue, Worker } from 'bullmq';
-import { kv } from './kv';
+import IORedis from 'ioredis';
 
-export const videoProcessingQueue = new Queue('video-processing', { connection: kv });
+const connection = new IORedis({ maxRetriesPerRequest: null })
+
+export const videoProcessingQueue = new Queue('video-processing', { connection });
 
 const worker = new Worker(
     'video-processing',
     async job => {
         console.log(job.data);
     },
-    { connection: kv },
+    { connection },
 );

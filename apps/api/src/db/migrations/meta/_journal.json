@@ -64,6 +64,13 @@
       "when": 1741835080070,
       "tag": "0008_add_patient_id_to_video_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1741904032473,
+      "tag": "0009_update_video_schema",
+      "breakpoints": true
     }
   ]
 }
