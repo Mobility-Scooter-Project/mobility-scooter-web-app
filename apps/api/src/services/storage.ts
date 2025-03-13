@@ -1,13 +1,12 @@
-import { storage } from "@src/lib/storage"
+import { storage } from "@src/integrations/storage"
 import { HTTPException } from "hono/http-exception";
 
-const generatePresignedVideoUrl = async (filename: string, userId: string, patientId: string, date: Date) => {
-    // TODO: check if user has permission to upload video -> relies on proper patient schema
+const generatePresignedVideoUrl = async (filename: string, patientId: string, date: Date) => {
     try {
         const bucket = await storage.bucketExists(patientId);
         if (!bucket) {
             await storage.makeBucket(patientId);
-            // TODO: set bucket policy
+            
         }
     } catch (e) {
         console.error(e);
@@ -19,7 +18,7 @@ const generatePresignedVideoUrl = async (filename: string, userId: string, patie
         });
     }
     try {
-    return await storage.presignedPutObject(patientId, `videos/${filename}`, 60 * 60 * 24);
+        return await storage.presignedPutObject(patientId, `videos/${patientId}/${date}/${filename}`, 60 * 60 * 24);
     } catch (e) {
         console.error(e);
         throw new HTTPException(500, {

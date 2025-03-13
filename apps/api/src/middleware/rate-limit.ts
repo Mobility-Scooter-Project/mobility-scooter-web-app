@@ -1,6 +1,6 @@
 import { rateLimiter } from "hono-rate-limiter";
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { kv } from "@src/lib/kv";
+import { kv } from "@src/integrations/kv";
 import RedisStore from "rate-limit-redis";
 import { ENVIRONMENT } from "@src/config/constants";
 

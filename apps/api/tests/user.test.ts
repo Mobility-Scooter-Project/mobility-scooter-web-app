@@ -1,5 +1,5 @@
 import { db } from "@middleware/db";
-import { kv } from "@src/lib/kv";
+import { kv } from "@src/integrations/kv";
 import { sql } from "drizzle-orm";
 
 const headers = {

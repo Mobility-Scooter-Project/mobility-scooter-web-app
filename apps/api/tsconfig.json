@@ -20,6 +20,7 @@
       "@handlers/*": ["src/handlers/*"],
       "@db/*": ["src/db/*"],
       "@lib/*": ["src/lib/*"],
+      "@integrations/*": ["src/integrations/*"],
       "@repositories/*": ["src/repositories/*"],
       "@validators/*": ["src/validators/*"]
     }

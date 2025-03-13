@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import auth from "@handlers/auth";
 import storage from "@handlers/storage";
+import webhooks from "@handlers/webhooks";
 import { DB } from "@middleware/db";
 
 export type Variables = {
@@ -18,7 +19,7 @@ export const app = new Hono<{ Variables: Variables }>()
   })
   .basePath("/v1/api")
   .route("/auth", auth)
-  .route("/storage", storage);
+  .route("/storage", storage).route("/webhooks", webhooks);
 
 export type AppType = typeof app;
 

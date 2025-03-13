@@ -3,7 +3,9 @@ dotenv.config();
 
 export const DATABASE_URL = process.env.DATABASE_URL || "missing DATABASE_URL";
 export const KV_URL = process.env.KV_URL || "missing KV_URL";
+
 export const VIDEO_API_URL = process.env.VIDEO_API_URL || "missing VIDEO_API_URL";
+export const VIDEO_WEBHOOK_ARN = process.env.VIDEO_WEBHOOK_ARN || "missing VIDEO_WEBHOOK_ARN";
 
 export const STORAGE_URL = process.env.STORAGE_URL || "missing STORAGE_URL";
 export const STORAGE_PORT = process.env.STORAGE_PORT || "missing STORAGE_PORT";
