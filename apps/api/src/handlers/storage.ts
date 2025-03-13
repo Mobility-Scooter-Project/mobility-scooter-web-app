@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { Variables } from "..";
 import { dbMiddleware } from "@src/middleware/db";
 import { validateApiKey } from "@src/middleware/validate-api-key";
-import { userMiddleware } from "@src/middleware/user";
+import { userMiddleware } from "@src/middleware/user"; // TODO: Add user middleware
 import { zValidator } from "@hono/zod-validator";
 import { presignedUrlSchema } from "@src/validators/storage";
 import { storageService } from "@src/services/storage";
