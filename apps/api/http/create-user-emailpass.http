@@ -4,7 +4,7 @@ Content-Type: application/json
 
 {
   "email": "test@example.com",
-  "password": "test123456789",
+  "password": "testing124",
   "firstName": "Test",
   "lastName": "User",
   "unitId": "{{$dotenv TESTING_UNIT_ID}}"

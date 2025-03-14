@@ -1,6 +1,6 @@
 import { db } from "@middleware/db";
 import { kv } from "@src/integrations/kv";
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 
 const headers = {
   Authorization: `Bearer ${process.env.TESTING_API_KEY}`,
@@ -9,7 +9,7 @@ const headers = {
 
 const SHARED_DATA = {
   EMAIL: "users@example.com",
-  PASSWORD: "password12345",
+  PASSWORD: "password1358",
 };
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
@@ -20,124 +20,258 @@ describe("User", () => {
   beforeAll(async () => {
     await kv.flushall();
   });
-  // create-user-emailpass.http
-  it("should create a new user", async () => {
-    const body = {
-      email: SHARED_DATA.EMAIL,
-      password: SHARED_DATA.PASSWORD,
-      firstName: "John",
-      lastName: "Doe",
-      unitId: process.env.TESTING_UNIT_ID!,
-    };
 
-    const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
+  describe("Create", () => {
+    // create-user-emailpass.http
+    it("should create a new user", async () => {
+      const body = {
+        email: SHARED_DATA.EMAIL,
+        password: SHARED_DATA.PASSWORD,
+        firstName: "John",
+        lastName: "Doe",
+        unitId: process.env.TESTING_UNIT_ID!,
+      };
+
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      expect(response.status).toBe(200);
     });
 
-    expect(response.status).toBe(200);
-  });
+    it("should return 409 when an existing email is used", async () => {
+      const body = {
+        email: SHARED_DATA.EMAIL,
+        password: SHARED_DATA.PASSWORD,
+        firstName: "John",
+        lastName: "Doe",
+        unitId: process.env.TESTING_UNIT_ID!,
+      };
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
 
-  it("should return 409 when an existing email is used", async () => {
-    const body = {
-      email: SHARED_DATA.EMAIL,
-      password: SHARED_DATA.PASSWORD,
-      firstName: "John",
-      lastName: "Doe",
-      unitId: process.env.TESTING_UNIT_ID!,
-    };
-    const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
+      expect(response.status).toBe(409);
     });
 
-    expect(response.status).toBe(409);
-  });
+    it("should return 409 when the rate limit is exceeded", async () => {
+      const body = {
+        email: SHARED_DATA.EMAIL,
+        password: SHARED_DATA.PASSWORD,
+        firstName: "John",
+        lastName: "Doe",
+        unitId: process.env.TESTING_UNIT_ID!,
+      };
 
-  it("should return 409 when the rate limit is exceeded", async () => {
-    const body = {
-      email: SHARED_DATA.EMAIL,
-      password: SHARED_DATA.PASSWORD,
-      firstName: "John",
-      lastName: "Doe",
-      unitId: process.env.TESTING_UNIT_ID!,
-    };
+      const statuses = await Promise.all(
+        Array.from({ length: 51 }).map(() =>
+          fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(body),
+          }).then((r) => r.status)
+        )
+      );
 
-    const statuses = await Promise.all(
-      Array.from({ length: 51 }).map(() =>
-        fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+      expect(statuses.includes(409)).toBe(true);
+    });
+
+    it("should return 400 when the email is invalid", async () => {
+      const body = {
+        email: "invalidemail",
+        password: SHARED_DATA.PASSWORD,
+        firstName: "John",
+        lastName: "Doe",
+        unitId: process.env.TESTING_UNIT_ID!,
+      };
+
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      expect(response.status).toBe(400);
+    }
+    );
+
+    describe("Password", () => {
+      it("should return 400 when password is too short", async () => {
+        const body = {
+          email: "test@example.com",
+          password: "abc123",
+          firstName: "John",
+          lastName: "Doe",
+          unitId: process.env.TESTING_UNIT_ID!,
+        };
+
+        const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
           method: "POST",
           headers,
           body: JSON.stringify(body),
-        }).then((r) => r.status)
-      )
-    );
+        });
 
-    expect(statuses.includes(409)).toBe(true);
+        expect(response.status).toBe(400);
+      });
+
+      it("should return 400 when password is too long", async () => {
+        const body = {
+          email: "test1@example.com",
+          password: "a".repeat(65),
+          firstName: "John",
+          lastName: "Doe",
+          unitId: process.env.TESTING_UNIT_ID!,
+        };
+
+        const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it("should return 400 when password contains sequential characters", async () => {
+        const body = {
+          email: "test2@example.com",
+          password: "abcd1234",
+          firstName: "John",
+          lastName: "Doe",
+          unitId: process.env.TESTING_UNIT_ID!,
+        };
+
+        const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it("should return 400 when password contains repeated characters", async () => {
+        const body = {
+          email: "test5@example.com",
+          password: "aaaaaaaa",
+          firstName: "John",
+          lastName: "Doe",
+          unitId: process.env.TESTING_UNIT_ID!,
+        };
+
+        const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it("should return 400 when password is a common dictionary word", async () => {
+        const body = {
+          email: "test4@example.com",
+          password: "cheeseburger",
+          firstName: "John",
+          lastName: "Doe",
+          unitId: process.env.TESTING_UNIT_ID!,
+        };
+
+        const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
+
+        expect(response.status).toBe(400);
+      });
+    });
   });
 
-  // login-user-emailpass.http
-  it("should login the user", async () => {
-    const body = {
-      email: SHARED_DATA.EMAIL,
-      password: SHARED_DATA.PASSWORD,
-    };
+  describe("Login", () => {
+    // login-user-emailpass.http
+    it("should login the user", async () => {
+      const body = {
+        email: SHARED_DATA.EMAIL,
+        password: SHARED_DATA.PASSWORD,
+      };
 
-    const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers,
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers,
+      });
+
+      expect(response.status).toBe(200);
+      refreshToken = (await response.json()).data.refreshToken;
     });
 
-    expect(response.status).toBe(200);
-    refreshToken = (await response.json()).data.refreshToken;
-  });
 
-  it("should return 401 when the password is incorrect", async () => {
-    const body = {
-      email: SHARED_DATA.EMAIL,
-      password: "wrongpassword",
-    };
+    it("should return 401 when the password is incorrect", async () => {
+      const body = {
+        email: SHARED_DATA.EMAIL,
+        password: "wrongpassword",
+      };
 
-    const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers,
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers,
+      });
+
+      expect(response.status).toBe(401);
     });
 
-    expect(response.status).toBe(401);
-  });
+    it("should return 401 when the email is incorrect", async () => {
+      const body = {
+        email: "wrong@example.com",
+        password: SHARED_DATA.PASSWORD,
+      };
 
-  it("should return 401 when the email is incorrect", async () => {
-    const body = {
-      email: "wrong@example.com",
-      password: SHARED_DATA.PASSWORD,
-    };
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers,
+      });
 
-    const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers,
+      expect(response.status).toBe(401);
     });
 
-    expect(response.status).toBe(401);
-  });
+    describe("Refresh Token", () => {
+      // refresh-token.http
+      it("should refresh the token", async () => {
+        const body = {
+          token: refreshToken,
+        };
 
-  it("should refresh the token and session", async () => {
-    const body = {
-      token: refreshToken,
-    };
+        const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
+          method: "POST",
+          body: JSON.stringify(body),
+          headers,
+        });
 
-    const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
+        expect(response.status).toBe(200);
+      });
+
+      it("should return 401 when the token is invalid", async () => {
+        const body = {
+          token: "invalidtoken",
+        };
+
+        const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
+          method: "POST",
+          body: JSON.stringify(body),
+          headers,
+        });
+
+        expect(response.status).toBe(401);
+      });
     });
-
-    expect(response.status).toBe(200);
-  });
+  })
 
   afterAll(async () => {
     await Promise.all([

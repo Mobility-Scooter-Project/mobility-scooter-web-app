@@ -38,6 +38,9 @@ importers:
       pg:
         specifier: ^8.13.3
         version: 8.13.3
+      popular-english-words:
+        specifier: ^1.0.2
+        version: 1.0.2
       rabbitmq-client:
         specifier: ^5.0.2
         version: 5.0.2
@@ -2101,6 +2104,9 @@ packages:
   pkg-dir@4.2.0:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
+
+  popular-english-words@1.0.2:
+    resolution: {integrity: sha512-vQiCBURYdNZP8yIvNQ76fOP5PKUs3tbv1LbQz5hbOVtK6deE8WBkJSYhn1asOqXIiT/iwrQvrwEfNsVrFuk7mw==}
 
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
@@ -4664,6 +4670,8 @@ snapshots:
   pkg-dir@4.2.0:
     dependencies:
       find-up: 4.1.0
+
+  popular-english-words@1.0.2: {}
 
   possible-typed-array-names@1.1.0: {}
 

@@ -11,7 +11,7 @@ const headers = {
 
 const SHARED_DATA = {
     EMAIL: "videos@example.com",
-    PASSWORD: "password12345",
+    PASSWORD: "password1358",
     DATE: new Date().toISOString(),
 };
 
