@@ -1,5 +1,8 @@
 import pika 
 import os
+from dotenv import load_dotenv
+    
+load_dotenv()
 
 QUEUE_URL = os.getenv('QUEUE_URL')
 connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
