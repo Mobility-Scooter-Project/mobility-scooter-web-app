@@ -1,6 +1,9 @@
 const { pathsToModuleNameMapper } = require('ts-jest');
 const { compilerOptions } = require('./tsconfig.json');
 
+process.env.ENVIRONMENT = 'test';
+require('dotenv').config({ path: '.env' });
+
 /** @type {import('ts-jest').JestConfigWithTsJest} **/
 module.exports = {
   testEnvironment: "node",

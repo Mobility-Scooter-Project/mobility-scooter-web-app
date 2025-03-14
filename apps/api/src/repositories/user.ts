@@ -39,7 +39,7 @@ const createUser = async (db: DB, newUser: NewUser) => {
       .returning({ id: users.id });
 
       await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`));
-      await tx.execute(sql.raw(`SET ROLE authenticated_user`));
+      await tx.execute(sql`SET ROLE authenticated_user`);
 
       const identity = await tx
         .select()

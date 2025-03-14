@@ -46,10 +46,10 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     "/emailpass",
-    signInRateLimiter,
     dbMiddleware,
     validateApiKey,
     zValidator("json", signInWithPasswordSchema),
+    signInRateLimiter,
     async (c) => {
       const { email, password } = c.req.valid("json");
       const db = c.get("db");

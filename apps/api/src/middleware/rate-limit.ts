@@ -24,11 +24,11 @@ export const signUpRateLimiter = rateLimiter({
 export const signInRateLimiter = rateLimiter({
   windowMs: 1000 * 60 * 30, // 30 minutes
   limit: 5, // this is the standard lock out rate for Windows devices
-  keyGenerator: (c) => {
-    //@ts-ignore
-    const { email } = c.json();
+  keyGenerator: async (c) => {
     const connInfo = getConnInfo(c);
-    return `${email}:${connInfo.remote.address}`; // test@example.com:127.0.0.1 -> prevents subnets from being locked out
+    // @ts-expect-error - Assumes this middleware is run before the zValidator middleware
+    const {email} = c.req.valid("json");
+    return `${email}`; // test@example.com:127.0.0.1 -> prevents subnets from being locked out
   },
   //@ts-ignore
   store: sharedStore,

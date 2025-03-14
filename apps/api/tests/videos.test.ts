@@ -1,6 +1,8 @@
 import { kv } from "@src/integrations/kv";
+import { storage } from "@src/integrations/storage";
 import { db } from "@src/middleware/db";
 import { sql } from "drizzle-orm";
+import { decode } from "hono/jwt";
 
 const headers = {
     Authorization: `Bearer ${process.env.TESTING_API_KEY}`,
@@ -8,16 +10,20 @@ const headers = {
 };
 
 const SHARED_DATA = {
-    EMAIL: "john@doe.com",
+    EMAIL: "videos@example.com",
     PASSWORD: "password12345",
+    DATE: new Date().toISOString(),
 };
 
 export const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-let url = "";
+let url: string;
+let token: string;
+let userId: string;
 
 describe("Videos", () => {
+    beforeAll(async () => {
+        await kv.flushall();
 
-    it("create a new user and return a presigned url", async () => {
         const userBody = {
             email: SHARED_DATA.EMAIL,
             password: SHARED_DATA.PASSWORD,
@@ -33,13 +39,18 @@ describe("Videos", () => {
         });
 
         expect(userResponse.status).toBe(200);
+        token = (await userResponse.json()).data.token;
+        const { payload } = decode(token);
+        // @ts-ignore
+        userId = payload.userId;
 
-        const token = (await userResponse.json()).data.token;
+    });
 
+    it("return a presigned url", async () => {
         const body = {
-            "patientId": "abc-123-456-789",
+            "patientId": userId,
             "filename": "test.txt",
-            "date": new Date().toISOString()
+            "date": SHARED_DATA.DATE,
         };
 
         const response = await fetch(`${BASE_URL}/v1/api/storage/videos/presigned-url`, {
@@ -65,10 +76,29 @@ describe("Videos", () => {
 
 
     afterAll(async () => {
-        await db.execute(
-            sql`DELETE FROM auth.users WHERE email = ${SHARED_DATA.EMAIL}`
+        await Promise.all([
+            db.execute(sql`DELETE FROM auth.users WHERE email = ${SHARED_DATA.EMAIL}`),
+            kv.flushall(),
+        ]);
+
+        const objectStream = storage.listObjects(userId, "videos/", true);
+        const objects = await new Promise((resolve, reject) => {
+            const objects: any[] = [];
+            objectStream.on("data", (obj) => {
+                objects.push(obj);
+            });
+            objectStream.on("end", () => {
+                resolve(objects);
+            });
+            objectStream.on("error", reject);
+        }
         );
-        await kv.flushall();
+
+        //@ts-ignore
+        for await (const obj of objects) {
+            await storage.removeObject(userId, obj.name);
+        }
+        await storage.removeBucket(userId);
     });
 
 });
