@@ -1,14 +1,6 @@
-import { Queue, Worker } from 'bullmq';
-import IORedis from 'ioredis';
+import { QUEUE_URL } from "@src/config/constants"
+import { Connection } from "rabbitmq-client"
 
-const connection = new IORedis({ maxRetriesPerRequest: null })
+const queue = new Connection(QUEUE_URL);
 
-export const videoProcessingQueue = new Queue('video-processing', { connection });
-
-const worker = new Worker(
-    'video-processing',
-    async job => {
-        console.log(job.data);
-    },
-    { connection },
-);
+export const pub = queue.createPublisher({ confirm: true });

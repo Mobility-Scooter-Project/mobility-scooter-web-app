@@ -17,6 +17,13 @@ services:
     volumes:
       - kv:/data
     restart: always
+  queue:
+    image: "rabbitmq:3"
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - queue:/var/lib/rabbitmq
   storage:
     image: "minio/minio"
     command: server --console-address ":9001" /data
@@ -24,8 +31,8 @@ services:
     environment:
       MINIO_ROOT_USER: "minioadmin"
       MINIO_ROOT_PASSWORD: "minioadmin"
-      MINIO_NOTIFY_WEBHOOK_ENABLE_VIDEOS: "on"
-      MINIO_NOTIFY_WEBHOOK_ENDPOINT_VIDEOS: http://localhost:8000/v1/api/video-webhook
+      MINIO_NOTIFY_WEBHOOK_ENABLE_put_videos: "on"
+      MINIO_NOTIFY_WEBHOOK_ENDPOINT_put_videos: http://localhost:3000/v1/api/webhooks/storage/videos
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
@@ -36,4 +43,5 @@ services:
 volumes:
  db:
  kv:
+ queue:
  storage:

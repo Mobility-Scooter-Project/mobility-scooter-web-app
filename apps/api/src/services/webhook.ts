@@ -1,4 +1,4 @@
-import { videoProcessingQueue } from "@src/integrations/queue";
+import { pub } from "@src/integrations/queue";
 import { videoRepository } from "@src/repositories/video";
 
 interface S3UserIdentity {
@@ -67,9 +67,11 @@ interface UploadVideoPayload {
 
 const putVideo = async (payload: UploadVideoPayload) => {
     // TODO: validate the payload
-    console.log("putVideo", JSON.stringify(payload, null, 2));
-    await videoRepository.createVideoMetadata(payload.Records[0].s3.object.key, payload.Records[0].s3.bucket.name);
-    await videoProcessingQueue.add(`${payload.Records[0].s3.bucket.name}/${payload.Records[0].s3.object.key}`, { bucket: payload.Records[0].s3.bucket.name, key: payload.Records[0].s3.object.key });
+    const filename = payload.Records[0].s3.object.key;
+    const patientId = payload.Records[0].s3.bucket.name;
+
+    await videoRepository.createVideoMetadata(filename, patientId);
+    await pub.send("video-processing", { filename, patientId });
 }
 
 export const webhookService = { putVideo }

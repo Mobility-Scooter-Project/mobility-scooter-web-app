@@ -16,7 +16,6 @@
   "dependencies": {
     "@hono/node-server": "^1.13.8",
     "@hono/zod-validator": "^0.4.3",
-    "bullmq": "^5.43.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
     "hono": "^4.7.4",
@@ -25,6 +24,7 @@
     "ioredis": "^5.6.0",
     "minio": "^8.0.4",
     "pg": "^8.13.3",
+    "rabbitmq-client": "^5.0.2",
     "rate-limit-redis": "^4.2.0",
     "zod": "^3.24.2",
     "zod-openapi": "^4.2.3"
