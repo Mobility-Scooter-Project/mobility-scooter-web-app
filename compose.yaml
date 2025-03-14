@@ -28,11 +28,16 @@ services:
     image: "minio/minio"
     command: server --console-address ":9001" /data
     network_mode: "host"
+    depends_on:
+      - queue
     environment:
       MINIO_ROOT_USER: "minioadmin"
       MINIO_ROOT_PASSWORD: "minioadmin"
-      MINIO_NOTIFY_WEBHOOK_ENABLE_put_videos: "on"
-      MINIO_NOTIFY_WEBHOOK_ENDPOINT_put_videos: http://localhost:3000/v1/api/webhooks/storage/videos
+      MINIO_NOTIFY_AMQP_ENABLE_put_video: "on"
+      MINIO_NOTIFY_AMQP_URL_put_video: "amqp://guest:guest@localhost:5672/"
+      MINIO_NOTIFY_AMQP_EXCHANGE_put_video: "storage"
+      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_put_video: "direct"
+      MINIO_NOTIFY_AMQP_ROUTING_KEY_put_video: "videos.put"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
