@@ -13,8 +13,6 @@ export const db = drizzle(DATABASE_URL, {
   schema: { ...auth },
 });
 
-export type DB = typeof db;
-
 try {
   const key =
     Math.random().toString(36).substring(2, 15) +

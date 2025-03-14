@@ -1,6 +1,13 @@
 import { status, videoMetadata } from "@src/db/schema/videos"
 import { db } from "@src/middleware/db"
 
+/**
+ * Creates video metadata and its initial status entry in the database
+ * @param filename - The name of the video file
+ * @param patientId - The ID of the patient associated with the video
+ * @returns A Promise that resolves when the database transaction is complete
+ * @throws Will throw an error if the database transaction fails
+ */
 const createVideoMetadata = async (filename: string, patientId: string) => {
     // uses the postgres role since this is from a webhook
     await db.transaction(async (tx) => {

@@ -13,24 +13,32 @@ import { verify } from "hono/jwt";
  * @throws {HTTPException} 401 - If user authentication fails
  */
 export const userMiddleware = async (c: Context, next: Next) => {
-  const { user } = await c.req.json();
+  const user = c.req.header('X-User');
 
   if (!user) {
     throw new HTTPException(400, {
-      message: "User authentication is required",
+      message: "Unauthorized",
     });
   }
+  try {
 
-  const { userId, sessionId } = await verify(user, JWT_SECRET);
+    const { userId, sessionId } = await verify(user, JWT_SECRET);
 
-  if (!userId || !sessionId) {
+    if (!userId || !sessionId) {
+      throw new HTTPException(401, {
+        message: "Unauthorized",
+      });
+    }
+
+    c.set("userId", userId);
+    c.set("sessionId", sessionId);
+
+    await next();
+  } catch (e) {
+    console.error(e);
     throw new HTTPException(401, {
-      message: "Failed to authenticate user",
+      message: "Unauthorized",
     });
   }
 
-  c.set("userId", userId);
-  c.set("sessionId", sessionId);
-
-  await next();
 };

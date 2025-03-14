@@ -55,7 +55,7 @@ export const dbMiddleware = async (c: Context, next: Next) => {
   await next();
 };
 
-// For typing only
+// For Postgres Role
 export const db = drizzle(DATABASE_URL, {
   casing: "snake_case",
   schema: { ...auth, ...videos, ...tenants },

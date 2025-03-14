@@ -1,7 +1,7 @@
 import { storage } from "@src/integrations/storage"
 import { HTTPException } from "hono/http-exception";
 
-const generatePresignedVideoUrl = async (filename: string, patientId: string, userId: string, date: Date) => {
+const generatePresignedVideoPutUrl = async (filename: string, patientId: string, userId: string, date: Date) => {
     // TODO: check if user has access to patientId
 
     // each patient gets their own bucket to attempt to isolate their data
@@ -34,5 +34,5 @@ const generatePresignedVideoUrl = async (filename: string, patientId: string, us
 }
 
 export const storageService = {
-    generatePresignedVideoUrl
+    generatePresignedVideoPutUrl
 }

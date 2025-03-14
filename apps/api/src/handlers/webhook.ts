@@ -6,10 +6,7 @@ import { webhookService } from "@src/services/webhook";
 
 const app = new Hono<{ Variables: Variables }>().post("/storage/videos", dbMiddleware, async (c) => {
     await webhookService.putVideo(await c.req.json());
-    return new Response(JSON.stringify({
-        data: null,
-        error: null
-    }), { status: 200 });
+    return c.status(200);
 });
 
 export default app;

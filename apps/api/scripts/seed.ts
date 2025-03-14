@@ -3,20 +3,25 @@ import { metadata, tenants, units } from "../src/db/schema/tenants"
 import fs from "fs"
 import { DATABASE_URL } from "../src/config/constants";
 
-export const db = drizzle(DATABASE_URL, {
+const db = drizzle(DATABASE_URL, {
     casing: "snake_case",
     schema: { ...tenants },
 });
 
-
 try {
-    const tenant = await db.insert(metadata).values({
-        name: "test",
-    }).returning()[0]
+    const { tenant, unit } = await db.transaction(async (tx) => {
+        // I am unsure why it is returning invalid json
+        const tenant = JSON.parse(JSON.stringify(await tx.insert(metadata).values({
+            name: "Test Tenant",
+        }).returning()))[0];
+        const unit = JSON.parse(JSON.stringify(await tx.insert(units).values({
+            tenantId: tenant.id,
+        }).returning()))[0];
 
-    const unit = await db.insert(units).values({
-        tenantId: tenant.id,
-    }).returning()[0]
+
+        return { tenant, unit };
+    });
+
 
 
     fs.appendFileSync(".env", `\nTESTING_UNIT_ID=${unit.id}\n`);

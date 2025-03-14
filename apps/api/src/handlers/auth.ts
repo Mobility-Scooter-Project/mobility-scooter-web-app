@@ -10,7 +10,6 @@ import {
   signInWithPasswordSchema,
 } from "@validators/auth";
 import { signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
-import { userMiddleware } from "@src/middleware/user";
 
 const app = new Hono<{ Variables: Variables }>()
   .post(
@@ -41,7 +40,7 @@ const app = new Hono<{ Variables: Variables }>()
           },
           error: null,
         }),
-        { status: 200 }
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
   )
@@ -69,7 +68,7 @@ const app = new Hono<{ Variables: Variables }>()
           },
           error: null,
         }),
-        { status: 200 }
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
   )
@@ -94,7 +93,7 @@ const app = new Hono<{ Variables: Variables }>()
           },
           error: null,
         }),
-        { status: 200 }
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
   );

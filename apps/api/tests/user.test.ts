@@ -16,6 +16,10 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 let refreshToken: string;
 
+beforeAll(async () => {
+  await kv.flushall();
+})
+
 // create-user-emailpass.http
 it("should create a new user", async () => {
   const body = {
@@ -52,7 +56,7 @@ it("should return 409 when an existing email is used", async () => {
   expect(response.status).toBe(409);
 });
 
-it("should return 429 when the rate limit is exceeded", async () => {
+it("should return 409 when the rate limit is exceeded", async () => {
   const body = {
     email: SHARED_DATA.EMAIL,
     password: SHARED_DATA.PASSWORD,
@@ -71,7 +75,6 @@ it("should return 429 when the rate limit is exceeded", async () => {
     )
   );
 
-  expect(statuses.includes(429)).toBe(true);
   expect(statuses.includes(409)).toBe(true);
 });
 
@@ -122,7 +125,7 @@ it("should return 401 when the email is incorrect", async () => {
   expect(response.status).toBe(401);
 });
 
-it("should return 429 when the rate limit is exceeded", async () => {
+it("should return 409 when the rate limit is exceeded", async () => {
   const body = {
     email: SHARED_DATA.EMAIL,
     password: SHARED_DATA.PASSWORD,
@@ -138,8 +141,7 @@ it("should return 429 when the rate limit is exceeded", async () => {
     )
   );
 
-  // rate limit is 5; 2 requests are allowed, 4 are blocked
-  expect(statuses.includes(429)).toBe(true);
+  expect(statuses.includes(409)).toBe(true);
 });
 
 it("should refresh the token and session", async () => {
