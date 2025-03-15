@@ -2,7 +2,6 @@ import { sessionRepository } from "@repositories/session";
 import { signJWT } from "./jwt";
 import { DB } from "@middleware/db";
 import { refreshTokenRepository } from "@repositories/refresh-token";
-import { ExistingUser, NewUser } from "@repositories/user";
 
 /**
  * Creates a new session for a user with associated JWT token and refresh token
@@ -18,14 +17,14 @@ import { ExistingUser, NewUser } from "@repositories/user";
  * 
  * @throws Error if unable to create session, sign JWT, or create refresh token
  */
-export const createSession = async (db: DB, user: NewUser | ExistingUser) => {
-  const session = await sessionRepository.createSession(db, user.id!);
+export const createSession = async (db: DB, userId: string) => {
+  const session = await sessionRepository.createSession(db, userId);
 
   const expiresAt = new Date();
   expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 15); // 15 minutes
 
   const token = await signJWT({
-    userId: user.id,
+    userId: userId,
     sessionId: session.id,
     exp: expiresAt,
     iat: new Date(),
@@ -33,7 +32,7 @@ export const createSession = async (db: DB, user: NewUser | ExistingUser) => {
 
   const refreshToken = await refreshTokenRepository.createRefreshToken(
     db,
-    user.id!,
+    userId,
     session.id
   );
 

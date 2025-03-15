@@ -7,8 +7,6 @@ import { sign } from "hono/jwt";
  * @param {Record<string, any>} payload - The data to be encoded in the JWT.
  * @returns {Promise<string>} A Promise that resolves to the signed JWT string.
  * 
- * @throws {Error} If the signing process fails or if JWT_SECRET is not properly configured.
- * 
  * @example
  * const payload = { userId: '123', role: 'admin' };
  * const token = await signJWT(payload);
