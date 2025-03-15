@@ -12,3 +12,7 @@ export const signInWithPasswordSchema = z.object({
   email: z.string().email({ message: "Invalid email" }),
   password: z.string().nonempty(),
 });
+
+export const refreshTokenSchema = z.object({
+  token: z.string().nonempty(),
+});

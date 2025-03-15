@@ -1,19 +1,23 @@
 import { zValidator } from "@hono/zod-validator";
-import { dbMiddleware } from "@middleware/db";
+import { db, dbMiddleware } from "@middleware/db";
 import { validateApiKey } from "@middleware/validate-api-key";
 import { authService } from "@services/auth";
 import { Hono } from "hono";
 import { Variables } from "src";
 import {
   createUserWithPasswordSchema,
+  refreshTokenSchema,
   signInWithPasswordSchema,
-} from "src/validators/auth";
+} from "@validators/auth";
+import { signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
+import { userMiddleware } from "@src/middleware/user";
 
 const app = new Hono<{ Variables: Variables }>()
   .post(
     "/emailpass/register",
     dbMiddleware,
     validateApiKey,
+    signUpRateLimiter,
     zValidator("json", createUserWithPasswordSchema),
     async (c) => {
       const { email, password, firstName, lastName, unitId } =
@@ -31,8 +35,11 @@ const app = new Hono<{ Variables: Variables }>()
 
       return new Response(
         JSON.stringify({
-          token,
-          refreshToken,
+          data: {
+            token,
+            refreshToken,
+          },
+          error: null,
         }),
         { status: 200 }
       );
@@ -40,6 +47,7 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     "/emailpass",
+    signInRateLimiter,
     dbMiddleware,
     validateApiKey,
     zValidator("json", signInWithPasswordSchema),
@@ -55,8 +63,36 @@ const app = new Hono<{ Variables: Variables }>()
 
       return new Response(
         JSON.stringify({
-          token,
-          refreshToken,
+          data: {
+            token,
+            refreshToken,
+          },
+          error: null,
+        }),
+        { status: 200 }
+      );
+    }
+  )
+  .post(
+    "/refresh",
+    dbMiddleware,
+    validateApiKey,
+    zValidator("json", refreshTokenSchema),
+    async (c) => {
+      const { token } = c.req.valid("json");
+
+      const { token: newToken, refreshToken } = await authService.refreshToken(
+        db,
+        token
+      );
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            token: newToken,
+            refreshToken,
+          },
+          error: null,
         }),
         { status: 200 }
       );

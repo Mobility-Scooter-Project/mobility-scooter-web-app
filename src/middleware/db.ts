@@ -5,6 +5,8 @@ import * as auth from "../db/schema/auth";
 import * as videos from "../db/schema/videos";
 import * as tenants from "../db/schema/tenants";
 import pg from "pg";
+import { sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -34,10 +36,19 @@ export const dbMiddleware = async (c: Context, next: Next) => {
     schema: { ...auth, ...videos },
   });
 
+  try{
   if (userId) {
-    // TODO: RLS
-    await db.execute(`SET LOCAL app.user_id = ${userId}`);
+    await db.transaction(async (tx) => {
+      tx.execute(sql`SET ROLE authenticated_user`);
+      tx.execute(sql`SET app.user_id = ${userId}`);
+    })
+  } else {
+    await db.execute(sql`SET ROLE anonymous_user`);
   }
+} catch (e) {
+  console.error(`Failed to set user context: ${e}`);
+  throw new HTTPException(500, { res: new Response(JSON.stringify({ data: null, error: "Failed to set user context" })) });
+}
 
   c.set("db", db);
 

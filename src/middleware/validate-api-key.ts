@@ -1,6 +1,7 @@
 import { authService } from "@services/auth";
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { db } from "./db";
 
 /**
  * Middleware function to validate API key from Authorization header
@@ -16,7 +17,6 @@ export const validateApiKey = async (c: Context, next: Next) => {
   }
 
   const [_, apiKey] = authHeader.split("Bearer ");
-  const db = c.get("db");
   const result = await authService.retrieveApiKey(db, apiKey);
 
   if (!result) {

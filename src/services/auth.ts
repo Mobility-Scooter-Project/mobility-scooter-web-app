@@ -1,10 +1,10 @@
 import { eq, sql } from "drizzle-orm";
 import { apiKeys } from "../db/schema/auth";
 import { DB } from "@middleware/db";
-import { ExistingUser, NewUser, userRepository } from "@repositories/user";
-import { identityRepository } from "@repositories/identity";
+import { userRepository } from "@repositories/user";
 import { createSession } from "@lib/session";
 import { HTTPException } from "hono/http-exception";
+import { refreshTokenRepository } from "@repositories/refresh-token";
 
 /**
  * Retrieves and validates an API key from the database
@@ -53,10 +53,9 @@ const retrieveApiKey = async (db: DB, key: string) => {
  * 
  * @remarks
  * This function will:
- * 1. Check if user exists by email
- * 2. Create new user if doesn't exist
- * 3. Ensure email/password identity exists
- * 4. Create and return a new session
+ * 1. Create new user if doesn't exist
+ * 2. Ensure email/password identity exists
+ * 3. Create and return a new session
  * 
  * @throws May throw database errors during user/identity creation or lookup
  */
@@ -68,11 +67,8 @@ export const createUserWithPassword = async (
   lastName: string,
   unitId: string
 ) => {
-  let user: NewUser | ExistingUser;
-  user = await userRepository.findUserByEmail(db, email);
 
-  if (!user) {
-    user = await userRepository.createUser(db, {
+    const {id} = await userRepository.createUser(db, {
       email,
       encryptedPassword: password,
       firstName,
@@ -80,9 +76,9 @@ export const createUserWithPassword = async (
       unitId,
       lastSignedInAt: new Date(),
     });
-  }
+  
 
-  return await createSession(db, user);
+  return await createSession(db, id);
 };
 
 /**
@@ -104,11 +100,41 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
     });
   }
 
-  return await createSession(db, user);
+  await db.transaction(async (tx) => {
+    await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`));
+    await tx.execute(sql`SET ROLE authenticated_user`);
+  });
+
+  return await createSession(db, user.id);
+};
+
+/**
+ * Refreshes an authentication session using a refresh token.
+ * 
+ * @param db - Database connection instance
+ * @param refreshToken - The refresh token string to validate
+ * @returns A Promise resolving to a new session with fresh access and refresh tokens
+ * @throws {HTTPException} With status 401 if the refresh token is invalid, revoked, or expired
+ */
+const refreshToken = async (db: DB, refreshToken: string) => {
+const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
+
+  if (!record || record.revoked || !record.expiresAt || record.expiresAt < new Date()) {
+    throw new HTTPException(401, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid refresh token" })
+      ),
+    });
+  }
+
+  await refreshTokenRepository.revokeRefreshToken(db, refreshToken);
+
+  return await createSession(db, record.userId);
 };
 
 export const authService = {
   createUserWithPassword,
   signInWithPassword,
   retrieveApiKey,
+  refreshToken,
 };

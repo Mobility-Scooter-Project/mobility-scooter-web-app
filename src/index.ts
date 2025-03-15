@@ -6,6 +6,8 @@ import { DB } from "@middleware/db";
 
 export type Variables = {
   db: DB;
+  userId?: string;
+  sessionId?: string;
 };
 
 export const app = new Hono<{ Variables: Variables }>()
@@ -15,6 +17,8 @@ export const app = new Hono<{ Variables: Variables }>()
   })
   .basePath("/v1/api")
   .route("/auth", auth);
+
+export type AppType = typeof app;
 
 serve(
   {
