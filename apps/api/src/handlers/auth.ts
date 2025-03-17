@@ -13,7 +13,6 @@ import {
 import { otpRateLimiter, signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
 import { userMiddleware } from "@src/middleware/user";
 import { generateQRCode } from "@src/lib/qr";
-import { verifyTOTP } from "@src/lib/otp";
 
 const app = new Hono<{ Variables: Variables }>()
   .post(
@@ -109,9 +108,9 @@ const app = new Hono<{ Variables: Variables }>()
     const userId = c.get("userId")!;
     const db = c.get("db");
 
-    const { token, secret } = c.req.valid("json");
+    const { token } = c.req.valid("json");
 
-    const response = await authService.verifyUserTOTP(db, userId, token, secret);
+    const response = await authService.verifyUserTOTP(db, userId, token);
 
     const valid = response === null ? false : response === -1 ? false : true;
 

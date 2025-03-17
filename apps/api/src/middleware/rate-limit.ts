@@ -44,5 +44,5 @@ export const otpRateLimiter = rateLimiter({
   },
   //@ts-ignore
   store: sharedStore,
-  //skip: (c) => ENVIRONMENT === "development",
+  skip: (c) => ENVIRONMENT === "development",
 });

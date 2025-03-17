@@ -6,7 +6,7 @@ import { createSession } from "@lib/session";
 import { HTTPException } from "hono/http-exception";
 import { refreshTokenRepository } from "@repositories/refresh-token";
 import { generateTOTP, verifyTOTP } from "@src/lib/otp";
-import { generateQRCode } from "@src/lib/qr";
+import { createOtpSecret, getOtpSecretByUserId } from "@src/integrations/vault";
 
 /**
  * Retrieves and validates an API key from the database
@@ -143,7 +143,9 @@ const refreshToken = async (db: DB, refreshToken: string) => {
  */
 const generateOTP = async (db: DB, userId: string) => {
   const { email } = await userRepository.findUserById(db, userId);
-  return generateTOTP(email);
+  const totp = generateTOTP(email);
+  await createOtpSecret(userId, totp.secret.base32);
+  return totp;
 }
 
 /**
@@ -156,8 +158,10 @@ const generateOTP = async (db: DB, userId: string) => {
  * @returns A Promise resolving to a boolean indicating whether the TOTP token is valid
  * @throws Will throw an error if the user cannot be found or if verification fails
  */
-const verifyUserTOTP = async (db: DB, userId: string, token: string, secret: string) => {
+const verifyUserTOTP = async (db: DB, userId: string, token: string) => {
   const { email } = await userRepository.findUserById(db, userId);
+  const secret = await getOtpSecretByUserId(userId);
+
   return verifyTOTP(email, token, secret);
 }
 

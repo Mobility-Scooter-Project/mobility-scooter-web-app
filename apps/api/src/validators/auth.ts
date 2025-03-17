@@ -61,7 +61,4 @@ export const refreshTokenSchema = z.object({
 
 export const verifyTOTPSchema = z.object({
   token: z.string().nonempty(),
-  secret: z
-    .string()
-    .nonempty()
 })

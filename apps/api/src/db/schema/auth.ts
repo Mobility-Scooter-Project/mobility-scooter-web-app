@@ -45,7 +45,7 @@ export const users = auth.table(
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow(),
     deletedAt: timestamp(),
-  },(t) => [
+  }, (t) => [
     pgPolicy("allow unauthenticated users to create an account", {
       as: "permissive",
       to: anon,
@@ -78,7 +78,7 @@ export const providers = auth.enum("providers", ["emailpass"]);
 export const identities = auth.table("identities", {
   id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
-    .references(() => users.id, {onDelete: "cascade"})
+    .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
   provider: providers().notNull(),
   metadata: jsonb().default({}),
@@ -109,7 +109,7 @@ export const identities = auth.table("identities", {
 export const sessions = auth.table("sessions", {
   id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
-    .references(() => users.id, {onDelete: "cascade"})
+    .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
   refreshed_at: timestamp().defaultNow(),
   createdAt: timestamp().defaultNow(),
@@ -138,7 +138,7 @@ export const sessions = auth.table("sessions", {
 export const refreshTokens = auth.table("refresh_tokens", {
   id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
-    .references(() => users.id, {onDelete: "cascade"})
+    .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
   sessionId: uuid()
     .references(() => sessions.id)

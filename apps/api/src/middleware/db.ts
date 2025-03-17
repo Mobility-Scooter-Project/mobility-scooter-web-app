@@ -33,7 +33,7 @@ export const dbMiddleware = async (c: Context, next: Next) => {
   const db = drizzle({
     client: pool,
     casing: "snake_case",
-    schema: { ...auth, ...videos },
+    schema: { ...auth, ...videos, ...tenants },
   });
 
   try{
