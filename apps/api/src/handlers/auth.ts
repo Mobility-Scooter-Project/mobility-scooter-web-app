@@ -10,7 +10,7 @@ import {
   signInWithPasswordSchema,
   verifyTOTPSchema,
 } from "@validators/auth";
-import { signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
+import { otpRateLimiter, signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
 import { userMiddleware } from "@src/middleware/user";
 import { generateQRCode } from "@src/lib/qr";
 import { verifyTOTP } from "@src/lib/otp";
@@ -105,7 +105,7 @@ const app = new Hono<{ Variables: Variables }>()
       },
       error: null,
     })
-  }).post("/otp/validate", validateApiKey, userMiddleware, dbMiddleware, zValidator("json", verifyTOTPSchema), async (c) => {
+  }).post("/otp/verify", validateApiKey, userMiddleware, otpRateLimiter, dbMiddleware, zValidator("json", verifyTOTPSchema), async (c) => {
     const userId = c.get("userId")!;
     const db = c.get("db");
 

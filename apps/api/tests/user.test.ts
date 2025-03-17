@@ -285,6 +285,9 @@ describe("User", () => {
   })
 
   describe("OTP", () => {
+    beforeEach(async () => {
+      await kv.flushall();
+    });
     it("should generate an OTP secret", async () => {
       const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
         method: "POST",
@@ -306,6 +309,37 @@ describe("User", () => {
       });
 
       expect(response.status).toBe(200);
+    });
+
+    it("should return 429 when rate limit is exceeded", async () => {
+      const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: SHARED_DATA.PASSWORD,
+        }),
+        headers,
+      })
+
+      const { token } = (await loginResponse.json()).data;
+
+      const statuses = await Promise.all(
+        Array.from({ length: 50 }).map(() =>
+          fetch(`${BASE_URL}/v1/api/auth/otp/verify`, {
+            method: "POST",
+            headers: {
+              ...headers,
+              "X-User": token
+            },
+            body: JSON.stringify({
+              token: "123456",
+              secret: "secret"
+            })
+          }).then((r) => r.status)
+        )
+      );
+
+      expect(statuses.includes(429)).toBe(true);
     });
   });
 
