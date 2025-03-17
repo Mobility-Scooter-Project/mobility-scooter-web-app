@@ -1,12 +1,16 @@
 import { eq, sql } from "drizzle-orm";
 import { apiKeys } from "../db/schema/auth";
-import { DB } from "@middleware/db";
+import { db, DB } from "@middleware/db";
 import { userRepository } from "@repositories/user";
 import { createSession } from "@lib/session";
 import { HTTPException } from "hono/http-exception";
 import { refreshTokenRepository } from "@repositories/refresh-token";
 import { generateTOTP, verifyTOTP } from "@src/lib/otp";
 import { createOtpSecret, getOtpSecretByUserId } from "@src/integrations/vault";
+import { sign } from "hono/jwt";
+import { JWT_SECRET } from "@src/config/constants";
+import { sendEmail } from "@src/integrations/smtp";
+import { logger } from "hono/logger";
 
 /**
  * Retrieves and validates an API key from the database
@@ -165,6 +169,17 @@ const verifyUserTOTP = async (db: DB, userId: string, token: string) => {
   return verifyTOTP(email, token, secret);
 }
 
+const generateResetPasswordToken = async (email: string) => {
+  const { id } = await userRepository.findUserByEmail(db, email);
+
+  const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
+
+  const token = sign(payload, JWT_SECRET);
+
+  await sendEmail(email, "MSB Password Reset", "", `Click here to reset your password: http://localhost:3000/reset-password?token=${token}`);
+}
+
+
 export const authService = {
   createUserWithPassword,
   signInWithPassword,
@@ -172,4 +187,5 @@ export const authService = {
   refreshToken,
   generateOTP,
   verifyUserTOTP,
+  generateResetPasswordToken
 };

@@ -55,6 +55,10 @@ export const signInWithPasswordSchema = z.object({
   password: z.string().nonempty(),
 });
 
+export const resetPasswordSchema = z.object({
+  email: z.string().email({ message: "Invalid email" }),
+});
+
 export const refreshTokenSchema = z.object({
   token: z.string().nonempty(),
 });

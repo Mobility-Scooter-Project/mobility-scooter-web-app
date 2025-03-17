@@ -7,6 +7,7 @@ import { Variables } from "src";
 import {
   createUserWithPasswordSchema,
   refreshTokenSchema,
+  resetPasswordSchema,
   signInWithPasswordSchema,
   verifyTOTPSchema,
 } from "@validators/auth";
@@ -69,7 +70,12 @@ const app = new Hono<{ Variables: Variables }>()
         error: null,
       });
     }
-  )
+  ).post("/emailpass/reset-password", validateApiKey, zValidator("json", resetPasswordSchema), async (c) => {
+    const { email } = c.req.valid("json");
+
+    await authService.generateResetPasswordToken(email);
+    c.text("OK");
+  })
   .post(
     "/refresh",
     dbMiddleware,
