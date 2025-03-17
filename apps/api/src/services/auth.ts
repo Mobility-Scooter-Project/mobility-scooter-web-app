@@ -5,6 +5,8 @@ import { userRepository } from "@repositories/user";
 import { createSession } from "@lib/session";
 import { HTTPException } from "hono/http-exception";
 import { refreshTokenRepository } from "@repositories/refresh-token";
+import { generateTOTP, verifyTOTP } from "@src/lib/otp";
+import { generateQRCode } from "@src/lib/qr";
 
 /**
  * Retrieves and validates an API key from the database
@@ -21,9 +23,8 @@ import { refreshTokenRepository } from "@repositories/refresh-token";
 const retrieveApiKey = async (db: DB, key: string) => {
   const data = await db.query.apiKeys.findFirst({
     where: (fields) =>
-      sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${
-        fields.isActive
-      } = ${true}`,
+      sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${fields.isActive
+        } = ${true}`,
   });
   if (data && data.isActive) {
     try {
@@ -68,15 +69,15 @@ export const createUserWithPassword = async (
   unitId: string
 ) => {
 
-    const {id} = await userRepository.createUser(db, {
-      email,
-      encryptedPassword: password,
-      firstName,
-      lastName,
-      unitId,
-      lastSignedInAt: new Date(),
-    });
-  
+  const { id } = await userRepository.createUser(db, {
+    email,
+    encryptedPassword: password,
+    firstName,
+    lastName,
+    unitId,
+    lastSignedInAt: new Date(),
+  });
+
 
   return await createSession(db, id);
 };
@@ -117,7 +118,7 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
  * @throws {HTTPException} With status 401 if the refresh token is invalid, revoked, or expired
  */
 const refreshToken = async (db: DB, refreshToken: string) => {
-const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
+  const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
 
   if (!record || record.revoked || !record.expiresAt || record.expiresAt < new Date()) {
     throw new HTTPException(401, {
@@ -132,9 +133,21 @@ const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
   return await createSession(db, record.userId);
 };
 
+const generateOTP = async (db: DB, userId: string) => {
+  const { email } = await userRepository.findUserById(db, userId);
+  return generateTOTP(email);
+}
+
+const verifyUserTOTP = async (db: DB, userId: string, token: string, secret: string) => {
+  const { email } = await userRepository.findUserById(db, userId);
+  return verifyTOTP(email, token, secret);
+}
+
 export const authService = {
   createUserWithPassword,
   signInWithPassword,
   retrieveApiKey,
   refreshToken,
+  generateOTP,
+  verifyUserTOTP,
 };

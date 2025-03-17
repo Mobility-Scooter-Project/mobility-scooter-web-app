@@ -27,16 +27,16 @@ const createUser = async (db: DB, newUser: NewUser) => {
     ? sql`crypt(${newUser.encryptedPassword}, gen_salt('bf'))`
     : null;
   try {
-    const data = await db.transaction(async(tx) => {
+    const data = await db.transaction(async (tx) => {
       const data = await tx
-      .insert(users)
-      .values({
-        ...newUser,
-        encryptedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning({ id: users.id });
+        .insert(users)
+        .values({
+          ...newUser,
+          encryptedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning({ id: users.id });
 
       await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`));
       await tx.execute(sql`SET ROLE authenticated_user`);
@@ -45,7 +45,7 @@ const createUser = async (db: DB, newUser: NewUser) => {
         .select()
         .from(identities)
         .where(
-            eq(identities.userId, data[0].id))
+          eq(identities.userId, data[0].id))
 
       if (!identity[0]) {
         await tx
@@ -56,10 +56,10 @@ const createUser = async (db: DB, newUser: NewUser) => {
             createdAt: new Date(),
             updatedAt: new Date(),
           })
-        }
+      }
 
       return data;
-    }) 
+    })
     return data[0];
   } catch (e: any) {
     if (e.code && e.code === "23505") {
@@ -115,8 +115,14 @@ export const findUserWithPassword = async (
   return data[0];
 };
 
+const findUserById = async (db: DB, id: string) => {
+  const data = await db.select().from(users).where(eq(users.id, id));
+  return data[0];
+}
+
 export const userRepository = {
   createUser,
   findUserByEmail,
   findUserWithPassword,
+  findUserById,
 };

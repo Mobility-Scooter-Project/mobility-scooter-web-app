@@ -8,14 +8,18 @@ import {
   createUserWithPasswordSchema,
   refreshTokenSchema,
   signInWithPasswordSchema,
+  verifyTOTPSchema,
 } from "@validators/auth";
 import { signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
+import { userMiddleware } from "@src/middleware/user";
+import { generateQRCode } from "@src/lib/qr";
+import { verifyTOTP } from "@src/lib/otp";
 
 const app = new Hono<{ Variables: Variables }>()
   .post(
     "/emailpass/register",
-    dbMiddleware,
     validateApiKey,
+    dbMiddleware,
     signUpRateLimiter,
     zValidator("json", createUserWithPasswordSchema),
     async (c) => {
@@ -32,22 +36,19 @@ const app = new Hono<{ Variables: Variables }>()
         unitId
       );
 
-      return new Response(
-        JSON.stringify({
-          data: {
-            token,
-            refreshToken,
-          },
-          error: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+      return c.json({
+        data: {
+          token,
+          refreshToken,
+        },
+        error: null,
+      });
     }
   )
   .post(
     "/emailpass",
-    dbMiddleware,
     validateApiKey,
+    dbMiddleware,
     zValidator("json", signInWithPasswordSchema),
     signInRateLimiter,
     async (c) => {
@@ -60,16 +61,13 @@ const app = new Hono<{ Variables: Variables }>()
         password
       );
 
-      return new Response(
-        JSON.stringify({
-          data: {
-            token,
-            refreshToken,
-          },
-          error: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+      return c.json({
+        data: {
+          token,
+          refreshToken,
+        },
+        error: null,
+      });
     }
   )
   .post(
@@ -85,17 +83,44 @@ const app = new Hono<{ Variables: Variables }>()
         token
       );
 
-      return new Response(
-        JSON.stringify({
-          data: {
-            token: newToken,
-            refreshToken,
-          },
-          error: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+      c.json({
+        data: {
+          token: newToken,
+          refreshToken,
+        },
+        error: null,
+      });
     }
-  );
+  ).get("/otp", validateApiKey, userMiddleware, dbMiddleware, async (c) => {
+    const userId = c.get("userId")!;
+    const db = c.get("db");
+
+    const totp = await authService.generateOTP(db, userId)
+    const qrCode = await generateQRCode(totp.toString());
+
+    return c.json({
+      data: {
+        secret: totp.secret.base32,
+        qrCode: qrCode.toString("base64"),
+      },
+      error: null,
+    })
+  }).post("/otp/validate", validateApiKey, userMiddleware, dbMiddleware, zValidator("json", verifyTOTPSchema), async (c) => {
+    const userId = c.get("userId")!;
+    const db = c.get("db");
+
+    const { token, secret } = c.req.valid("json");
+
+    const response = await authService.verifyUserTOTP(db, userId, token, secret);
+
+    const valid = response === null ? false: response === -1 ? false : true;
+
+    return c.json({
+      data: {
+        valid 
+      },
+      error: null,
+    })
+  });
 
 export default app;

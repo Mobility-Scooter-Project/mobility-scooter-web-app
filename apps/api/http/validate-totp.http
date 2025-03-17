@@ -1,0 +1,29 @@
+### Login
+# @name login
+POST http://localhost:3000/v1/api/auth/emailpass
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
+
+{
+"email": "test@example.com",
+ "password": "testing124"
+}
+
+### Get OTP
+# @name otp
+
+GET http://localhost:3000/v1/api/auth/otp
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+X-User: {{login.response.body.data.token}}
+
+### Validate OTP
+# @name validate
+POST http://localhost:3000/v1/api/auth/otp/validate
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
+X-User: {{login.response.body.data.token}}
+
+{
+  "token": "287019",
+  "secret": "{{otp.response.body.data.secret}}"
+}
