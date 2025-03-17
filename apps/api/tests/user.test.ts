@@ -244,8 +244,19 @@ describe("User", () => {
     describe("Refresh Token", () => {
       // refresh-token.http
       it("should refresh the token", async () => {
+        const userResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+          method: "POST",
+          body: JSON.stringify({
+            email: SHARED_DATA.EMAIL,
+            password: SHARED_DATA.PASSWORD,
+          }),
+          headers,
+        });
+
+        const token = (await userResponse.json()).data.refreshToken;
+
         const body = {
-          token: refreshToken,
+          token,
         };
 
         const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
@@ -272,6 +283,31 @@ describe("User", () => {
       });
     });
   })
+
+  describe("OTP", () => {
+    it("should generate an OTP secret", async () => {
+      const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: SHARED_DATA.PASSWORD,
+        }),
+        headers,
+      })
+
+      const { token } = (await loginResponse.json()).data;
+
+      const response = await fetch(`${BASE_URL}/v1/api/auth/otp`, {
+        method: "GET",
+        headers: {
+          ...headers,
+          "X-User": token
+        }
+      });
+
+      expect(response.status).toBe(200);
+    });
+  });
 
   afterAll(async () => {
     await Promise.all([

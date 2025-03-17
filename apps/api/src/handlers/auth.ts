@@ -83,7 +83,7 @@ const app = new Hono<{ Variables: Variables }>()
         token
       );
 
-      c.json({
+      return c.json({
         data: {
           token: newToken,
           refreshToken,
@@ -113,14 +113,10 @@ const app = new Hono<{ Variables: Variables }>()
 
     const response = await authService.verifyUserTOTP(db, userId, token, secret);
 
-    const valid = response === null ? false: response === -1 ? false : true;
+    const valid = response === null ? false : response === -1 ? false : true;
 
-    return c.json({
-      data: {
-        valid 
-      },
-      error: null,
-    })
+    valid ? c.status(200) : c.status(401);
+    return valid ? c.text("OK") : c.text("Invalid token");
   });
 
 export default app;
