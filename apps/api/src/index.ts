@@ -14,7 +14,7 @@ export type Variables = {
 export const app = new Hono<{ Variables: Variables }>()
   .use(logger())
   .get("/healthcheck", (c) => {
-    return new Response("OK", { status: 200 });
+    return c.text("OK");
   })
   .basePath("/v1/api")
   .route("/auth", auth)

@@ -13,6 +13,7 @@ import {
 import { otpRateLimiter, signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
 import { userMiddleware } from "@src/middleware/user";
 import { generateQRCode } from "@src/lib/qr";
+import { ENVIRONMENT } from "@src/config/constants";
 
 const app = new Hono<{ Variables: Variables }>()
   .post(
