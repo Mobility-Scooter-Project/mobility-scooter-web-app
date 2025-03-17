@@ -6,7 +6,7 @@ Content-Type: application/json
 
 {
 "email": "test@example.com",
- "password": "test124"
+ "password": "testing124"
 }
 
 ### Get Video Presigned URL

@@ -17,7 +17,7 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 let refreshToken: string;
 
 describe("User", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await kv.flushall();
   });
 
