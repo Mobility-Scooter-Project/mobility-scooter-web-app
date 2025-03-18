@@ -3,6 +3,15 @@ import { db } from "@src/middleware/db";
 import { eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
+/**
+ * Updates the "lastUsedAt" timestamp for an API key in the database.
+ * 
+ * This function marks the API key as recently used by updating its
+ * lastUsedAt field to the current date and time.
+ * 
+ * @param apiKey - The plain text API key to update
+ * @throws {HTTPException} With status 500 if the database update fails
+ */
 const bumpLastUsed = async (apiKey: string) => {
     const lastUsedAt = new Date();
 

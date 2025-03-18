@@ -21,7 +21,6 @@ export const apiKeys = auth.table("api_keys", {
   id: uuid().primaryKey().notNull(),
   encryptedKey: text().notNull(),
   owner: text().notNull(),
-  // scopes: jsonb().notNull(),
   isActive: boolean().default(true),
   lastUsedAt: timestamp(),
   createdAt: timestamp().defaultNow(),

@@ -1,9 +1,9 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
-import auth from "@handlers/auth";
-import storage from "@handlers/storage";
+import auth from "@src/handlers/auth";
 import { DB } from "@middleware/db";
+import storage from "@handlers/storage";
 
 export type Variables = {
   db: DB;
