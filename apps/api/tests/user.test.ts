@@ -17,7 +17,7 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 let refreshToken: string;
 
 describe("User", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await kv.flushall();
   });
 
@@ -244,8 +244,19 @@ describe("User", () => {
     describe("Refresh Token", () => {
       // refresh-token.http
       it("should refresh the token", async () => {
+        const userResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+          method: "POST",
+          body: JSON.stringify({
+            email: SHARED_DATA.EMAIL,
+            password: SHARED_DATA.PASSWORD,
+          }),
+          headers,
+        });
+
+        const token = (await userResponse.json()).data.refreshToken;
+
         const body = {
-          token: refreshToken,
+          token,
         };
 
         const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
@@ -272,6 +283,65 @@ describe("User", () => {
       });
     });
   })
+
+  describe("OTP", () => {
+    beforeEach(async () => {
+      await kv.flushall();
+    });
+    it("should generate an OTP secret", async () => {
+      const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: SHARED_DATA.PASSWORD,
+        }),
+        headers,
+      })
+
+      const { token } = (await loginResponse.json()).data;
+
+      const response = await fetch(`${BASE_URL}/v1/api/auth/otp`, {
+        method: "GET",
+        headers: {
+          ...headers,
+          "X-User": token
+        }
+      });
+
+      expect(response.status).toBe(200);
+    });
+
+    it("should return 429 when rate limit is exceeded", async () => {
+      const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: SHARED_DATA.PASSWORD,
+        }),
+        headers,
+      })
+
+      const { token } = (await loginResponse.json()).data;
+
+      const statuses = await Promise.all(
+        Array.from({ length: 50 }).map(() =>
+          fetch(`${BASE_URL}/v1/api/auth/otp/verify`, {
+            method: "POST",
+            headers: {
+              ...headers,
+              "X-User": token
+            },
+            body: JSON.stringify({
+              token: "123456",
+              secret: "secret"
+            })
+          }).then((r) => r.status)
+        )
+      );
+
+      expect(statuses.includes(429)).toBe(true);
+    });
+  });
 
   afterAll(async () => {
     await Promise.all([

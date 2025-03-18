@@ -1,7 +1,20 @@
+### Login
+# @name login
+POST http://localhost:3000/v1/api/auth/emailpass
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "testing124"
+}
+
+### Refresh Token
+
 POST http://localhost:3000/v1/api/auth/refresh
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 
 {
-    "token": "{{$dotenv TESTING_REFRESH_TOKEN}}"
+    "token": "{{login.response.body.data.refreshToken}}"
 }

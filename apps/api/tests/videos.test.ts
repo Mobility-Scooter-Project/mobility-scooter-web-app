@@ -10,8 +10,8 @@ const headers = {
 };
 
 const SHARED_DATA = {
-    EMAIL: "videos@example.com",
-    PASSWORD: "password1358",
+    EMAIL: "video@example.com",
+    PASSWORD: "password13580",
     DATE: new Date().toISOString(),
 };
 
@@ -48,7 +48,7 @@ describe("Videos", () => {
 
     it("return a presigned url", async () => {
         const body = {
-            "patientId": userId,
+            "patientId": "abc-123-456",
             "filename": "test.txt",
             "date": SHARED_DATA.DATE,
         };

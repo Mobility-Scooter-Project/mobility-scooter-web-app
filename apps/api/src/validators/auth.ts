@@ -47,7 +47,7 @@ export const createUserWithPasswordSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "Password cannot contain repeated characters",
     });
-}
+  }
 });
 
 export const signInWithPasswordSchema = z.object({
@@ -58,3 +58,7 @@ export const signInWithPasswordSchema = z.object({
 export const refreshTokenSchema = z.object({
   token: z.string().nonempty(),
 });
+
+export const verifyTOTPSchema = z.object({
+  token: z.string().nonempty(),
+})
