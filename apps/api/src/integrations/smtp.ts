@@ -9,8 +9,16 @@ const transporter = nodemailer.createTransport({
     }
 })
 
+/**
+ * Sends an email using a preconfigured SMTP transporter.
+ * 
+ * @param to - The recipient's email address
+ * @param subject - The subject line of the email
+ * @param sender - The sender's email address
+ * @param text - The plain text body content of the email
+ * @returns A promise that resolves when the email has been sent
+ */
 export const sendEmail = async (to: string, subject: string, sender: string, text: string) => {
-
     await transporter.sendMail({
         from: sender,
         to,
