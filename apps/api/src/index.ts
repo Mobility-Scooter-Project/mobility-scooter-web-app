@@ -1,9 +1,11 @@
 import storage from '@handlers/storage'
 import { serve } from '@hono/node-server'
 import type { DB } from '@middleware/db'
+import { apiReference } from '@scalar/hono-api-reference'
 import auth from '@src/handlers/auth'
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
+import { openAPISpecs } from 'hono-openapi'
 
 export type Variables = {
   db: DB;
@@ -19,6 +21,29 @@ export const app = new Hono<{ Variables: Variables }>()
   .basePath('/v1/api')
   .route('/auth', auth)
   .route('/storage', storage)
+
+app.get(
+  '/openapi',
+  openAPISpecs(app, {
+    documentation: {
+      info: {
+        title: 'Hono API',
+        version: '1.0.0',
+        description: 'Greeting API',
+      },
+      servers: [{ url: 'http://localhost:3000', description: 'Local Server' }],
+    },
+  }),
+)
+
+app.get(
+  '/docs',
+  apiReference({
+    theme: 'elysiajs',
+    // @ts-expect-error - This is a valid configuration
+    spec: { url: '/v1/api/openapi' },
+  }),
+)
 
 export type AppType = typeof app;
 

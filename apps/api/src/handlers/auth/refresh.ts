@@ -3,11 +3,34 @@ import type { Variables } from '@src/index'
 import { dbMiddleware, db } from '@src/middleware/db'
 import { validateApiKey } from '@src/middleware/validate-api-key'
 import { authService } from '@src/services/auth'
-import { refreshTokenSchema } from '@src/validators/auth'
+import { refreshTokenSchema, sessionBodySchema } from '@src/validators/auth'
 import { Hono } from 'hono'
+import { describeRoute } from 'hono-openapi'
+import { resolver } from 'hono-openapi/zod'
 
 const app = new Hono<{ Variables: Variables }>().post(
   '/',
+  describeRoute({
+    summary: 'Refresh an access token',
+    description: 'Refresh an access token using a refresh token',
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: zValidator('json', refreshTokenSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Access token refreshed successfully',
+        content: {
+          'application/json': {
+            schema: resolver(sessionBodySchema),
+          },
+        },
+      },
+    },
+  }),
   dbMiddleware,
   validateApiKey,
   zValidator('json', refreshTokenSchema),

@@ -5,3 +5,9 @@ export const presignedUrlSchema = z.object({
   date: z.coerce.date(),
   patientId: z.string(),
 })
+
+export const presignedUrlResponseSchema = z.object({
+  data: z.object({
+    url: z.string().nonempty(),
+  }),
+})

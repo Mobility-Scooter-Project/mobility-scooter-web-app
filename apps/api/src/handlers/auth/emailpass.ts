@@ -1,4 +1,5 @@
 import { zValidator } from '@hono/zod-validator'
+
 import type { Variables } from '@src/index'
 import { dbMiddleware } from '@src/middleware/db'
 import {
@@ -13,12 +14,31 @@ import {
   signInWithPasswordSchema,
   resetPasswordTokenSchema,
   resetPasswordSchema,
+  sessionBodySchema,
 } from '@src/validators/auth'
 import { Hono } from 'hono'
+import { describeRoute } from 'hono-openapi'
+import { resolver } from 'hono-openapi/zod'
 
 const app = new Hono<{ Variables: Variables }>()
   .post(
     '/register',
+    describeRoute({
+      summary: 'Register a new user with email and password',
+      description:
+        'Register a new user with email and password and return a session',
+      body: createUserWithPasswordSchema,
+      responses: {
+        200: {
+          description: 'User created successfully',
+          content: {
+            'application/json': {
+              schema: resolver(sessionBodySchema),
+            },
+          },
+        },
+      },
+    }),
     validateApiKey,
     dbMiddleware,
     signUpRateLimiter,
@@ -48,6 +68,21 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     '/',
+    describeRoute({
+      summary: 'Sign in with email and password',
+      description: 'Sign in with email and password and return a session',
+      body: signInWithPasswordSchema,
+      responses: {
+        200: {
+          description: 'User signed in successfully',
+          content: {
+            'application/json': {
+              schema: resolver(sessionBodySchema),
+            },
+          },
+        },
+      },
+    }),
     validateApiKey,
     dbMiddleware,
     zValidator('json', signInWithPasswordSchema),
@@ -73,6 +108,23 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     '/reset-password/token',
+    describeRoute({
+      summary: 'Generate a reset password token',
+      description: 'Generate a reset password token for a user',
+      body: resetPasswordTokenSchema,
+      responses: {
+        200: {
+          description: 'Token generated successfully',
+          content: {
+            'text/plain': {
+              schema: {
+                type: 'string',
+              },
+            },
+          },
+        },
+      },
+    }),
     validateApiKey,
     zValidator('json', resetPasswordTokenSchema),
     resetPasswordRateLimiter,
@@ -96,6 +148,23 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     '/reset-password',
+    describeRoute({
+      summary: 'Reset password with token',
+      description: 'Reset password with a reset password token',
+      body: resetPasswordSchema,
+      responses: {
+        200: {
+          description: 'Password reset successfully',
+          content: {
+            'text/plain': {
+              schema: {
+                type: 'string',
+              },
+            },
+          },
+        },
+      },
+    }),
     validateApiKey,
     zValidator('json', resetPasswordSchema),
     resetPasswordRateLimiter,

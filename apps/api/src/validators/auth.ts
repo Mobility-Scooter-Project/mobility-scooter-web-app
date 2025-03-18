@@ -23,6 +23,13 @@ export const createUserWithPasswordSchema = z
   })
   .superRefine((data, ctx) => validatePassword(data, ctx))
 
+export const sessionBodySchema = z.object({
+  data: z.object({
+    token: z.string().nonempty(),
+    refreshToken: z.string().nonempty(),
+  }),
+})
+
 export const signInWithPasswordSchema = z.object({
   email: z.string().email({ message: 'Invalid email' }),
   password: z.string().nonempty(),
@@ -46,4 +53,12 @@ export const refreshTokenSchema = z.object({
 
 export const verifyTOTPSchema = z.object({
   token: z.string().nonempty(),
+})
+
+export const OTPResponseSchema = z.object({
+  data: z.object({
+    secret: z.string().nonempty(),
+    qrCode: z.string().nonempty(),
+  }),
+  error: z.nullable(z.string()),
 })
