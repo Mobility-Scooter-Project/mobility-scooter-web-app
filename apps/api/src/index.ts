@@ -18,7 +18,7 @@ export const app = new Hono<{ Variables: Variables }>()
   .get('/healthcheck', (c) => {
     return c.text('OK')
   })
-  .basePath('/v1/api')
+  .basePath('/api/v1')
   .route('/auth', auth)
   .route('/storage', storage)
 
@@ -27,9 +27,9 @@ app.get(
   openAPISpecs(app, {
     documentation: {
       info: {
-        title: 'Hono API',
+        title: 'MSWA API',
         version: '1.0.0',
-        description: 'Greeting API',
+        description: 'Mobility Scooter Web Application API',
       },
       servers: [{ url: 'http://localhost:3000', description: 'Local Server' }],
     },
@@ -41,7 +41,7 @@ app.get(
   apiReference({
     theme: 'elysiajs',
     // @ts-expect-error - This is a valid configuration
-    spec: { url: '/v1/api/openapi' },
+    spec: { url: '/api/v1/openapi' },
   }),
 )
 
