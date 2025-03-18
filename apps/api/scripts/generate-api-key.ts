@@ -34,7 +34,6 @@ try {
   fs.appendFileSync('.env', `TESTING_API_KEY=${key}\n`)
 
   console.log(`Successfully wrote API key to .env file for device ${hostname}`)
-
 } catch (e) {
   console.error(e)
   throw new Error('Failed to generate API key')

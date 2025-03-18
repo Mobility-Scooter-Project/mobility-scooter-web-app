@@ -1,3 +1,4 @@
+import { HTTP_CODES } from '@src/config/http-codes'
 import { vault } from '@src/integrations/vault'
 import { HTTPException } from 'hono/http-exception'
 
@@ -35,14 +36,14 @@ const markPasswordResetTokenUsed = async (token: string, userId: string) => {
   if (!data || data.token !== token) {
     throw new HTTPException(404, {
       res: new Response(JSON.stringify({ error: 'Token not found' }), {
-        status: 404,
+        status: HTTP_CODES.NOT_FOUND,
       }),
     })
   }
   if (data.used) {
     throw new HTTPException(400, {
       res: new Response(JSON.stringify({ error: 'Token already used' }), {
-        status: 400,
+        status: HTTP_CODES.BAD_REQUEST,
       }),
     })
   }

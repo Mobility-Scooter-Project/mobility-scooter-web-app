@@ -1,4 +1,5 @@
 import { VAULT_ADDR, VAULT_TOKEN } from '@src/config/constants'
+import { HTTP_CODES } from '@src/config/http-codes'
 import { HTTPException } from 'hono/http-exception'
 import VaultClient from 'node-vault-client'
 
@@ -39,9 +40,9 @@ export const getOtpSecretByUserId = async (userId: string) => {
   try {
     const secret = await vault.read(`kv/auth/otp/${userId}`)
     return secret.getData().secret as string
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
-    throw new HTTPException(404, {
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({ data: null, error: 'TOTP does not exist' }),
       ),

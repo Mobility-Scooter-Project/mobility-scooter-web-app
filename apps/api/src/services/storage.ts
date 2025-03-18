@@ -1,4 +1,5 @@
 import { ENVIRONMENT } from '@src/config/constants'
+import { HTTP_CODES } from '@src/config/http-codes'
 import { storage } from '@src/integrations/storage'
 import { HTTPException } from 'hono/http-exception'
 
@@ -21,7 +22,7 @@ const generatePresignedVideoPutUrl = async (
     }
   } catch (e) {
     console.error(e)
-    throw new HTTPException(500, {
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
         JSON.stringify({
           data: null,
@@ -38,7 +39,7 @@ const generatePresignedVideoPutUrl = async (
     )
   } catch (e) {
     console.error(e)
-    throw new HTTPException(500, {
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
         JSON.stringify({
           data: null,

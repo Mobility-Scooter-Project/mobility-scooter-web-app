@@ -1,4 +1,5 @@
 import { zValidator } from '@hono/zod-validator'
+import { HTTP_CODES } from '@src/config/http-codes'
 import type { Variables } from '@src/index'
 import { generateQRCode } from '@src/lib/qr'
 import { dbMiddleware } from '@src/middleware/db'
@@ -42,7 +43,7 @@ const app = new Hono<{ Variables: Variables }>()
 
       const valid = response === null ? false : response === -1 ? false : true
 
-      valid ? c.status(200) : c.status(401)
+      valid ? c.status(HTTP_CODES.OK) : c.status(HTTP_CODES.UNAUTHORIZED)
       return valid ? c.text('OK') : c.text('Invalid token')
     },
   )

@@ -1,3 +1,4 @@
+import { HTTP_CODES } from '@src/config/http-codes'
 import { kv } from '@src/integrations/kv'
 import { storage } from '@src/integrations/storage'
 import { db } from '@src/middleware/db'
@@ -41,7 +42,7 @@ describe('Videos', () => {
       },
     )
 
-    expect(userResponse.status).toBe(200)
+    expect(userResponse.status).toBe(HTTP_CODES.OK)
     token = (await userResponse.json()).data.token
     const { payload } = decode(token)
     // @ts-expect-error cannot be typed
@@ -67,7 +68,7 @@ describe('Videos', () => {
       },
     )
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(HTTP_CODES.OK)
     url = (await response.json()).data.url
   })
 
@@ -76,7 +77,7 @@ describe('Videos', () => {
       method: 'PUT',
     })
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(HTTP_CODES.OK)
   })
 
   afterAll(async () => {

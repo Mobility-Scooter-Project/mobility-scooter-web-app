@@ -2,7 +2,8 @@ import type { DB } from '@middleware/db'
 import { db } from '@middleware/db'
 import { refreshTokenRepository } from '@repositories/refresh-token'
 import { userRepository } from '@repositories/user'
-import { ENVIRONMENT, JWT_SECRET } from '@src/config/constants'
+import { BASE_URL, ENVIRONMENT, JWT_SECRET } from '@src/config/constants'
+import { HTTP_CODES } from '@src/config/http-codes'
 import { sendEmail } from '@src/integrations/smtp'
 import { resetPasswordTokensRepository } from '@src/repositories/reset-password-tokens'
 import { sql } from 'drizzle-orm'
@@ -172,7 +173,7 @@ const resetPassword = async (token: string, password: string) => {
     payload = await verify(token, JWT_SECRET)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
-    throw new HTTPException(401, {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
       res: new Response(JSON.stringify({ data: null, error: 'Invalid token' })),
     })
   }
@@ -184,7 +185,9 @@ const resetPassword = async (token: string, password: string) => {
     await userRepository.updatePassword(db, userId, password)
   } catch (e) {
     console.error(`Failed to reset password: ${e}`)
-    throw new HTTPException(501, { message: 'Failed to reset password' })
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: 'Failed to reset password',
+    })
   }
 }
 

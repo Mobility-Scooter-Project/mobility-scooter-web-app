@@ -1,3 +1,4 @@
+import { HTTP_CODES } from '@src/config/http-codes'
 import { apiKeys } from '@src/db/schema/auth'
 import { db } from '@src/middleware/db'
 import { eq, sql } from 'drizzle-orm'
@@ -27,7 +28,7 @@ const bumpLastUsed = async (apiKey: string) => {
       )
   } catch (e) {
     console.error(e)
-    throw new HTTPException(500, {
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
         JSON.stringify({ message: 'Failed to update last used timestamp' }),
       ),

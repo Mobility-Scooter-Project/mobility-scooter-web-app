@@ -1,6 +1,7 @@
 import { refreshTokens } from '@db/schema/auth'
 import { signJWT } from '@lib/jwt'
 import type { DB } from '@middleware/db'
+import { HTTP_CODES } from '@src/config/http-codes'
 import { eq, sql } from 'drizzle-orm'
 import { HTTPException } from 'hono/http-exception'
 
@@ -37,7 +38,9 @@ const createRefreshToken = async (
     return data[0].token
   } catch (e) {
     console.error(`Failed to create refresh token: ${e}`)
-    throw new HTTPException(501, { message: 'Failed to create refresh token' })
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: 'Failed to create refresh token',
+    })
   }
 }
 
@@ -67,7 +70,9 @@ const revokeRefreshToken = async (db: DB, token: string) => {
       .where(eq(refreshTokens.token, token))
   } catch (e) {
     console.error(`Failed to revoke refresh token: ${e}`)
-    throw new HTTPException(501, { message: 'Failed to revoke refresh token' })
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: 'Failed to revoke refresh token',
+    })
   }
 }
 

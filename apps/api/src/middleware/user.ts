@@ -1,4 +1,5 @@
 import { JWT_SECRET } from '@config/constants'
+import { HTTP_CODES } from '@src/config/http-codes'
 import type { Context, Next } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { verify } from 'hono/jwt'
@@ -24,8 +25,8 @@ export const userMiddleware = async (c: Context, next: Next) => {
     const { userId, sessionId } = await verify(user, JWT_SECRET)
 
     if (!userId || !sessionId) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized',
+      throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+        message: 'Failed to authenticate user',
       })
     }
 
@@ -35,7 +36,7 @@ export const userMiddleware = async (c: Context, next: Next) => {
     await next()
   } catch (e) {
     console.error(e)
-    throw new HTTPException(401, {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
       message: 'Unauthorized',
     })
   }

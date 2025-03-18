@@ -1,4 +1,5 @@
 import { DATABASE_URL } from '@config/constants'
+import { HTTP_CODES } from '@src/config/http-codes'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import type { Context, Next } from 'hono'
@@ -47,7 +48,7 @@ export const dbMiddleware = async (c: Context, next: Next) => {
     }
   } catch (e) {
     console.error(`Failed to set user context: ${e}`)
-    throw new HTTPException(500, {
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
         JSON.stringify({ data: null, error: 'Failed to set user context' }),
       ),

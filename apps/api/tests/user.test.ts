@@ -1,4 +1,5 @@
 import { db } from '@middleware/db'
+import { HTTP_CODES } from '@src/config/http-codes'
 import { kv } from '@src/integrations/kv'
 import { sql } from 'drizzle-orm'
 
@@ -39,7 +40,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(HTTP_CODES.OK)
     })
 
     it('should return 409 when an existing email is used', async () => {
@@ -59,7 +60,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(409)
+      expect(response.status).toBe(HTTP_CODES.CONFLICT)
     })
 
     it('should return 409 when the rate limit is exceeded', async () => {
@@ -81,7 +82,7 @@ describe('User', () => {
         ),
       )
 
-      expect(statuses.includes(409)).toBe(true)
+      expect(statuses.includes(HTTP_CODES.CONFLICT)).toBe(true)
     })
 
     it('should return 400 when the email is invalid', async () => {
@@ -102,7 +103,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
     })
 
     describe('Password', () => {
@@ -124,7 +125,7 @@ describe('User', () => {
           },
         )
 
-        expect(response.status).toBe(400)
+        expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
       })
 
       it('should return 400 when password is too long', async () => {
@@ -145,7 +146,7 @@ describe('User', () => {
           },
         )
 
-        expect(response.status).toBe(400)
+        expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
       })
 
       it('should return 400 when password contains sequential characters', async () => {
@@ -166,7 +167,7 @@ describe('User', () => {
           },
         )
 
-        expect(response.status).toBe(400)
+        expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
       })
 
       it('should return 400 when password contains repeated characters', async () => {
@@ -187,7 +188,7 @@ describe('User', () => {
           },
         )
 
-        expect(response.status).toBe(400)
+        expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
       })
 
       it('should return 400 when password is a common dictionary word', async () => {
@@ -208,7 +209,7 @@ describe('User', () => {
           },
         )
 
-        expect(response.status).toBe(400)
+        expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
       })
     })
   })
@@ -230,7 +231,7 @@ describe('User', () => {
         headers,
       })
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(HTTP_CODES.OK)
       refreshToken = (await response.json()).data.refreshToken
     })
 
@@ -246,7 +247,7 @@ describe('User', () => {
         headers,
       })
 
-      expect(response.status).toBe(401)
+      expect(response.status).toBe(HTTP_CODES.UNAUTHORIZED)
     })
 
     it('should return 401 when the email is incorrect', async () => {
@@ -261,7 +262,7 @@ describe('User', () => {
         headers,
       })
 
-      expect(response.status).toBe(401)
+      expect(response.status).toBe(HTTP_CODES.UNAUTHORIZED)
     })
 
     describe('Refresh Token', () => {
@@ -288,7 +289,7 @@ describe('User', () => {
           headers,
         })
 
-        expect(response.status).toBe(200)
+        expect(response.status).toBe(HTTP_CODES.OK)
       })
 
       it('should return 401 when the token is invalid', async () => {
@@ -302,7 +303,7 @@ describe('User', () => {
           headers,
         })
 
-        expect(response.status).toBe(401)
+        expect(response.status).toBe(HTTP_CODES.UNAUTHORIZED)
       })
     })
   })
@@ -326,7 +327,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(HTTP_CODES.OK)
       resetToken = (await response.json()).data.token
     })
 
@@ -342,7 +343,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(404)
+      expect(response.status).toBe(HTTP_CODES.NOT_FOUND)
     })
 
     it('should reset the password', async () => {
@@ -359,7 +360,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(HTTP_CODES.OK)
     })
 
     it('should return 401 when the token is invalid', async () => {
@@ -376,7 +377,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(401)
+      expect(response.status).toBe(HTTP_CODES.UNAUTHORIZED)
     })
 
     it('should return 400 when the password is invalid', async () => {
@@ -393,7 +394,7 @@ describe('User', () => {
         },
       )
 
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(HTTP_CODES.BAD_REQUEST)
     })
 
     it('should return 429 when the rate limit is exceeded', async () => {
@@ -411,7 +412,7 @@ describe('User', () => {
         ),
       )
 
-      expect(statuses.includes(429)).toBe(true)
+      expect(statuses.includes(HTTP_CODES.RATE_LIMIT_EXCEEDED)).toBe(true)
     })
   })
 
@@ -439,7 +440,7 @@ describe('User', () => {
         },
       })
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(HTTP_CODES.OK)
     })
 
     it('should return 429 when rate limit is exceeded', async () => {
@@ -470,7 +471,7 @@ describe('User', () => {
         ),
       )
 
-      expect(statuses.includes(429)).toBe(true)
+      expect(statuses.includes(HTTP_CODES.RATE_LIMIT_EXCEEDED)).toBe(true)
     })
   })
 

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "export ENVIRONMENT=development && tsx watch src/index.ts .env",
     "start": "tsx src/index.ts",
+    "clean": "prettier --write . && eslint --fix .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
