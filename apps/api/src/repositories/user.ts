@@ -1,8 +1,8 @@
-import { identities, users } from '@db/schema/auth'
-import type { DB } from '@middleware/db'
-import { HTTP_CODES } from '@src/config/http-codes'
-import { eq, sql, and } from 'drizzle-orm'
-import { HTTPException } from 'hono/http-exception'
+import { identities, users } from "@db/schema/auth";
+import type { DB } from "@middleware/db";
+import { HTTP_CODES } from "@src/config/http-codes";
+import { eq, sql, and } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 
 type NewUser = typeof users.$inferInsert;
 
@@ -26,7 +26,7 @@ type NewUser = typeof users.$inferInsert;
 const createUser = async (db: DB, newUser: NewUser) => {
   const encryptedPassword = newUser.encryptedPassword
     ? sql`crypt(${newUser.encryptedPassword}, gen_salt('bf'))`
-    : null
+    : null;
   try {
     const data = await db.transaction(async (tx) => {
       const data = await tx
@@ -37,48 +37,48 @@ const createUser = async (db: DB, newUser: NewUser) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .returning({ id: users.id })
+        .returning({ id: users.id });
 
-      await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`))
-      await tx.execute(sql`SET ROLE authenticated_user`)
+      await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`));
+      await tx.execute(sql`SET ROLE authenticated_user`);
 
       const identity = await tx
         .select()
         .from(identities)
-        .where(eq(identities.userId, data[0].id))
+        .where(eq(identities.userId, data[0].id));
 
       if (!identity[0]) {
         await tx.insert(identities).values({
           userId: data[0].id,
-          provider: 'emailpass',
+          provider: "emailpass",
           createdAt: new Date(),
           updatedAt: new Date(),
-        })
+        });
       }
 
-      return data
-    })
-    return data[0]
+      return data;
+    });
+    return data[0];
   } catch (e: unknown) {
     if (
-      typeof e === 'object' &&
+      typeof e === "object" &&
       e !== null &&
-      'code' in e &&
-      e.code === '23505'
+      "code" in e &&
+      e.code === "23505"
     ) {
       throw new HTTPException(HTTP_CODES.CONFLICT, {
         res: new Response(
-          JSON.stringify({ data: null, error: 'User already exists' }),
+          JSON.stringify({ data: null, error: "User already exists" }),
         ),
-      })
+      });
     }
 
-    console.error(`Failed to create user: ${e}`)
+    console.error(`Failed to create user: ${e}`);
     throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: 'Failed to create user',
-    })
+      message: "Failed to create user",
+    });
   }
-}
+};
 
 /**
  * Retrieves a user from the database by their email address
@@ -87,9 +87,9 @@ const createUser = async (db: DB, newUser: NewUser) => {
  * @returns The first user found with the matching email, or undefined if none exists
  */
 export const findUserByEmail = async (db: DB, email: string) => {
-  const data = await db.select().from(users).where(eq(users.email, email))
-  return data[0]
-}
+  const data = await db.select().from(users).where(eq(users.email, email));
+  return data[0];
+};
 
 /**
  * Finds a user in the database by email and password.
@@ -116,9 +116,9 @@ export const findUserWithPassword = async (
           sql`crypt(${password}, ${users.encryptedPassword})`,
         ),
       ),
-    )
-  return data[0]
-}
+    );
+  return data[0];
+};
 
 /**
  * Retrieves a user from the database by their unique identifier.
@@ -128,9 +128,9 @@ export const findUserWithPassword = async (
  * @returns The first user that matches the specified ID, or undefined if no user is found
  */
 const findUserById = async (db: DB, id: string) => {
-  const data = await db.select().from(users).where(eq(users.id, id))
-  return data[0]
-}
+  const data = await db.select().from(users).where(eq(users.id, id));
+  return data[0];
+};
 
 /**
  * Updates a user's password in the database.
@@ -142,9 +142,9 @@ const findUserById = async (db: DB, id: string) => {
  * @returns {Promise<void>} - A promise that resolves when the password has been updated
  */
 const updatePassword = async (db: DB, userId: string, password: string) => {
-  const encryptedPassword = sql`crypt(${password}, gen_salt('bf'))`
-  await db.update(users).set({ encryptedPassword }).where(eq(users.id, userId))
-}
+  const encryptedPassword = sql`crypt(${password}, gen_salt('bf'))`;
+  await db.update(users).set({ encryptedPassword }).where(eq(users.id, userId));
+};
 
 export const userRepository = {
   createUser,
@@ -152,4 +152,4 @@ export const userRepository = {
   findUserWithPassword,
   findUserById,
   updatePassword,
-}
+};

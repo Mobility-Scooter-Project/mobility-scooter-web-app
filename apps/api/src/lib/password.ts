@@ -1,8 +1,8 @@
 // @ts-expect-error - no types available
-import { words } from 'popular-english-words'
-import { z } from 'zod'
+import { words } from "popular-english-words";
+import { z } from "zod";
 
-const commonWords = words.getAll().map((word: string) => word.toLowerCase())
+const commonWords = words.getAll().map((word: string) => word.toLowerCase());
 
 /**
  * Checks if a password contains more than 2 sequential characters in a row.
@@ -20,23 +20,23 @@ const commonWords = words.getAll().map((word: string) => word.toLowerCase())
  * ```
  */
 export const checkSequentialPassword = (password: string): boolean => {
-  let sequentialCount = 0
+  let sequentialCount = 0;
   for (let i = 0; i < password.length; i++) {
     if (i > 0) {
       if (password.charCodeAt(i - 1) + 1 === password.charCodeAt(i)) {
-        sequentialCount++
-        console.log(password.charCodeAt(i - 1), password.charCodeAt(i))
+        sequentialCount++;
+        console.log(password.charCodeAt(i - 1), password.charCodeAt(i));
       } else {
-        sequentialCount = 0
+        sequentialCount = 0;
       }
       // allows for 2 sequential characters, eg 12
       if (sequentialCount >= 3) {
-        return false
+        return false;
       }
     }
   }
-  return true
-}
+  return true;
+};
 
 /**
  * Checks if a password contains more than 3 consecutive repeated characters.
@@ -51,22 +51,22 @@ export const checkSequentialPassword = (password: string): boolean => {
  * ```
  */
 export const checkRepeatedPassword = (password: string): boolean => {
-  const passwordArray = password.split('')
-  let repeatedCount = 0
+  const passwordArray = password.split("");
+  let repeatedCount = 0;
   for (let i = 0; i < passwordArray.length; i++) {
     if (i > 0) {
       if (passwordArray[i - 1] === passwordArray[i]) {
-        repeatedCount++
+        repeatedCount++;
       } else {
-        repeatedCount = 0
+        repeatedCount = 0;
       }
       if (repeatedCount >= 3) {
-        return false
+        return false;
       }
     }
   }
-  return true
-}
+  return true;
+};
 
 export const validatePassword = (
   data: { password: string; email: string },
@@ -75,25 +75,25 @@ export const validatePassword = (
   if (commonWords.includes(data.password.toLowerCase())) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Password cannot be a common word',
-    })
+      message: "Password cannot be a common word",
+    });
   }
   if (data.email === data.password) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Password cannot be the same as email',
-    })
+      message: "Password cannot be the same as email",
+    });
   }
   if (!checkSequentialPassword(data.password)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Password cannot contain sequential characters or numbers',
-    })
+      message: "Password cannot contain sequential characters or numbers",
+    });
   }
   if (!checkRepeatedPassword(data.password)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Password cannot contain repeated characters',
-    })
+      message: "Password cannot contain repeated characters",
+    });
   }
-}
+};

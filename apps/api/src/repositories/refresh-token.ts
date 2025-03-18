@@ -1,9 +1,9 @@
-import { refreshTokens } from '@db/schema/auth'
-import { signJWT } from '@lib/jwt'
-import type { DB } from '@middleware/db'
-import { HTTP_CODES } from '@src/config/http-codes'
-import { eq, sql } from 'drizzle-orm'
-import { HTTPException } from 'hono/http-exception'
+import { refreshTokens } from "@db/schema/auth";
+import { signJWT } from "@lib/jwt";
+import type { DB } from "@middleware/db";
+import { HTTP_CODES } from "@src/config/http-codes";
+import { eq, sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 
 /**
  * Creates a refresh token for a user session and stores it in the database.
@@ -21,28 +21,28 @@ const createRefreshToken = async (
   sessionId: string,
 ) => {
   try {
-    const expiresAt = new Date()
-    expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 60 * 24 * 30) // 30 days
+    const expiresAt = new Date();
+    expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 60 * 24 * 30); // 30 days
 
     const token = await signJWT({
       userId,
       sessionId,
       exp: expiresAt,
       iat: new Date(),
-    })
+    });
 
     const data = await db
       .insert(refreshTokens)
       .values({ sessionId, token, userId, expiresAt })
-      .returning()
-    return data[0].token
+      .returning();
+    return data[0].token;
   } catch (e) {
-    console.error(`Failed to create refresh token: ${e}`)
+    console.error(`Failed to create refresh token: ${e}`);
     throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: 'Failed to create refresh token',
-    })
+      message: "Failed to create refresh token",
+    });
   }
-}
+};
 
 /**
  * Retrieves a refresh token from the database
@@ -53,8 +53,8 @@ const createRefreshToken = async (
 const getRefreshToken = async (db: DB, token: string) => {
   return await db.query.refreshTokens.findFirst({
     where: (fields) => sql`${fields.token} = ${token}`,
-  })
-}
+  });
+};
 
 /**
  * Revokes a refresh token by setting its 'revoked' status to true in the database
@@ -67,17 +67,17 @@ const revokeRefreshToken = async (db: DB, token: string) => {
     await db
       .update(refreshTokens)
       .set({ revoked: true })
-      .where(eq(refreshTokens.token, token))
+      .where(eq(refreshTokens.token, token));
   } catch (e) {
-    console.error(`Failed to revoke refresh token: ${e}`)
+    console.error(`Failed to revoke refresh token: ${e}`);
     throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: 'Failed to revoke refresh token',
-    })
+      message: "Failed to revoke refresh token",
+    });
   }
-}
+};
 
 export const refreshTokenRepository = {
   createRefreshToken,
   getRefreshToken,
   revokeRefreshToken,
-}
+};

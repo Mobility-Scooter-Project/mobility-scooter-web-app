@@ -1,9 +1,9 @@
-import { HTTP_CODES } from '@src/config/http-codes'
-import { apiKeyRepository } from '@src/repositories/api-keys'
-import { apiKeyService } from '@src/services/auth/api-key'
-import type { Context, Next } from 'hono'
-import { HTTPException } from 'hono/http-exception'
-import { db } from './db'
+import { HTTP_CODES } from "@src/config/http-codes";
+import { apiKeyRepository } from "@src/repositories/api-keys";
+import { apiKeyService } from "@src/services/auth/api-key";
+import type { Context, Next } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { db } from "./db";
 
 /**
  * Middleware function to validate API key from Authorization header
@@ -12,24 +12,24 @@ import { db } from './db'
  * @throws {HTTPException} With status 401 if Authorization header is missing or API key is invalid
  */
 export const validateApiKey = async (c: Context, next: Next) => {
-  const authHeader = c.req.header('Authorization')
+  const authHeader = c.req.header("Authorization");
 
   if (!authHeader) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: 'Missing Authorization Header',
-    })
+      message: "Missing Authorization Header",
+    });
   }
 
-  const [, apiKey] = authHeader.split('Bearer ')
-  const result = await apiKeyService.retrieveApiKey(db, apiKey)
+  const [, apiKey] = authHeader.split("Bearer ");
+  const result = await apiKeyService.retrieveApiKey(db, apiKey);
 
   if (!result) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: 'Invalid Authorization Token',
-    })
+      message: "Invalid Authorization Token",
+    });
   }
 
-  await apiKeyRepository.bumpLastUsed(apiKey)
+  await apiKeyRepository.bumpLastUsed(apiKey);
 
-  await next()
-}
+  await next();
+};

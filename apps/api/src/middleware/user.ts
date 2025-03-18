@@ -1,8 +1,8 @@
-import { JWT_SECRET } from '@config/constants'
-import { HTTP_CODES } from '@src/config/http-codes'
-import type { Context, Next } from 'hono'
-import { HTTPException } from 'hono/http-exception'
-import { verify } from 'hono/jwt'
+import { JWT_SECRET } from "@config/constants";
+import { HTTP_CODES } from "@src/config/http-codes";
+import type { Context, Next } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { verify } from "hono/jwt";
 
 /**
  * Middleware function for user authentication.
@@ -14,30 +14,30 @@ import { verify } from 'hono/jwt'
  * @throws {HTTPException} 401 - If user authentication fails
  */
 export const userMiddleware = async (c: Context, next: Next) => {
-  const user = c.req.header('X-User')
+  const user = c.req.header("X-User");
 
   if (!user) {
     throw new HTTPException(400, {
-      message: 'Unauthorized',
-    })
+      message: "Unauthorized",
+    });
   }
   try {
-    const { userId, sessionId } = await verify(user, JWT_SECRET)
+    const { userId, sessionId } = await verify(user, JWT_SECRET);
 
     if (!userId || !sessionId) {
       throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-        message: 'Failed to authenticate user',
-      })
+        message: "Failed to authenticate user",
+      });
     }
 
-    c.set('userId', userId)
-    c.set('sessionId', sessionId)
+    c.set("userId", userId);
+    c.set("sessionId", sessionId);
 
-    await next()
+    await next();
   } catch (e) {
-    console.error(e)
+    console.error(e);
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: 'Unauthorized',
-    })
+      message: "Unauthorized",
+    });
   }
-}
+};

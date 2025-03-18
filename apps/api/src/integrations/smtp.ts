@@ -1,5 +1,5 @@
-import { SMTP_HOST } from '@src/config/constants'
-import nodemailer from 'nodemailer'
+import { SMTP_HOST } from "@src/config/constants";
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
-})
+});
 
 /**
  * Sends an email using a preconfigured SMTP transporter.
@@ -29,5 +29,5 @@ export const sendEmail = async (
     to,
     subject,
     text,
-  })
-}
+  });
+};

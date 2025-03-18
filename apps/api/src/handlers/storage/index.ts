@@ -1,7 +1,7 @@
-import type { Variables } from '@src/index'
-import { Hono } from 'hono'
-import videos from './videos'
+import type { Variables } from "@src/index";
+import { Hono } from "hono";
+import videos from "./videos";
 
-const app = new Hono<{ Variables: Variables }>().route('/videos', videos)
+const app = new Hono<{ Variables: Variables }>().route("/videos", videos);
 
-export default app
+export default app;

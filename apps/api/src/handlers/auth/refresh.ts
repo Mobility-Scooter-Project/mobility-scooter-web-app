@@ -1,31 +1,31 @@
-import { zValidator } from '@hono/zod-validator'
-import type { Variables } from '@src/index'
-import { dbMiddleware, db } from '@src/middleware/db'
-import { validateApiKey } from '@src/middleware/validate-api-key'
-import { authService } from '@src/services/auth'
-import { refreshTokenSchema, sessionBodySchema } from '@src/validators/auth'
-import { Hono } from 'hono'
-import { describeRoute } from 'hono-openapi'
-import { resolver } from 'hono-openapi/zod'
+import { zValidator } from "@hono/zod-validator";
+import type { Variables } from "@src/index";
+import { dbMiddleware, db } from "@src/middleware/db";
+import { validateApiKey } from "@src/middleware/validate-api-key";
+import { authService } from "@src/services/auth";
+import { refreshTokenSchema, sessionBodySchema } from "@src/validators/auth";
+import { Hono } from "hono";
+import { describeRoute } from "hono-openapi";
+import { resolver } from "hono-openapi/zod";
 
 const app = new Hono<{ Variables: Variables }>().post(
-  '/',
+  "/",
   describeRoute({
-    summary: 'Refresh an access token',
-    description: 'Refresh an access token using a refresh token',
-    tags: ['auth'],
+    summary: "Refresh an access token",
+    description: "Refresh an access token using a refresh token",
+    tags: ["auth"],
     requestBody: {
       content: {
-        'application/json': {
-          schema: zValidator('json', refreshTokenSchema),
+        "application/json": {
+          schema: zValidator("json", refreshTokenSchema),
         },
       },
     },
     responses: {
       200: {
-        description: 'Access token refreshed successfully',
+        description: "Access token refreshed successfully",
         content: {
-          'application/json': {
+          "application/json": {
             schema: resolver(sessionBodySchema),
           },
         },
@@ -34,14 +34,14 @@ const app = new Hono<{ Variables: Variables }>().post(
   }),
   dbMiddleware,
   validateApiKey,
-  zValidator('json', refreshTokenSchema),
+  zValidator("json", refreshTokenSchema),
   async (c) => {
-    const { token } = c.req.valid('json')
+    const { token } = c.req.valid("json");
 
     const { token: newToken, refreshToken } = await authService.refreshToken(
       db,
       token,
-    )
+    );
 
     return c.json({
       data: {
@@ -49,8 +49,8 @@ const app = new Hono<{ Variables: Variables }>().post(
         refreshToken,
       },
       error: null,
-    })
+    });
   },
-)
+);
 
-export default app
+export default app;

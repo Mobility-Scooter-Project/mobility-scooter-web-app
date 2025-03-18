@@ -1,8 +1,8 @@
-import { identities } from '@db/schema/auth'
-import type { DB } from '@middleware/db'
-import { HTTP_CODES } from '@src/config/http-codes'
-import { sql } from 'drizzle-orm'
-import { HTTPException } from 'hono/http-exception'
+import { identities } from "@db/schema/auth";
+import type { DB } from "@middleware/db";
+import { HTTP_CODES } from "@src/config/http-codes";
+import { sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 
 /**
  * Retrieves an identity record from the database based on the user ID.
@@ -16,22 +16,22 @@ const getIdentityByUserId = async (db: DB, userId: string) => {
     const data = await db
       .select()
       .from(identities)
-      .where(sql`user_id = ${userId}`)
+      .where(sql`user_id = ${userId}`);
 
-    return data[0]
+    return data[0];
   } catch (e) {
-    console.error(`Failed to get identity by user id: ${e}`)
+    console.error(`Failed to get identity by user id: ${e}`);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
         JSON.stringify({
           data: null,
-          error: 'Failed to get identity',
+          error: "Failed to get identity",
         }),
       ),
-    })
+    });
   }
-}
+};
 
 export const identityRepository = {
   getIdentityByUserId,
-}
+};

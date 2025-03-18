@@ -1,5 +1,5 @@
-import { JWT_SECRET } from '@config/constants'
-import { sign } from 'hono/jwt'
+import { JWT_SECRET } from "@config/constants";
+import { sign } from "hono/jwt";
 
 /**
  * Signs a JSON Web Token (JWT) with the provided payload using the JWT_SECRET.
@@ -12,5 +12,5 @@ import { sign } from 'hono/jwt'
  * const token = await signJWT(payload);
  */
 export const signJWT = async (payload: Record<string, unknown>) => {
-  return await sign(payload, JWT_SECRET)
-}
+  return await sign(payload, JWT_SECRET);
+};

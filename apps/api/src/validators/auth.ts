@@ -1,5 +1,5 @@
-import { validatePassword } from '@src/lib/password'
-import { z } from 'zod'
+import { validatePassword } from "@src/lib/password";
+import { z } from "zod";
 
 /*
  * Password requirements are based on NIST Special Publication 800-63B
@@ -15,45 +15,45 @@ import { z } from 'zod'
 
 export const createUserWithPasswordSchema = z
   .object({
-    email: z.string().email({ message: 'Invalid email' }),
+    email: z.string().email({ message: "Invalid email" }),
     password: z.string().min(8).max(64),
     firstName: z.string().nonempty(),
     lastName: z.string().nonempty(),
     unitId: z.string().nonempty(),
   })
-  .superRefine((data, ctx) => validatePassword(data, ctx))
+  .superRefine((data, ctx) => validatePassword(data, ctx));
 
 export const sessionBodySchema = z.object({
   data: z.object({
     token: z.string().nonempty(),
     refreshToken: z.string().nonempty(),
   }),
-})
+});
 
 export const signInWithPasswordSchema = z.object({
-  email: z.string().email({ message: 'Invalid email' }),
+  email: z.string().email({ message: "Invalid email" }),
   password: z.string().nonempty(),
-})
+});
 
 export const resetPasswordTokenSchema = z.object({
-  email: z.string().email({ message: 'Invalid email' }),
-})
+  email: z.string().email({ message: "Invalid email" }),
+});
 
 export const resetPasswordSchema = z
   .object({
     token: z.string().nonempty(),
-    email: z.string().email({ message: 'Invalid email' }),
+    email: z.string().email({ message: "Invalid email" }),
     password: z.string().min(8).max(64),
   })
-  .superRefine((data, ctx) => validatePassword(data, ctx))
+  .superRefine((data, ctx) => validatePassword(data, ctx));
 
 export const refreshTokenSchema = z.object({
   token: z.string().nonempty(),
-})
+});
 
 export const verifyTOTPSchema = z.object({
   token: z.string().nonempty(),
-})
+});
 
 export const OTPResponseSchema = z.object({
   data: z.object({
@@ -61,4 +61,4 @@ export const OTPResponseSchema = z.object({
     qrCode: z.string().nonempty(),
   }),
   error: z.nullable(z.string()),
-})
+});

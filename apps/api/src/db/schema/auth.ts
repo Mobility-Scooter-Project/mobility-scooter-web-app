@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { sql } from "drizzle-orm";
 import {
   boolean,
   jsonb,
@@ -9,15 +9,15 @@ import {
   timestamp,
   uuid,
   varchar,
-} from 'drizzle-orm/pg-core'
-import { units } from './tenants'
+} from "drizzle-orm/pg-core";
+import { units } from "./tenants";
 
-export const auth = pgSchema('auth')
+export const auth = pgSchema("auth");
 
-export const authenticated = pgRole('authenticated_user')
-export const anon = pgRole('anonymous_user')
+export const authenticated = pgRole("authenticated_user");
+export const anon = pgRole("anonymous_user");
 
-export const apiKeys = auth.table('api_keys', {
+export const apiKeys = auth.table("api_keys", {
   id: uuid().primaryKey().notNull(),
   encryptedKey: text().notNull(),
   owner: text().notNull(),
@@ -26,10 +26,10 @@ export const apiKeys = auth.table('api_keys', {
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
   deletedAt: timestamp(),
-})
+});
 
 export const users = auth.table(
-  'users',
+  "users",
   {
     id: uuid().primaryKey().defaultRandom(),
     unitId: uuid()
@@ -46,41 +46,41 @@ export const users = auth.table(
     deletedAt: timestamp(),
   },
   () => [
-    pgPolicy('allow unauthenticated users to create an account', {
-      as: 'permissive',
+    pgPolicy("allow unauthenticated users to create an account", {
+      as: "permissive",
       to: anon,
-      for: 'insert',
+      for: "insert",
       withCheck: sql`true`,
     }),
-    pgPolicy('allow unauthenticated users to login', {
-      as: 'permissive',
+    pgPolicy("allow unauthenticated users to login", {
+      as: "permissive",
       to: anon,
-      for: 'select',
+      for: "select",
       using: sql`true`,
     }),
-    pgPolicy('allow authenticated users to read their own data', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to read their own data", {
+      as: "permissive",
       to: authenticated,
-      for: 'select',
+      for: "select",
       using: sql`id = current_setting('app.user_id')::uuid`,
     }),
-    pgPolicy('allow authenticated users to update their own data', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to update their own data", {
+      as: "permissive",
       to: authenticated,
-      for: 'update',
+      for: "update",
       using: sql`id = current_setting('app.user_id')::uuid`,
     }),
   ],
-)
+);
 
-export const providers = auth.enum('providers', ['emailpass'])
+export const providers = auth.enum("providers", ["emailpass"]);
 
 export const identities = auth.table(
-  'identities',
+  "identities",
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: uuid()
-      .references(() => users.id, { onDelete: 'cascade' })
+      .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     provider: providers().notNull(),
     metadata: jsonb().default({}),
@@ -89,66 +89,66 @@ export const identities = auth.table(
     deletedAt: timestamp(),
   },
   () => [
-    pgPolicy('allow authenticated users to read their own identities', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to read their own identities", {
+      as: "permissive",
       to: authenticated,
-      for: 'select',
+      for: "select",
       using: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
-    pgPolicy('allow authenticated users to create their own identities', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to create their own identities", {
+      as: "permissive",
       to: authenticated,
-      for: 'insert',
+      for: "insert",
       withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
-    pgPolicy('allow authenticated users to update their own identities', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to update their own identities", {
+      as: "permissive",
       to: authenticated,
-      for: 'update',
+      for: "update",
       withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
   ],
-)
+);
 
 export const sessions = auth.table(
-  'sessions',
+  "sessions",
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: uuid()
-      .references(() => users.id, { onDelete: 'cascade' })
+      .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     refreshed_at: timestamp().defaultNow(),
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow(),
   },
   () => [
-    pgPolicy('allow authenticated users to read their own sessions', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to read their own sessions", {
+      as: "permissive",
       to: authenticated,
-      for: 'select',
+      for: "select",
       using: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
-    pgPolicy('allow authenticated users to create their own sessions', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to create their own sessions", {
+      as: "permissive",
       to: authenticated,
-      for: 'insert',
+      for: "insert",
       withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
-    pgPolicy('allow authenticated users to update their own sessions', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to update their own sessions", {
+      as: "permissive",
       to: authenticated,
-      for: 'update',
+      for: "update",
       withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
   ],
-)
+);
 
 export const refreshTokens = auth.table(
-  'refresh_tokens',
+  "refresh_tokens",
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: uuid()
-      .references(() => users.id, { onDelete: 'cascade' })
+      .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     sessionId: uuid()
       .references(() => sessions.id)
@@ -160,27 +160,27 @@ export const refreshTokens = auth.table(
     updatedAt: timestamp().defaultNow(),
   },
   () => [
-    pgPolicy('allow authenticated users to read their own refresh tokens', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to read their own refresh tokens", {
+      as: "permissive",
       to: authenticated,
-      for: 'select',
+      for: "select",
       using: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
-    pgPolicy('allow authenticated users to create their own refresh tokens', {
-      as: 'permissive',
+    pgPolicy("allow authenticated users to create their own refresh tokens", {
+      as: "permissive",
       to: authenticated,
-      for: 'insert',
+      for: "insert",
       withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
     }),
   ],
-)
+);
 
 export const resetPasswordTokens = auth.table(
-  'reset_password_tokens',
+  "reset_password_tokens",
   {
     id: uuid().primaryKey().defaultRandom(),
     userId: uuid()
-      .references(() => users.id, { onDelete: 'cascade' })
+      .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     token: text().notNull(),
     createdAt: timestamp().defaultNow(),
@@ -189,31 +189,31 @@ export const resetPasswordTokens = auth.table(
   },
   () => [
     pgPolicy(
-      'allow authenticated users to read their own reset password tokens',
+      "allow authenticated users to read their own reset password tokens",
       {
-        as: 'permissive',
+        as: "permissive",
         to: authenticated,
-        for: 'select',
+        for: "select",
         using: sql`user_id = current_setting('app.user_id')::uuid`,
       },
     ),
     pgPolicy(
-      'allow authenticated users to create their own reset password tokens',
+      "allow authenticated users to create their own reset password tokens",
       {
-        as: 'permissive',
+        as: "permissive",
         to: authenticated,
-        for: 'insert',
+        for: "insert",
         withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
       },
     ),
     pgPolicy(
-      'allow authenticated users to update their own reset password tokens',
+      "allow authenticated users to update their own reset password tokens",
       {
-        as: 'permissive',
+        as: "permissive",
         to: authenticated,
-        for: 'update',
+        for: "update",
         withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
       },
     ),
   ],
-)
+);

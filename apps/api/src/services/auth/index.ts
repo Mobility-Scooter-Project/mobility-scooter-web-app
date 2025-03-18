@@ -1,15 +1,15 @@
-import type { DB } from '@middleware/db'
-import { db } from '@middleware/db'
-import { refreshTokenRepository } from '@repositories/refresh-token'
-import { userRepository } from '@repositories/user'
-import { BASE_URL, ENVIRONMENT, JWT_SECRET } from '@src/config/constants'
-import { HTTP_CODES } from '@src/config/http-codes'
-import { sendEmail } from '@src/integrations/smtp'
-import { resetPasswordTokensRepository } from '@src/repositories/reset-password-tokens'
-import { sql } from 'drizzle-orm'
-import { HTTPException } from 'hono/http-exception'
-import { sign, verify } from 'hono/jwt'
-import { sessionService } from './session'
+import type { DB } from "@middleware/db";
+import { db } from "@middleware/db";
+import { refreshTokenRepository } from "@repositories/refresh-token";
+import { userRepository } from "@repositories/user";
+import { BASE_URL, ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
+import { HTTP_CODES } from "@src/config/http-codes";
+import { sendEmail } from "@src/integrations/smtp";
+import { resetPasswordTokensRepository } from "@src/repositories/reset-password-tokens";
+import { sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
+import { sign, verify } from "hono/jwt";
+import { sessionService } from "./session";
 
 /**
  * Creates a new user with email/password authentication and returns a session
@@ -46,10 +46,10 @@ export const createUserWithPassword = async (
     lastName,
     unitId,
     lastSignedInAt: new Date(),
-  })
+  });
 
-  return await sessionService.createSession(db, id)
-}
+  return await sessionService.createSession(db, id);
+};
 
 /**
  * Authenticates a user with their email and password, creating a new session if successful.
@@ -61,22 +61,22 @@ export const createUserWithPassword = async (
  * @throws {HTTPException} With status 401 if the email or password is invalid
  */
 const signInWithPassword = async (db: DB, email: string, password: string) => {
-  const user = await userRepository.findUserWithPassword(db, email, password)
+  const user = await userRepository.findUserWithPassword(db, email, password);
   if (!user) {
     throw new HTTPException(401, {
       res: new Response(
-        JSON.stringify({ data: null, error: 'Invalid email or password' }),
+        JSON.stringify({ data: null, error: "Invalid email or password" }),
       ),
-    })
+    });
   }
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`))
-    await tx.execute(sql`SET ROLE authenticated_user`)
-  })
+    await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`));
+    await tx.execute(sql`SET ROLE authenticated_user`);
+  });
 
-  return await sessionService.createSession(db, user.id)
-}
+  return await sessionService.createSession(db, user.id);
+};
 
 /**
  * Refreshes an authentication session using a refresh token.
@@ -87,7 +87,7 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
  * @throws {HTTPException} With status 401 if the refresh token is invalid, revoked, or expired
  */
 const refreshToken = async (db: DB, refreshToken: string) => {
-  const record = await refreshTokenRepository.getRefreshToken(db, refreshToken)
+  const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
 
   if (
     !record ||
@@ -97,15 +97,15 @@ const refreshToken = async (db: DB, refreshToken: string) => {
   ) {
     throw new HTTPException(401, {
       res: new Response(
-        JSON.stringify({ data: null, error: 'Invalid refresh token' }),
+        JSON.stringify({ data: null, error: "Invalid refresh token" }),
       ),
-    })
+    });
   }
 
-  await refreshTokenRepository.revokeRefreshToken(db, refreshToken)
+  await refreshTokenRepository.revokeRefreshToken(db, refreshToken);
 
-  return await sessionService.createSession(db, record.userId)
-}
+  return await sessionService.createSession(db, record.userId);
+};
 
 /**
  * Generates a reset password token for a user.
@@ -123,33 +123,33 @@ const refreshToken = async (db: DB, refreshToken: string) => {
  * 6. In non-production environments, returns the token
  */
 const generateResetPasswordToken = async (email: string) => {
-  const data = await userRepository.findUserByEmail(db, email)
+  const data = await userRepository.findUserByEmail(db, email);
 
   if (!data) {
     throw new HTTPException(404, {
       res: new Response(
-        JSON.stringify({ data: null, error: 'User not found' }),
+        JSON.stringify({ data: null, error: "User not found" }),
       ),
-    })
+    });
   }
 
-  const { id } = data
+  const { id } = data;
 
-  const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 }
+  const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
 
-  const token = await sign(payload, JWT_SECRET)
-  await resetPasswordTokensRepository.createPasswordResetToken(token, id)
-  if (ENVIRONMENT === 'production') {
+  const token = await sign(payload, JWT_SECRET);
+  await resetPasswordTokensRepository.createPasswordResetToken(token, id);
+  if (ENVIRONMENT === "production") {
     await sendEmail(
       email,
-      'MSB Password Reset',
-      'no-reply@example.com',
+      "MSB Password Reset",
+      "no-reply@example.com",
       `Click here to reset your password: ${BASE_URL}/reset-password?token=${token}`,
-    )
+    );
   } else {
-    return token
+    return token;
   }
-}
+};
 
 /**
  * Resets a user's password using a verification token.
@@ -168,28 +168,28 @@ const generateResetPasswordToken = async (email: string) => {
  * 4. Updates the user's password in the database
  */
 const resetPassword = async (token: string, password: string) => {
-  let payload
+  let payload;
   try {
-    payload = await verify(token, JWT_SECRET)
+    payload = await verify(token, JWT_SECRET);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(JSON.stringify({ data: null, error: 'Invalid token' })),
-    })
+      res: new Response(JSON.stringify({ data: null, error: "Invalid token" })),
+    });
   }
 
-  const { userId } = payload as { userId: string }
+  const { userId } = payload as { userId: string };
 
-  await resetPasswordTokensRepository.markPasswordResetTokenUsed(token, userId)
+  await resetPasswordTokensRepository.markPasswordResetTokenUsed(token, userId);
   try {
-    await userRepository.updatePassword(db, userId, password)
+    await userRepository.updatePassword(db, userId, password);
   } catch (e) {
-    console.error(`Failed to reset password: ${e}`)
+    console.error(`Failed to reset password: ${e}`);
     throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: 'Failed to reset password',
-    })
+      message: "Failed to reset password",
+    });
   }
-}
+};
 
 export const authService = {
   createUserWithPassword,
@@ -197,4 +197,4 @@ export const authService = {
   refreshToken,
   generateResetPasswordToken,
   resetPassword,
-}
+};

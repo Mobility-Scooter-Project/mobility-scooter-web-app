@@ -1,4 +1,4 @@
-import * as OTPAuth from 'otpauth'
+import * as OTPAuth from "otpauth";
 
 /**
  * Generates a Time-based One-Time Password (TOTP) generator for a given identifier.
@@ -15,15 +15,15 @@ import * as OTPAuth from 'otpauth'
  */
 export const generateTOTP = (identifier: string) => {
   const totp = new OTPAuth.TOTP({
-    issuer: 'MSWA',
+    issuer: "MSWA",
     label: `${identifier}`,
-    algorithm: 'SHA1',
+    algorithm: "SHA1",
     digits: 6,
     period: 30,
-  })
+  });
 
-  return totp
-}
+  return totp;
+};
 
 /**
  * Verifies a Time-based One-Time Password (TOTP) against a provided secret.
@@ -44,13 +44,13 @@ export const verifyTOTP = (
   secret: string,
 ) => {
   const totp = new OTPAuth.TOTP({
-    issuer: 'MSWA',
+    issuer: "MSWA",
     label: `${identifier}`,
-    algorithm: 'SHA1',
+    algorithm: "SHA1",
     digits: 6,
     period: 30,
     secret: OTPAuth.Secret.fromBase32(secret),
-  })
+  });
 
-  return totp.validate({ token })
-}
+  return totp.validate({ token });
+};

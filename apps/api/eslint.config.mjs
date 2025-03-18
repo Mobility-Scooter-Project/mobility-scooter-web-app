@@ -1,3 +1,4 @@
-import baseConfig from '@hono/eslint-config'
+import baseConfig from "@hono/eslint-config";
+import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
 
-export default [...baseConfig]
+export default [...baseConfig, eslintPluginPrettier];

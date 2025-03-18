@@ -1,8 +1,8 @@
-import { HTTP_CODES } from '@src/config/http-codes'
-import { apiKeys } from '@src/db/schema/auth'
-import { db } from '@src/middleware/db'
-import { eq, sql } from 'drizzle-orm'
-import { HTTPException } from 'hono/http-exception'
+import { HTTP_CODES } from "@src/config/http-codes";
+import { apiKeys } from "@src/db/schema/auth";
+import { db } from "@src/middleware/db";
+import { eq, sql } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 
 /**
  * Updates the "lastUsedAt" timestamp for an API key in the database.
@@ -14,7 +14,7 @@ import { HTTPException } from 'hono/http-exception'
  * @throws {HTTPException} With status 500 if the database update fails
  */
 const bumpLastUsed = async (apiKey: string) => {
-  const lastUsedAt = new Date()
+  const lastUsedAt = new Date();
 
   try {
     await db
@@ -25,17 +25,17 @@ const bumpLastUsed = async (apiKey: string) => {
           apiKeys.encryptedKey,
           sql`crypt(${apiKey}, ${apiKeys.encryptedKey})`,
         ),
-      )
+      );
   } catch (e) {
-    console.error(e)
+    console.error(e);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
-        JSON.stringify({ message: 'Failed to update last used timestamp' }),
+        JSON.stringify({ message: "Failed to update last used timestamp" }),
       ),
-    })
+    });
   }
-}
+};
 
 export const apiKeyRepository = {
   bumpLastUsed,
-}
+};
