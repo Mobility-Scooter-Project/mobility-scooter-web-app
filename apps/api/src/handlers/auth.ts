@@ -12,7 +12,7 @@ import {
   signInWithPasswordSchema,
   verifyTOTPSchema,
 } from "@validators/auth";
-import { otpRateLimiter, signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
+import { otpRateLimiter, resetPasswordRateLimiter, signInRateLimiter, signUpRateLimiter } from "@src/middleware/rate-limit";
 import { userMiddleware } from "@src/middleware/user";
 import { generateQRCode } from "@src/lib/qr";
 
@@ -70,7 +70,7 @@ const app = new Hono<{ Variables: Variables }>()
         error: null,
       });
     }
-  ).post("/emailpass/reset-password/token", validateApiKey, zValidator("json", resetPasswordTokenSchema), async (c) => {
+  ).post("/emailpass/reset-password/token", validateApiKey, zValidator("json", resetPasswordTokenSchema), resetPasswordRateLimiter, async (c) => {
     const { email } = c.req.valid("json");
 
     const token = await authService.generateResetPasswordToken(email);
@@ -86,7 +86,7 @@ const app = new Hono<{ Variables: Variables }>()
     }
 
     return c.text("OK");
-  }).post("/emailpass/reset-password", validateApiKey, zValidator("json", resetPasswordSchema), async (c) => {
+  }).post("/emailpass/reset-password", validateApiKey, zValidator("json", resetPasswordSchema), resetPasswordRateLimiter, async (c) => {
     const { token, password } = c.req.valid("json");
 
     await authService.resetPassword(token, password);

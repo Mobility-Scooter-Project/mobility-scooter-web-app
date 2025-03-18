@@ -28,7 +28,8 @@ export const signInRateLimiter = rateLimiter({
   keyGenerator: async (c) => {
     // @ts-expect-error - Assumes this middleware is run before the zValidator middleware
     const { email } = c.req.valid("json");
-    return `${email}`; // test@example.com:127.0.0.1 -> prevents subnets from being locked out
+    const connInfo = getConnInfo(c);
+    return `${email}:${connInfo.remote.address}`; // email:
   },
   //@ts-ignore
   store: sharedStore,
@@ -40,7 +41,23 @@ export const otpRateLimiter = rateLimiter({
   limit: 5, // 5 attempts
   keyGenerator: async (c) => {
     // @ts-expect-error - Assumes this middleware is run before the userMiddleware
-    return c.get("userId");
+    const userId = c.get("userId");
+    const connInfo = getConnInfo(c);
+    return `${userId}:${connInfo.remote.address}`;
+  },
+  //@ts-ignore
+  store: sharedStore,
+  skip: (c) => ENVIRONMENT === "development",
+});
+
+export const resetPasswordRateLimiter = rateLimiter({
+  windowMs: 1000 * 60 * 60 * 24, // 24 hours
+  limit: 3, // 3 attempts
+  keyGenerator: async (c) => {
+    // @ts-expect-error - Assumes this middleware is run before the zValidator middleware
+    const { email } = c.req.valid("json");
+    const connInfo = getConnInfo(c);
+    return `${email}:${connInfo.remote.address}`;
   },
   //@ts-ignore
   store: sharedStore,

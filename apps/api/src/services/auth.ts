@@ -170,7 +170,17 @@ const verifyUserTOTP = async (db: DB, userId: string, token: string) => {
 }
 
 const generateResetPasswordToken = async (email: string) => {
-  const { id } = await userRepository.findUserByEmail(db, email);
+  const data = await userRepository.findUserByEmail(db, email);
+
+  if (!data) {
+    throw new HTTPException(404, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "User not found" })
+      ),
+    });
+  }
+
+  const { id } = data;
 
   const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
 

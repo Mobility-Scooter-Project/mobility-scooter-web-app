@@ -284,6 +284,103 @@ describe("User", () => {
     });
   })
 
+  describe("Reset Password", () => {
+    let resetToken: string;
+
+    beforeEach(async () => {
+      await kv.flushall();
+    }
+    );
+
+    it("should send a reset password email", async () => {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password/token`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+        }),
+        headers,
+      });
+
+      expect(response.status).toBe(200);
+      resetToken = (await response.json()).data.token;
+    }
+    );
+
+    it("should return 404 when the email is incorrect", async () => {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password/token`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: "wrong@example.com",
+        }),
+        headers,
+      });
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should reset the password", async () => {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: SHARED_DATA.PASSWORD,
+          token: resetToken,
+        }),
+        headers,
+      });
+
+      expect(response.status).toBe(200);
+    });
+
+    it("should return 401 when the token is invalid", async () => {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: SHARED_DATA.PASSWORD,
+          token: "invalidtoken",
+        }),
+        headers,
+      });
+
+      expect(response.status).toBe(401);
+    }
+    );
+
+    it("should return 400 when the password is invalid", async () => {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: SHARED_DATA.EMAIL,
+          password: "abc123",
+          token: resetToken,
+        }),
+        headers,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should return 429 when the rate limit is exceeded", async () => {
+      const statuses = await Promise.all(
+        Array.from({ length: 4 }).map(() =>
+          fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password`, {
+            method: "POST",
+            body: JSON.stringify({
+              email: SHARED_DATA.EMAIL,
+              password: SHARED_DATA.PASSWORD,
+              token: resetToken,
+            }),
+            headers,
+          }).then((r) => r.status)
+        )
+      );
+
+      expect(statuses.includes(429)).toBe(true);
+    }
+    );
+  })
+
   describe("OTP", () => {
     beforeEach(async () => {
       await kv.flushall();
