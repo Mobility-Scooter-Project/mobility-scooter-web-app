@@ -5,6 +5,7 @@ import fs from "node:fs";
 import { DATABASE_URL } from "../src/config/constants";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as auth from "../src/db/schema/auth";
+import { randomBytes } from "node:crypto";
 
 const hostname = os.hostname();
 
@@ -14,10 +15,10 @@ export const db = drizzle(DATABASE_URL, {
 });
 
 try {
-  const key =
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 8);
+  const key = 'sk_' + randomBytes(32)
+    .toString('base64')
+    .replace(/[+/=]/g, '')  // Make URL safe by removing non-alphanumeric chars
+    .substring(0, 37);      // Ensure consistent length
 
   await db.insert(apiKeys).values({
     id: sql`gen_random_uuid()`,
@@ -28,7 +29,7 @@ try {
   });
 
   // write to .env file
-  fs.appendFileSync(".env", `\nTESTING_API_KEY=${key}\n`);
+  fs.appendFileSync(".env", `TESTING_API_KEY=${key}\n`);
 
   console.log(`Successfully wrote API key to .env file for device ${hostname}`);
 
