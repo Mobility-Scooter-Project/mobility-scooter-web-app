@@ -17,6 +17,36 @@ services:
     volumes:
       - kv:/data
     restart: always
+  queue:
+    image: "rabbitmq:3"
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - queue:/var/lib/rabbitmq
+  storage:
+    image: "minio/minio"
+    command: server --console-address ":9001" /data
+    network_mode: "host"
+    depends_on:
+      - queue
+    environment:
+      MINIO_ROOT_USER: "minioadmin"
+      MINIO_ROOT_PASSWORD: "minioadmin"
+      MINIO_NOTIFY_AMQP_ENABLE_put_video: "on"
+      MINIO_NOTIFY_AMQP_URL_put_video: "amqp://guest:guest@localhost:5672/"
+      MINIO_NOTIFY_AMQP_EXCHANGE_put_video: "storage"
+      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_put_video: "direct"
+      MINIO_NOTIFY_AMQP_ROUTING_KEY_put_video: "videos.put"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - storage:/data
 volumes:
  db:
  kv:
+ queue:
+ storage:

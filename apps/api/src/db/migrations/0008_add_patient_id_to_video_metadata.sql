@@ -1,0 +1,1 @@
+ALTER TABLE "videos"."metadata" ADD COLUMN "patient_id" uuid NOT NULL;
