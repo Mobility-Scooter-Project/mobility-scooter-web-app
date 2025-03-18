@@ -169,6 +169,21 @@ const verifyUserTOTP = async (db: DB, userId: string, token: string) => {
   return verifyTOTP(email, token, secret);
 }
 
+/**
+ * Generates a reset password token for a user.
+ * 
+ * @param email - The email address of the user requesting a password reset
+ * @returns {Promise<string|undefined>} In non-production environments, returns the generated token. In production, returns undefined.
+ * @throws {HTTPException} With status 404 if the user is not found
+ * 
+ * This function:
+ * 1. Finds the user by email
+ * 2. Creates a JWT payload with user ID and 24-hour expiration
+ * 3. Signs the token with JWT_SECRET
+ * 4. Persists the token in the database
+ * 5. In production, emails the reset link to the user
+ * 6. In non-production environments, returns the token
+ */
 const generateResetPasswordToken = async (email: string) => {
   const data = await userRepository.findUserByEmail(db, email);
 
@@ -193,6 +208,22 @@ const generateResetPasswordToken = async (email: string) => {
   }
 }
 
+/**
+ * Resets a user's password using a verification token.
+ * 
+ * @param token - The JWT token used to verify the password reset request
+ * @param password - The new password to set for the user
+ * 
+ * @throws {HTTPException} 401 - If the token is invalid or expired
+ * @throws {HTTPException} 501 - If updating the password in the database fails
+ * 
+ * @remarks
+ * This function performs the following steps:
+ * 1. Verifies the provided token
+ * 2. Extracts the userId from the token payload
+ * 3. Marks the password reset token as used
+ * 4. Updates the user's password in the database
+ */
 const resetPassword = async (token: string, password: string) => {
   let payload;
   try {

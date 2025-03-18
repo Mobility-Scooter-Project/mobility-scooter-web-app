@@ -1,9 +1,13 @@
-import { resetPasswordTokens } from "@src/db/schema/auth";
 import { vault } from "@src/integrations/vault";
-import { DB } from "@src/middleware/db";
-import { eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
+/**
+ * Creates a password reset token for a user in the vault.
+ * @param {string} token - The password reset token to be stored.
+ * @param {string} userId - The ID of the user for whom the token is being created.
+ * @returns {Promise<void>} A promise that resolves when the token is successfully created.
+ * @throws {Error} Throws an error if the token creation fails.
+ */
 const createPasswordResetToken = async (token: string, userId: string) => {
     try {
         await vault.write(`kv/auth/password-reset/${userId}`, { token, used: false });
@@ -13,7 +17,16 @@ const createPasswordResetToken = async (token: string, userId: string) => {
     }
 }
 
-
+/**
+ * Marks a password reset token as used in the vault.
+ * 
+ * @param token - The password reset token to mark as used
+ * @param userId - The user ID associated with the token
+ * @throws {HTTPException} - With status 404 if the token is not found for the user
+ * @throws {HTTPException} - With status 400 if the token has already been used
+ * @throws {Error} - If there's an issue updating the token in the vault
+ * @returns {Promise<void>} - A promise that resolves when the token is successfully marked as used
+ */
 const markPasswordResetTokenUsed = async (token: string, userId: string) => {
 
     const data = (await vault.read(`kv/auth/password-reset/${userId}`)).getData();

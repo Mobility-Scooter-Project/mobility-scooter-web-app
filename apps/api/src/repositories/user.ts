@@ -115,11 +115,27 @@ export const findUserWithPassword = async (
   return data[0];
 };
 
+/**
+ * Retrieves a user from the database by their unique identifier.
+ * 
+ * @param db - The database connection instance
+ * @param id - The unique identifier of the user to find
+ * @returns The first user that matches the specified ID, or undefined if no user is found
+ */
 const findUserById = async (db: DB, id: string) => {
   const data = await db.select().from(users).where(eq(users.id, id));
   return data[0];
 }
 
+/**
+ * Updates a user's password in the database.
+ * The password is encrypted using the Blowfish encryption algorithm with a salt.
+ * 
+ * @param db - Database connection instance
+ * @param userId - Unique identifier of the user
+ * @param password - New password in plain text
+ * @returns {Promise<void>} - A promise that resolves when the password has been updated
+ */
 const updatePassword = async (db: DB, userId: string, password: string) => {
   const encryptedPassword = sql`crypt(${password}, gen_salt('bf'))`;
   await db

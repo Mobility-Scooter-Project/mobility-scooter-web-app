@@ -3,7 +3,6 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { kv } from "@src/integrations/kv";
 import RedisStore from "rate-limit-redis";
 import { ENVIRONMENT } from "@src/config/constants";
-import { HTTPException } from "hono/http-exception";
 
 const sharedStore = new RedisStore({
   // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis

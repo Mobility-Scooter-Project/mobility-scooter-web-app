@@ -1,3 +1,4 @@
+import { ENVIRONMENT } from "@src/config/constants";
 import { storage } from "@src/integrations/storage"
 import { HTTPException } from "hono/http-exception";
 
@@ -9,7 +10,9 @@ const generatePresignedVideoPutUrl = async (filename: string, patientId: string,
         const bucket = await storage.bucketExists(patientId);
         if (!bucket) {
             await storage.makeBucket(patientId);
-           // await storage.setBucketEncryption(patientId); // defaults to {Rule:[{ApplyServerSideEncryptionByDefault:{SSEAlgorithm:"AES256"}}]}
+            if (ENVIRONMENT === "production") {
+                await storage.setBucketEncryption(patientId); // defaults to {Rule:[{ApplyServerSideEncryptionByDefault:{SSEAlgorithm:"AES256"}}]}
+            }
         }
     } catch (e) {
         console.error(e);
