@@ -1,3 +1,4 @@
+import { Hono } from 'hono'
 import type { Variables } from 'src'
 import emailpass from './emailpass'
 import otp from './otp'

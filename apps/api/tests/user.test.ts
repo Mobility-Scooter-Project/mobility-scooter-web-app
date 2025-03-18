@@ -214,6 +214,9 @@ describe('User', () => {
   })
 
   describe('Login', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let refreshToken: string = ''
+
     // login-user-emailpass.http
     it('should login the user', async () => {
       const body = {
