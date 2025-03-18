@@ -38,6 +38,9 @@ importers:
       node-vault-client:
         specifier: ^1.0.1
         version: 1.0.1(config@3.3.12)
+      nodemailer:
+        specifier: ^6.10.0
+        version: 6.10.0
       otpauth:
         specifier: ^9.3.6
         version: 9.3.6
@@ -2405,6 +2408,10 @@ packages:
     engines: {node: '>=14.0.0'}
     peerDependencies:
       config: '>=1 <4'
+
+  nodemailer@6.10.0:
+    resolution: {integrity: sha512-SQ3wZCExjeSatLE/HBaXS5vqUOQk6GtBdIIKxiFdmm01mOQZX/POJkO3SUX1wDiYcwUOJwT23scFSC9fY2H8IA==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -5877,6 +5884,8 @@ snapshots:
       url-join: 2.0.5
     transitivePeerDependencies:
       - aws-crt
+
+  nodemailer@6.10.0: {}
 
   normalize-path@3.0.0: {}
 

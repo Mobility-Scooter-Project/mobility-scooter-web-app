@@ -163,3 +163,33 @@ export const refreshTokens = auth.table("refresh_tokens", {
   }
   )
 ]);
+
+export const resetPasswordTokens = auth.table("reset_password_tokens", {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: uuid()
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  token: text().notNull(),
+  createdAt: timestamp().defaultNow(),
+  updatedAt: timestamp().defaultNow(),
+  usedAt: timestamp(),
+}, (t) => [
+  pgPolicy("allow authenticated users to read their own reset password tokens", {
+    as: "permissive",
+    to: authenticated,
+    for: "select",
+    using: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to create their own reset password tokens", {
+    as: "permissive",
+    to: authenticated,
+    for: "insert",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+  pgPolicy("allow authenticated users to update their own reset password tokens", {
+    as: "permissive",
+    to: authenticated,
+    for: "update",
+    withCheck: sql`user_id = current_setting('app.user_id')::uuid`,
+  }),
+]);

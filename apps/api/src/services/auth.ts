@@ -7,10 +7,10 @@ import { HTTPException } from "hono/http-exception";
 import { refreshTokenRepository } from "@repositories/refresh-token";
 import { generateTOTP, verifyTOTP } from "@src/lib/otp";
 import { createOtpSecret, getOtpSecretByUserId } from "@src/integrations/vault";
-import { sign } from "hono/jwt";
-import { JWT_SECRET } from "@src/config/constants";
+import { sign, verify } from "hono/jwt";
+import { ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
 import { sendEmail } from "@src/integrations/smtp";
-import { logger } from "hono/logger";
+import { resetPasswordTokensRepository } from "@src/repositories/reset-password-tokens";
 
 /**
  * Retrieves and validates an API key from the database
@@ -174,9 +174,37 @@ const generateResetPasswordToken = async (email: string) => {
 
   const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
 
-  const token = sign(payload, JWT_SECRET);
+  const token = await sign(payload, JWT_SECRET);
+  await resetPasswordTokensRepository.createPasswordResetToken(token, id);
+  if (ENVIRONMENT === "production") {
+    await sendEmail(email, "MSB Password Reset", "no-reply@example.com", `Click here to reset your password: ${BASE_URL}/reset-password?token=${token}`);
+  } else {
+    return token;
+  }
+}
 
-  await sendEmail(email, "MSB Password Reset", "", `Click here to reset your password: http://localhost:3000/reset-password?token=${token}`);
+const resetPassword = async (token: string, password: string) => {
+  let payload;
+  try {
+    payload = await verify(token, JWT_SECRET);
+    // @ts-ignore
+  } catch (e) {
+    throw new HTTPException(401, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid token" })
+      ),
+    });
+  }
+
+  const { userId } = payload as { userId: string };
+
+  await resetPasswordTokensRepository.markPasswordResetTokenUsed(token, userId);
+  try {
+    await userRepository.updatePassword(db, userId, password);
+  } catch (e) {
+    console.error(`Failed to reset password: ${e}`);
+    throw new HTTPException(501, { message: "Failed to reset password" });
+  }
 }
 
 
@@ -187,5 +215,6 @@ export const authService = {
   refreshToken,
   generateOTP,
   verifyUserTOTP,
-  generateResetPasswordToken
+  generateResetPasswordToken,
+  resetPassword,
 };

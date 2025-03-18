@@ -55,9 +55,41 @@ export const signInWithPasswordSchema = z.object({
   password: z.string().nonempty(),
 });
 
-export const resetPasswordSchema = z.object({
+export const resetPasswordTokenSchema = z.object({
   email: z.string().email({ message: "Invalid email" }),
 });
+
+export const resetPasswordSchema = z.object({
+  token: z.string().nonempty(),
+  email: z.string().email({ message: "Invalid email" }),
+  password: z.string().min(8).max(64)
+}).superRefine((data, ctx) => {
+  if (commonWords.includes(data.password.toLowerCase())) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Password cannot be a common word",
+    });
+  }
+  if (data.email === data.password) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Password cannot be the same as email",
+    });
+  }
+  if (!checkSequentialPassword(data.password)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Password cannot contain sequential characters or numbers",
+    });
+  }
+  if (!checkRepeatedPassword(data.password)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Password cannot contain repeated characters",
+    });
+  }
+}
+);
 
 export const refreshTokenSchema = z.object({
   token: z.string().nonempty(),

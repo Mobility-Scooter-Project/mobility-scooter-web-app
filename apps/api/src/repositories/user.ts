@@ -120,9 +120,18 @@ const findUserById = async (db: DB, id: string) => {
   return data[0];
 }
 
+const updatePassword = async (db: DB, userId: string, password: string) => {
+  const encryptedPassword = sql`crypt(${password}, gen_salt('bf'))`;
+  await db
+    .update(users)
+    .set({ encryptedPassword })
+    .where(eq(users.id, userId));
+}
+
 export const userRepository = {
   createUser,
   findUserByEmail,
   findUserWithPassword,
   findUserById,
+  updatePassword,
 };
