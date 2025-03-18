@@ -18,6 +18,7 @@
     "@hono/zod-validator": "^0.4.3",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
+    "eslint": "^9.22.0",
     "hono": "^4.7.4",
     "hono-openapi": "^0.4.6",
     "hono-rate-limiter": "^0.4.2",
@@ -35,6 +36,7 @@
     "zod-openapi": "^4.2.3"
   },
   "devDependencies": {
+    "@hono/eslint-config": "^1.0.2",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.11.17",
@@ -42,6 +44,7 @@
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.5",
     "jest": "^29.7.0",
+    "prettier": "3.5.3",
     "start-server-and-test": "^2.0.10",
     "ts-jest": "^29.2.6",
     "tsx": "^4.7.1",

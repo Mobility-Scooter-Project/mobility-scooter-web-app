@@ -1,4 +1,4 @@
-import QRCode from 'qrcode';
+import QRCode from 'qrcode'
 
 /**
  * Generates a QR code buffer from a given URL
@@ -6,5 +6,5 @@ import QRCode from 'qrcode';
  * @returns A Promise that resolves to a Buffer containing the QR code image
  */
 export const generateQRCode = (url: string) => {
-    return QRCode.toBuffer(url);
+  return QRCode.toBuffer(url)
 }
