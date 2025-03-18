@@ -27,6 +27,7 @@ const app = new Hono<{ Variables: Variables }>()
       summary: 'Register a new user with email and password',
       description:
         'Register a new user with email and password and return a session',
+      tags: ['auth'],
       body: createUserWithPasswordSchema,
       responses: {
         200: {
@@ -71,6 +72,7 @@ const app = new Hono<{ Variables: Variables }>()
     describeRoute({
       summary: 'Sign in with email and password',
       description: 'Sign in with email and password and return a session',
+      tags: ['auth'],
       body: signInWithPasswordSchema,
       responses: {
         200: {
@@ -111,6 +113,7 @@ const app = new Hono<{ Variables: Variables }>()
     describeRoute({
       summary: 'Generate a reset password token',
       description: 'Generate a reset password token for a user',
+      tags: ['auth'],
       body: resetPasswordTokenSchema,
       responses: {
         200: {
@@ -151,6 +154,7 @@ const app = new Hono<{ Variables: Variables }>()
     describeRoute({
       summary: 'Reset password with token',
       description: 'Reset password with a reset password token',
+      tags: ['auth'],
       body: resetPasswordSchema,
       responses: {
         200: {

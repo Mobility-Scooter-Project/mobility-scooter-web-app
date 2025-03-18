@@ -18,6 +18,7 @@ const app = new Hono<{ Variables: Variables }>().post(
     summary: 'Generate a presigned URL for uploading a video',
     description:
       'Generate a presigned URL for uploading a video to the storage bucket',
+    tags: ['storage'],
     requestBody: {
       content: {
         'application/json': {

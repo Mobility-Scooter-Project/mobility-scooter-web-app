@@ -18,6 +18,7 @@ const app = new Hono<{ Variables: Variables }>()
     describeRoute({
       summary: 'Generate a new TOTP secret and QR code',
       description: 'Generate a new TOTP secret and QR code for a user',
+      tags: ['auth'],
       responses: {
         200: {
           description: 'TOTP secret and QR code generated successfully',
@@ -53,6 +54,7 @@ const app = new Hono<{ Variables: Variables }>()
     describeRoute({
       summary: 'Verify a TOTP token',
       description: 'Verify a TOTP token for a user',
+      tags: ['auth'],
       requestBody: {
         content: {
           'application/json': {

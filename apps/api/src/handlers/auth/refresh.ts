@@ -13,6 +13,7 @@ const app = new Hono<{ Variables: Variables }>().post(
   describeRoute({
     summary: 'Refresh an access token',
     description: 'Refresh an access token using a refresh token',
+    tags: ['auth'],
     requestBody: {
       content: {
         'application/json': {
