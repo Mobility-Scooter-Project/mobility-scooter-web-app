@@ -2,6 +2,7 @@ import { authService } from "@services/auth";
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { db } from "./db";
+import { apiKeyRepository } from "@src/repositories/api-keys";
 
 /**
  * Middleware function to validate API key from Authorization header
@@ -22,6 +23,8 @@ export const validateApiKey = async (c: Context, next: Next) => {
   if (!result) {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
+
+  await apiKeyRepository.bumpLastUsed(apiKey);
 
   await next();
 };
