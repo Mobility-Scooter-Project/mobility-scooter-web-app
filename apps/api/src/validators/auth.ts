@@ -1,7 +1,5 @@
 import { z } from "zod";
-// @ts-expect-error - no types available
-import { words } from 'popular-english-words'
-import { checkRepeatedPassword, checkSequentialPassword } from "@src/utils/password";
+import { validatePassword } from "@src/lib/password";
 
 /*
 * Password requirements are based on NIST Special Publication 800-63B
@@ -15,7 +13,6 @@ import { checkRepeatedPassword, checkSequentialPassword } from "@src/utils/passw
 * 4. TODO: Passwords cannot contain any context specific words (eg name of service) 
 */
 
-const commonWords = words.getAll().map((word: string) => word.toLowerCase());
 
 export const createUserWithPasswordSchema = z.object({
   email: z.string().email({ message: "Invalid email" }),
@@ -23,32 +20,7 @@ export const createUserWithPasswordSchema = z.object({
   firstName: z.string().nonempty(),
   lastName: z.string().nonempty(),
   unitId: z.string().nonempty(),
-}).superRefine((data, ctx) => {
-  if (commonWords.includes(data.password.toLowerCase())) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot be a common word",
-    });
-  }
-  if (data.email === data.password) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot be the same as email",
-    });
-  }
-  if (!checkSequentialPassword(data.password)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot contain sequential characters or numbers",
-    });
-  }
-  if (!checkRepeatedPassword(data.password)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot contain repeated characters",
-    });
-  }
-});
+}).superRefine((data, ctx) => validatePassword(data, ctx));
 
 export const signInWithPasswordSchema = z.object({
   email: z.string().email({ message: "Invalid email" }),
@@ -63,33 +35,7 @@ export const resetPasswordSchema = z.object({
   token: z.string().nonempty(),
   email: z.string().email({ message: "Invalid email" }),
   password: z.string().min(8).max(64)
-}).superRefine((data, ctx) => {
-  if (commonWords.includes(data.password.toLowerCase())) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot be a common word",
-    });
-  }
-  if (data.email === data.password) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot be the same as email",
-    });
-  }
-  if (!checkSequentialPassword(data.password)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot contain sequential characters or numbers",
-    });
-  }
-  if (!checkRepeatedPassword(data.password)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Password cannot contain repeated characters",
-    });
-  }
-}
-);
+}).superRefine((data, ctx) => validatePassword(data, ctx));
 
 export const refreshTokenSchema = z.object({
   token: z.string().nonempty(),

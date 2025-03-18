@@ -1,48 +1,14 @@
-import { eq, sql } from "drizzle-orm";
-import { apiKeys } from "../db/schema/auth";
+import { sql } from "drizzle-orm";
 import { db, DB } from "@middleware/db";
 import { userRepository } from "@repositories/user";
-import { createSession } from "@lib/session";
 import { HTTPException } from "hono/http-exception";
 import { refreshTokenRepository } from "@repositories/refresh-token";
-import { generateTOTP, verifyTOTP } from "@src/lib/otp";
-import { createOtpSecret, getOtpSecretByUserId } from "@src/integrations/vault";
 import { sign, verify } from "hono/jwt";
 import { ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
 import { sendEmail } from "@src/integrations/smtp";
 import { resetPasswordTokensRepository } from "@src/repositories/reset-password-tokens";
+import { sessionService } from "./session";
 
-/**
- * Retrieves and validates an API key from the database
- * @param key - The API key to validate
- * @returns Promise that resolves to a boolean indicating whether the key exists and is active
- * @example
- * ```typescript
- * const isValid = await retrieveApiKey('some-api-key');
- * if (isValid) {
- *   // API key is valid and active
- * }
- * ```
- */
-const retrieveApiKey = async (db: DB, key: string) => {
-  const data = await db.query.apiKeys.findFirst({
-    where: (fields) =>
-      sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${fields.isActive
-        } = ${true}`,
-  });
-  if (data && data.isActive) {
-    try {
-      await db
-        .update(apiKeys)
-        .set({ lastUsedAt: new Date() })
-        .where(eq(apiKeys.id, data.id));
-    } catch (e) {
-      console.error(`Failed to update API key: ${e}`);
-    }
-    return true;
-  }
-  return false;
-};
 
 /**
  * Creates a new user with email/password authentication and returns a session
@@ -83,7 +49,7 @@ export const createUserWithPassword = async (
   });
 
 
-  return await createSession(db, id);
+  return await sessionService.createSession(db, id);
 };
 
 /**
@@ -110,7 +76,7 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
     await tx.execute(sql`SET ROLE authenticated_user`);
   });
 
-  return await createSession(db, user.id);
+  return await sessionService.createSession(db, user.id);
 };
 
 /**
@@ -134,40 +100,9 @@ const refreshToken = async (db: DB, refreshToken: string) => {
 
   await refreshTokenRepository.revokeRefreshToken(db, refreshToken);
 
-  return await createSession(db, record.userId);
+  return await sessionService.createSession(db, record.userId);
 };
 
-/**
- * Generates a Time-based One-Time Password (TOTP) for a user.
- * 
- * @param db - The database connection instance.
- * @param userId - The unique identifier of the user.
- * @returns A Promise that resolves to the generated TOTP.
- * @throws Will throw an error if the user with the provided ID is not found.
- */
-const generateOTP = async (db: DB, userId: string) => {
-  const { email } = await userRepository.findUserById(db, userId);
-  const totp = generateTOTP(email);
-  await createOtpSecret(userId, totp.secret.base32);
-  return totp;
-}
-
-/**
- * Verifies a user's Time-based One-Time Password (TOTP) token.
- * 
- * @param db - The database connection instance
- * @param userId - The unique identifier of the user
- * @param token - The TOTP token provided by the user for verification
- * @param secret - The secret key used for generating TOTP tokens
- * @returns A Promise resolving to a boolean indicating whether the TOTP token is valid
- * @throws Will throw an error if the user cannot be found or if verification fails
- */
-const verifyUserTOTP = async (db: DB, userId: string, token: string) => {
-  const { email } = await userRepository.findUserById(db, userId);
-  const secret = await getOtpSecretByUserId(userId);
-
-  return verifyTOTP(email, token, secret);
-}
 
 /**
  * Generates a reset password token for a user.
@@ -252,10 +187,7 @@ const resetPassword = async (token: string, password: string) => {
 export const authService = {
   createUserWithPassword,
   signInWithPassword,
-  retrieveApiKey,
   refreshToken,
-  generateOTP,
-  verifyUserTOTP,
   generateResetPasswordToken,
   resetPassword,
 };

@@ -6,6 +6,7 @@ import { otpRateLimiter } from "@src/middleware/rate-limit";
 import { userMiddleware } from "@src/middleware/user";
 import { validateApiKey } from "@src/middleware/validate-api-key";
 import { authService } from "@src/services/auth";
+import { otpService } from "@src/services/auth/otp";
 import { verifyTOTPSchema } from "@src/validators/auth";
 import { Hono } from "hono";
 
@@ -13,7 +14,7 @@ const app = new Hono<{ Variables: Variables }>().get("/", validateApiKey, userMi
     const userId = c.get("userId")!;
     const db = c.get("db");
 
-    const totp = await authService.generateOTP(db, userId)
+    const totp = await otpService.generateOTP(db, userId)
     const qrCode = await generateQRCode(totp.toString());
 
     return c.json({
@@ -29,7 +30,7 @@ const app = new Hono<{ Variables: Variables }>().get("/", validateApiKey, userMi
 
     const { token } = c.req.valid("json");
 
-    const response = await authService.verifyUserTOTP(db, userId, token);
+    const response = await otpService.verifyUserTOTP(db, userId, token);
 
     const valid = response === null ? false : response === -1 ? false : true;
 

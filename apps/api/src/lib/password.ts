@@ -1,3 +1,9 @@
+// @ts-expect-error - no types available
+import { words } from 'popular-english-words'
+import { z } from 'zod';
+
+const commonWords = words.getAll().map((word: string) => word.toLowerCase());
+
 /**
  * Checks if a password contains more than 2 sequential characters in a row.
  * Sequential characters are defined as characters whose ASCII values differ by 1.
@@ -60,4 +66,31 @@ export const checkRepeatedPassword = (password: string): boolean => {
         }
     }
     return true;
+}
+
+export const validatePassword = (data: { password: string, email: string }, ctx: any) => {
+    if (commonWords.includes(data.password.toLowerCase())) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Password cannot be a common word",
+        });
+    }
+    if (data.email === data.password) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Password cannot be the same as email",
+        });
+    }
+    if (!checkSequentialPassword(data.password)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Password cannot contain sequential characters or numbers",
+        });
+    }
+    if (!checkRepeatedPassword(data.password)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Password cannot contain repeated characters",
+        });
+    }
 }

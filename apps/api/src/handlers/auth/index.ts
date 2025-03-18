@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { db, dbMiddleware } from "@middleware/db";
 import { validateApiKey } from "@middleware/validate-api-key";
-import { authService } from "@services/auth";
+import { authService } from "@src/services/auth";
 import { Hono } from "hono";
 import { Variables } from "src";
 import {
