@@ -341,6 +341,7 @@ describe("User", () => {
 
       expect(statuses.includes(429)).toBe(true);
     });
+
   });
 
   afterAll(async () => {

@@ -9,7 +9,6 @@ const generatePresignedVideoPutUrl = async (filename: string, patientId: string,
         const bucket = await storage.bucketExists(patientId);
         if (!bucket) {
             await storage.makeBucket(patientId);
-           // await storage.setBucketEncryption(patientId); // defaults to {Rule:[{ApplyServerSideEncryptionByDefault:{SSEAlgorithm:"AES256"}}]}
         }
     } catch (e) {
         console.error(e);

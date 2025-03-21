@@ -78,7 +78,6 @@ export const createUserWithPassword = async (
     lastSignedInAt: new Date(),
   });
 
-
   return await createSession(db, id);
 };
 
@@ -119,7 +118,6 @@ const signInWithPassword = async (db: DB, email: string, password: string) => {
  */
 const refreshToken = async (db: DB, refreshToken: string) => {
   const record = await refreshTokenRepository.getRefreshToken(db, refreshToken);
-
   if (!record || record.revoked || !record.expiresAt || record.expiresAt < new Date()) {
     throw new HTTPException(401, {
       res: new Response(

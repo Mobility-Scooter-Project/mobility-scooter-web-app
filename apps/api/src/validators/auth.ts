@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 // @ts-expect-error - no types available
 import { words } from 'popular-english-words'
 import { checkRepeatedPassword, checkSequentialPassword } from "@src/utils/password";

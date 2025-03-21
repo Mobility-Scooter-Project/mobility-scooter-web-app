@@ -45,7 +45,7 @@ export const users = auth.table(
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow(),
     deletedAt: timestamp(),
-  }, (t) => [
+  },(t) => [
     pgPolicy("allow unauthenticated users to create an account", {
       as: "permissive",
       to: anon,
@@ -163,3 +163,4 @@ export const refreshTokens = auth.table("refresh_tokens", {
   }
   )
 ]);
+
