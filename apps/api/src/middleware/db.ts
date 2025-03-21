@@ -1,12 +1,13 @@
 import { DATABASE_URL } from "@config/constants";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Context, Next } from "hono";
-import * as auth from "../db/schema/auth";
-import * as videos from "../db/schema/videos";
-import * as tenants from "../db/schema/tenants";
-import pg from "pg";
+import { HTTP_CODES } from "@src/config/http-codes";
 import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
+import pg from "pg";
+import * as auth from "../db/schema/auth";
+import * as tenants from "../db/schema/tenants";
+import * as videos from "../db/schema/videos";
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -33,22 +34,26 @@ export const dbMiddleware = async (c: Context, next: Next) => {
   const db = drizzle({
     client: pool,
     casing: "snake_case",
-    schema: { ...auth, ...videos },
+    schema: { ...auth, ...videos, ...tenants },
   });
 
-  try{
-  if (userId) {
-    await db.transaction(async (tx) => {
-      tx.execute(sql`SET ROLE authenticated_user`);
-      tx.execute(sql`SET app.user_id = ${userId}`);
-    })
-  } else {
-    await db.execute(sql`SET ROLE anonymous_user`);
+  try {
+    if (userId) {
+      await db.transaction(async (tx) => {
+        tx.execute(sql`SET ROLE authenticated_user`);
+        tx.execute(sql`SET app.user_id = ${userId}`);
+      });
+    } else {
+      await db.execute(sql`SET ROLE anonymous_user`);
+    }
+  } catch (e) {
+    console.error(`Failed to set user context: ${e}`);
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Failed to set user context" }),
+      ),
+    });
   }
-} catch (e) {
-  console.error(`Failed to set user context: ${e}`);
-  throw new HTTPException(500, { res: new Response(JSON.stringify({ data: null, error: "Failed to set user context" })) });
-}
 
   c.set("db", db);
 
