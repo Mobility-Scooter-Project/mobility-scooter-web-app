@@ -1,9 +1,10 @@
 import { sql } from "drizzle-orm";
-import { apiKeys } from "../src/db/schema/auth";
-import os from "node:os";
-import fs from "node:fs";
-import { DATABASE_URL } from "../src/config/constants";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { randomBytes } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import { DATABASE_URL } from "../src/config/constants";
+import { apiKeys } from "../src/db/schema/auth";
 import * as auth from "../src/db/schema/auth";
 
 const hostname = os.hostname();
@@ -15,9 +16,11 @@ export const db = drizzle(DATABASE_URL, {
 
 try {
   const key =
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 8);
+    "sk_" +
+    randomBytes(32)
+      .toString("base64")
+      .replace(/[+/=]/g, "") // Make URL safe by removing non-alphanumeric chars
+      .substring(0, 37); // Ensure consistent length
 
   await db.insert(apiKeys).values({
     id: sql`gen_random_uuid()`,
@@ -28,12 +31,10 @@ try {
   });
 
   // write to .env file
-  fs.appendFileSync(".env", `\nTESTING_API_KEY=${key}\n`);
+  fs.appendFileSync(".env", `TESTING_API_KEY=${key}\n`);
 
   console.log(`Successfully wrote API key to .env file for device ${hostname}`);
-
-  process.exit(0);
 } catch (e) {
   console.error(e);
-  process.exit(1);
+  throw new Error("Failed to generate API key");
 }

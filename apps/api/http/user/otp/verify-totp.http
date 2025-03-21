@@ -1,6 +1,6 @@
 ### Login
 # @name login
-POST http://localhost:3000/v1/api/auth/emailpass
+POST http://localhost:3000/api/v1/auth/emailpass
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 
@@ -11,7 +11,7 @@ Content-Type: application/json
 
 ### Validate OTP
 # @name validate
-POST http://localhost:3000/v1/api/auth/otp/verify
+POST http://localhost:3000/api/v1/auth/otp/verify
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 X-User: {{login.response.body.data.token}}

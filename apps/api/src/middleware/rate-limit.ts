@@ -1,8 +1,8 @@
-import { rateLimiter } from "hono-rate-limiter";
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { kv } from "@src/integrations/kv";
-import RedisStore from "rate-limit-redis";
 import { ENVIRONMENT } from "@src/config/constants";
+import { kv } from "@src/integrations/kv";
+import { rateLimiter } from "hono-rate-limiter";
+import RedisStore from "rate-limit-redis";
 
 const sharedStore = new RedisStore({
   // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
@@ -16,9 +16,9 @@ export const signUpRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${connInfo.remote.address}`; // base solely on IP address to prevent spamming
   },
-  //@ts-ignore
+  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
-  skip: (c) => ENVIRONMENT === "development",
+  skip: () => ENVIRONMENT === "development",
 });
 
 export const signInRateLimiter = rateLimiter({
@@ -30,9 +30,9 @@ export const signInRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${email}:${connInfo.remote.address}`; // email:
   },
-  //@ts-ignore
+  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
-  skip: (c) => ENVIRONMENT === "development",
+  skip: () => ENVIRONMENT === "development",
 });
 
 export const otpRateLimiter = rateLimiter({
@@ -44,9 +44,9 @@ export const otpRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${userId}:${connInfo.remote.address}`;
   },
-  //@ts-ignore
+  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
-  skip: (c) => ENVIRONMENT === "development",
+  skip: () => ENVIRONMENT === "development",
 });
 
 export const resetPasswordRateLimiter = rateLimiter({
@@ -58,7 +58,7 @@ export const resetPasswordRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${email}:${connInfo.remote.address}`;
   },
-  //@ts-ignore
+  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
-  skip: (c) => ENVIRONMENT === "development",
+  skip: () => ENVIRONMENT === "development",
 });
