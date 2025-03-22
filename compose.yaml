@@ -33,6 +33,13 @@ services:
     command: sh /init.sh
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"
+  smtp:
+    image: boky/postfix
+    environment:
+      - ALLOWED_SENDER_DOMAINS=example.com
+    ports:
+      - "25:25"
+      - "1587:587"
   storage:
     image: "minio/minio"
     command: server --console-address ":9001" /data

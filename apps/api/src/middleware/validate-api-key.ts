@@ -1,4 +1,6 @@
-import { authService } from "@services/auth";
+import { HTTP_CODES } from "@src/config/http-codes";
+import { apiKeyRepository } from "@src/repositories/api-keys";
+import { apiKeyService } from "@src/services/auth/api-key";
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { db } from "./db";
@@ -13,15 +15,21 @@ export const validateApiKey = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader) {
-    throw new HTTPException(401, { message: "Unauthorized" });
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      message: "Missing Authorization Header",
+    });
   }
 
-  const [_, apiKey] = authHeader.split("Bearer ");
-  const result = await authService.retrieveApiKey(db, apiKey);
+  const [, apiKey] = authHeader.split("Bearer ");
+  const result = await apiKeyService.retrieveApiKey(db, apiKey);
 
   if (!result) {
-    throw new HTTPException(401, { message: "Unauthorized" });
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      message: "Invalid Authorization Token",
+    });
   }
+
+  await apiKeyRepository.bumpLastUsed(apiKey);
 
   await next();
 };

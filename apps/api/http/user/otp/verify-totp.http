@@ -1,6 +1,6 @@
 ### Login
 # @name login
-POST http://localhost:3000/v1/api/auth/emailpass
+POST http://localhost:3000/api/v1/auth/emailpass
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 
@@ -9,15 +9,13 @@ Content-Type: application/json
  "password": "testing124"
 }
 
-### Get Video Presigned URL
-
-POST http://localhost:3000/v1/api/storage/videos/presigned-url
+### Validate OTP
+# @name validate
+POST http://localhost:3000/api/v1/auth/otp/verify
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 X-User: {{login.response.body.data.token}}
 
 {
- "date": "{{$datetime iso8601}}",
- "filename": "test.mp4",
- "patientId": "abc-123-456-789"
+  "token": "318229"
 }
