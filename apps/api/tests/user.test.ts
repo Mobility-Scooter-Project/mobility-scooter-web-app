@@ -17,7 +17,6 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 describe("User", () => {
   beforeEach(async () => {
-  beforeEach(async () => {
     await kv.flushall();
   });
 
@@ -33,7 +32,7 @@ describe("User", () => {
       };
 
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/register`,
+        `${BASE_URL}/v1/api/auth/emailpass/register`,
         {
           method: "POST",
           headers,
@@ -53,7 +52,7 @@ describe("User", () => {
         unitId: process.env.TESTING_UNIT_ID!,
       };
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/register`,
+        `${BASE_URL}/v1/api/auth/emailpass/register`,
         {
           method: "POST",
           headers,
@@ -75,7 +74,7 @@ describe("User", () => {
 
       const statuses = await Promise.all(
         Array.from({ length: 51 }).map(() =>
-          fetch(`${BASE_URL}/api/v1/auth/emailpass/register`, {
+          fetch(`${BASE_URL}/v1/api/auth/emailpass/register`, {
             method: "POST",
             headers,
             body: JSON.stringify(body),
@@ -96,7 +95,7 @@ describe("User", () => {
       };
 
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/register`,
+        `${BASE_URL}/v1/api/auth/emailpass/register`,
         {
           method: "POST",
           headers,
@@ -118,7 +117,7 @@ describe("User", () => {
         };
 
         const response = await fetch(
-          `${BASE_URL}/api/v1/auth/emailpass/register`,
+          `${BASE_URL}/v1/api/auth/emailpass/register`,
           {
             method: "POST",
             headers,
@@ -139,7 +138,7 @@ describe("User", () => {
         };
 
         const response = await fetch(
-          `${BASE_URL}/api/v1/auth/emailpass/register`,
+          `${BASE_URL}/v1/api/auth/emailpass/register`,
           {
             method: "POST",
             headers,
@@ -160,7 +159,7 @@ describe("User", () => {
         };
 
         const response = await fetch(
-          `${BASE_URL}/api/v1/auth/emailpass/register`,
+          `${BASE_URL}/v1/api/auth/emailpass/register`,
           {
             method: "POST",
             headers,
@@ -181,7 +180,7 @@ describe("User", () => {
         };
 
         const response = await fetch(
-          `${BASE_URL}/api/v1/auth/emailpass/register`,
+          `${BASE_URL}/v1/api/auth/emailpass/register`,
           {
             method: "POST",
             headers,
@@ -202,7 +201,7 @@ describe("User", () => {
         };
 
         const response = await fetch(
-          `${BASE_URL}/api/v1/auth/emailpass/register`,
+          `${BASE_URL}/v1/api/auth/emailpass/register`,
           {
             method: "POST",
             headers,
@@ -226,7 +225,7 @@ describe("User", () => {
         password: SHARED_DATA.PASSWORD,
       };
 
-      const response = await fetch(`${BASE_URL}/api/v1/auth/emailpass`, {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
         method: "POST",
         body: JSON.stringify(body),
         headers,
@@ -242,7 +241,7 @@ describe("User", () => {
         password: "wrongpassword",
       };
 
-      const response = await fetch(`${BASE_URL}/api/v1/auth/emailpass`, {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
         method: "POST",
         body: JSON.stringify(body),
         headers,
@@ -257,7 +256,7 @@ describe("User", () => {
         password: SHARED_DATA.PASSWORD,
       };
 
-      const response = await fetch(`${BASE_URL}/api/v1/auth/emailpass`, {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
         method: "POST",
         body: JSON.stringify(body),
         headers,
@@ -269,7 +268,7 @@ describe("User", () => {
     describe("Refresh Token", () => {
       // refresh-token.http
       it("should refresh the token", async () => {
-        const userResponse = await fetch(`${BASE_URL}/api/v1/auth/emailpass`, {
+        const userResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
           method: "POST",
           body: JSON.stringify({
             email: SHARED_DATA.EMAIL,
@@ -284,7 +283,7 @@ describe("User", () => {
           token,
         };
 
-        const response = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+        const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
           method: "POST",
           body: JSON.stringify(body),
           headers,
@@ -298,7 +297,7 @@ describe("User", () => {
           token: "invalidtoken",
         };
 
-        const response = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+        const response = await fetch(`${BASE_URL}/v1/api/auth/refresh`, {
           method: "POST",
           body: JSON.stringify(body),
           headers,
@@ -318,7 +317,7 @@ describe("User", () => {
 
     it("should send a reset password email", async () => {
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/reset-password/token`,
+        `${BASE_URL}/v1/api/auth/emailpass/reset-password/token`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -334,7 +333,7 @@ describe("User", () => {
 
     it("should return 404 when the email is incorrect", async () => {
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/reset-password/token`,
+        `${BASE_URL}/v1/api/auth/emailpass/reset-password/token`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -349,7 +348,7 @@ describe("User", () => {
 
     it("should reset the password", async () => {
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/reset-password`,
+        `${BASE_URL}/v1/api/auth/emailpass/reset-password`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -366,7 +365,7 @@ describe("User", () => {
 
     it("should return 401 when the token is invalid", async () => {
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/reset-password`,
+        `${BASE_URL}/v1/api/auth/emailpass/reset-password`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -383,7 +382,7 @@ describe("User", () => {
 
     it("should return 400 when the password is invalid", async () => {
       const response = await fetch(
-        `${BASE_URL}/api/v1/auth/emailpass/reset-password`,
+        `${BASE_URL}/v1/api/auth/emailpass/reset-password`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -401,7 +400,7 @@ describe("User", () => {
     it("should return 429 when the rate limit is exceeded", async () => {
       const statuses = await Promise.all(
         Array.from({ length: 4 }).map(() =>
-          fetch(`${BASE_URL}/api/v1/auth/emailpass/reset-password`, {
+          fetch(`${BASE_URL}/v1/api/auth/emailpass/reset-password`, {
             method: "POST",
             body: JSON.stringify({
               email: SHARED_DATA.EMAIL,
@@ -422,7 +421,7 @@ describe("User", () => {
       await kv.flushall();
     });
     it("should generate an OTP secret", async () => {
-      const loginResponse = await fetch(`${BASE_URL}/api/v1/auth/emailpass`, {
+      const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
         method: "POST",
         body: JSON.stringify({
           email: SHARED_DATA.EMAIL,
@@ -433,7 +432,7 @@ describe("User", () => {
 
       const { token } = (await loginResponse.json()).data;
 
-      const response = await fetch(`${BASE_URL}/api/v1/auth/otp`, {
+      const response = await fetch(`${BASE_URL}/v1/api/auth/otp`, {
         method: "GET",
         headers: {
           ...headers,
@@ -445,7 +444,7 @@ describe("User", () => {
     });
 
     it("should return 429 when rate limit is exceeded", async () => {
-      const loginResponse = await fetch(`${BASE_URL}/api/v1/auth/emailpass`, {
+      const loginResponse = await fetch(`${BASE_URL}/v1/api/auth/emailpass`, {
         method: "POST",
         body: JSON.stringify({
           email: SHARED_DATA.EMAIL,
@@ -458,7 +457,7 @@ describe("User", () => {
 
       const statuses = await Promise.all(
         Array.from({ length: 50 }).map(() =>
-          fetch(`${BASE_URL}/api/v1/auth/otp/verify`, {
+          fetch(`${BASE_URL}/v1/api/auth/otp/verify`, {
             method: "POST",
             headers: {
               ...headers,

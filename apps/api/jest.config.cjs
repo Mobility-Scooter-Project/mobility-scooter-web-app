@@ -1,7 +1,7 @@
 const { pathsToModuleNameMapper } = require("ts-jest");
 const { compilerOptions } = require("./tsconfig.json");
 
-require('dotenv').config({ path: '.env' });
+require("dotenv").config({ path: ".env" });
 
 /** @type {import('ts-jest').JestConfigWithTsJest} **/
 module.exports = {

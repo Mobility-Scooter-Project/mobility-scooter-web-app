@@ -33,7 +33,6 @@ services:
     command: sh /init.sh
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"
-<<<<<<< HEAD
   smtp:
     image: boky/postfix
     environment:
@@ -41,8 +40,6 @@ services:
     ports:
       - "25:25"
       - "1587:587"
-=======
->>>>>>> 8cc62d2e24c0972eb50a22e064dfd335a1cdb1ab
   storage:
     image: "minio/minio"
     command: server --console-address ":9001" /data
@@ -69,8 +66,4 @@ volumes:
  kv:
  queue:
  storage:
-<<<<<<< HEAD
  vault:
-=======
- vault:
->>>>>>> 8cc62d2e24c0972eb50a22e064dfd335a1cdb1ab

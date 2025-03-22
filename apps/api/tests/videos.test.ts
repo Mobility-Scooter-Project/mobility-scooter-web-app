@@ -34,7 +34,7 @@ describe("Videos", () => {
     };
 
     const userResponse = await fetch(
-      `${BASE_URL}/api/v1/auth/emailpass/register`,
+      `${BASE_URL}/v1/api/auth/emailpass/register`,
       {
         method: "POST",
         headers,
@@ -57,7 +57,7 @@ describe("Videos", () => {
     };
 
     const response = await fetch(
-      `${BASE_URL}/api/v1/storage/videos/presigned-url`,
+      `${BASE_URL}/v1/api/storage/videos/presigned-url`,
       {
         method: "POST",
         headers: {
