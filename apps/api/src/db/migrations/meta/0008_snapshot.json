@@ -127,12 +127,8 @@
           "tableFrom": "identities",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -144,27 +140,21 @@
           "name": "allow authenticated users to read their own identities",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "using": "user_id = current_setting('app.user_id')::uuid"
         },
         "allow authenticated users to create their own identities": {
           "name": "allow authenticated users to create their own identities",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "withCheck": "user_id = current_setting('app.user_id')::uuid"
         },
         "allow authenticated users to update their own identities": {
           "name": "allow authenticated users to update their own identities",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "withCheck": "user_id = current_setting('app.user_id')::uuid"
         }
       },
@@ -235,12 +225,8 @@
           "tableFrom": "refresh_tokens",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -249,12 +235,8 @@
           "tableFrom": "refresh_tokens",
           "tableTo": "sessions",
           "schemaTo": "auth",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -266,18 +248,14 @@
           "name": "allow authenticated users to read their own refresh tokens",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "using": "user_id = current_setting('app.user_id')::uuid"
         },
         "allow authenticated users to create their own refresh tokens": {
           "name": "allow authenticated users to create their own refresh tokens",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "withCheck": "user_id = current_setting('app.user_id')::uuid"
         }
       },
@@ -330,12 +308,8 @@
           "tableFrom": "sessions",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -347,27 +321,21 @@
           "name": "allow authenticated users to read their own sessions",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "using": "user_id = current_setting('app.user_id')::uuid"
         },
         "allow authenticated users to create their own sessions": {
           "name": "allow authenticated users to create their own sessions",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "withCheck": "user_id = current_setting('app.user_id')::uuid"
         },
         "allow authenticated users to update their own sessions": {
           "name": "allow authenticated users to update their own sessions",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "withCheck": "user_id = current_setting('app.user_id')::uuid"
         }
       },
@@ -456,12 +424,8 @@
           "tableFrom": "users",
           "tableTo": "units",
           "schemaTo": "tenants",
-          "columnsFrom": [
-            "unit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["unit_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -471,9 +435,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {
@@ -481,36 +443,28 @@
           "name": "allow unauthenticated users to create an account",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "anonymous_user"
-          ],
+          "to": ["anonymous_user"],
           "withCheck": "true"
         },
         "allow unauthenticated users to login": {
           "name": "allow unauthenticated users to login",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "anonymous_user"
-          ],
+          "to": ["anonymous_user"],
           "using": "true"
         },
         "allow authenticated users to read their own data": {
           "name": "allow authenticated users to read their own data",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "using": "id = current_setting('app.user_id')::uuid"
         },
         "allow authenticated users to update their own data": {
           "name": "allow authenticated users to update their own data",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated_user"
-          ],
+          "to": ["authenticated_user"],
           "using": "id = current_setting('app.user_id')::uuid"
         }
       },
@@ -614,12 +568,8 @@
           "tableFrom": "units",
           "tableTo": "metadata",
           "schemaTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -682,12 +632,8 @@
           "tableFrom": "status",
           "tableTo": "metadata",
           "schemaTo": "videos",
-          "columnsFrom": [
-            "video_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["video_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -760,19 +706,12 @@
     "auth.providers": {
       "name": "providers",
       "schema": "auth",
-      "values": [
-        "emailpass"
-      ]
+      "values": ["emailpass"]
     },
     "public.video_status": {
       "name": "video_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "processed",
-        "failed"
-      ]
+      "values": ["pending", "processing", "processed", "failed"]
     }
   },
   "schemas": {
