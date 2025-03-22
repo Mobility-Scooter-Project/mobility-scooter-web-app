@@ -165,12 +165,8 @@
           "tableFrom": "status",
           "tableTo": "metadata",
           "schemaTo": "videos",
-          "columnsFrom": [
-            "video_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["video_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -186,12 +182,7 @@
     "public.video_status": {
       "name": "video_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "processed",
-        "failed"
-      ]
+      "values": ["pending", "processing", "processed", "failed"]
     }
   },
   "schemas": {

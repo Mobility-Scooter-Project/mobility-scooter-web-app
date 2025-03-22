@@ -1,13 +1,14 @@
 import { refreshTokens } from "@db/schema/auth";
 import { signJWT } from "@lib/jwt";
-import { DB } from "@middleware/db";
+import type { DB } from "@middleware/db";
+import { HTTP_CODES } from "@src/config/http-codes";
 import { eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
 /**
  * Creates a refresh token for a user session and stores it in the database.
  * The token expires after 30 days from creation.
- * 
+ *
  * @param db - Database instance for storing the refresh token
  * @param userId - Unique identifier of the user
  * @param sessionId - Unique identifier of the user's session
@@ -17,7 +18,7 @@ import { HTTPException } from "hono/http-exception";
 const createRefreshToken = async (
   db: DB,
   userId: string,
-  sessionId: string
+  sessionId: string,
 ) => {
   try {
     const expiresAt = new Date();
@@ -37,7 +38,9 @@ const createRefreshToken = async (
     return data[0].token;
   } catch (e) {
     console.error(`Failed to create refresh token: ${e}`);
-    throw new HTTPException(501, { message: "Failed to create refresh token" });
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: "Failed to create refresh token",
+    });
   }
 };
 
@@ -51,7 +54,7 @@ const getRefreshToken = async (db: DB, token: string) => {
   return await db.query.refreshTokens.findFirst({
     where: (fields) => sql`${fields.token} = ${token}`,
   });
-}
+};
 
 /**
  * Revokes a refresh token by setting its 'revoked' status to true in the database
@@ -61,17 +64,20 @@ const getRefreshToken = async (db: DB, token: string) => {
  */
 const revokeRefreshToken = async (db: DB, token: string) => {
   try {
-    await db.update(refreshTokens).set({ revoked: true }).where(eq(refreshTokens.token, token));
-  }
-  catch (e) {
+    await db
+      .update(refreshTokens)
+      .set({ revoked: true })
+      .where(eq(refreshTokens.token, token));
+  } catch (e) {
     console.error(`Failed to revoke refresh token: ${e}`);
-    throw new HTTPException(501, { message: "Failed to revoke refresh token" });
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: "Failed to revoke refresh token",
+    });
   }
 };
-
 
 export const refreshTokenRepository = {
   createRefreshToken,
   getRefreshToken,
-  revokeRefreshToken
+  revokeRefreshToken,
 };

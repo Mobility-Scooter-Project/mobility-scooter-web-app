@@ -11,7 +11,7 @@
     "outDir": "./dist",
     "esModuleInterop": true,
     "allowJs": true,
-    "baseUrl": "./",
+    "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],
       "@config/*": ["src/config/*"],

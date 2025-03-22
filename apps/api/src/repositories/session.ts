@@ -1,10 +1,11 @@
 import { sessions } from "@db/schema/auth";
-import { DB } from "@middleware/db";
+import type { DB } from "@middleware/db";
+import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPException } from "hono/http-exception";
 
 /**
  * Creates a new session for a user in the database.
- * 
+ *
  * @param db - The database instance
  * @param userId - The ID of the user to create a session for
  * @returns The newly created session object
@@ -16,7 +17,9 @@ const createSession = async (db: DB, userId: string) => {
     return data[0];
   } catch (e) {
     console.error(`Failed to create session: ${e}`);
-    throw new HTTPException(501, { message: "Failed to create session" });
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: "Failed to create session",
+    });
   }
 };
 
