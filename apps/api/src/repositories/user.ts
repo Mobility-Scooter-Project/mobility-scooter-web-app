@@ -29,7 +29,16 @@ const createUser = async (db: DB, newUser: NewUser) => {
     : null;
   try {
     const data = await db.transaction(async (tx) => {
+    const data = await db.transaction(async (tx) => {
       const data = await tx
+        .insert(users)
+        .values({
+          ...newUser,
+          encryptedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning({ id: users.id });
         .insert(users)
         .values({
           ...newUser,

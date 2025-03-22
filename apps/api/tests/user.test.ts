@@ -17,6 +17,7 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 describe("User", () => {
   beforeEach(async () => {
+  beforeEach(async () => {
     await kv.flushall();
   });
 

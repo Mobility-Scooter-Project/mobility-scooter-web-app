@@ -10,8 +10,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
-    "db:seed": "tsx ./scripts/seed.ts",
-    "generate-api-key": "tsx ./scripts/generate-api-key.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "generate-api-key": "tsx scripts/generate-api-key.ts",
     "test": "export ENVIRONMENT=test && start-server-and-test 3000 --expect 404 'jest --force-exit'"
   },
   "dependencies": {
