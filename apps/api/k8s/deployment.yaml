@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mswa-backend
+  labels:
+    app: mswa-backend
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: mswa-backend
+    template:
+      metadata:
+        labels:
+          app: mswa-backend
+      spec:
+        containers:
+        - name: mswa-backend
+          image: mswa-backend:latest
+          ports:
+          - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
