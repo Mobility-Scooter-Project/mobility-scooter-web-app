@@ -2,17 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mswa-backend
-  labels:
-    app: mswa-backend
   spec:
     replicas: 1
-    selector:
-      matchLabels:
-        app: mswa-backend
     template:
-      metadata:
-        labels:
-          app: mswa-backend
       spec:
         containers:
         - name: mswa-backend
