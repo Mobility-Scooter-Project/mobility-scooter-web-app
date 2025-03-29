@@ -2,15 +2,15 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mswa-backend
-  spec:
-    replicas: 1
-    template:
-      spec:
-        containers:
-        - name: mswa-backend
-          image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:latest
-          ports:
-          - containerPort: 3000
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: mswa-backend
+        image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:latest
+        ports:
+        - containerPort: 3000
         readinessProbe:
           httpGet:
             path: /healthcheck
