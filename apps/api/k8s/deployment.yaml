@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - name: mswa-backend
-        image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:latest
+        image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:sha256-f603eff5fd4f0e7fd8062ea062680b4be9ad9776aaa9551139f5374dd72d69dc
         ports:
         - containerPort: 3000
         readinessProbe:
