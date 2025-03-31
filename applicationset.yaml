@@ -22,6 +22,8 @@ spec:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
         targetRevision: 12-argocd-setup
         path: '{{.path.path}}/.kube'
+        directory:
+          recurse: true
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.path.basename}}'
