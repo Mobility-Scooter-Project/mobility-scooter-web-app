@@ -6,6 +6,9 @@ on:
       - develop
       - main
       #- 12-argocd-setup
+    paths:
+      - apps/api/**
+      - .github/workflows/build_and_push_api.yaml
 
 env:
   REGISTRY: ghcr.io
