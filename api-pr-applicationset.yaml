@@ -27,8 +27,8 @@ spec:
             app.kubernetes.io/part-of: mobility-scooter-web-app
             app.kubernetes.io/managed-by: argocd
           components:
-            - timescaledb/component.yaml
-            - redis/component.yaml
+            - timescaledb/
+            - redis/
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
