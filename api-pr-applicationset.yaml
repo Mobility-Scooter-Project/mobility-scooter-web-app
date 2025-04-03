@@ -34,7 +34,7 @@ spec:
             - target:
                 group: apps
                 version: v1
-                kind: StatefulSet
+                kind: Deployment
                 name: mswa-timescaledb-{{.branch | normalize}}
               patch: |
                 - op: remove
@@ -42,7 +42,7 @@ spec:
             - target:
                 group: apps
                 version: v1
-                kind: StatefulSet
+                kind: Deployment
                 name: mswa-redis-{{.branch | normalize}}
               patch: |
                 - op: remove
