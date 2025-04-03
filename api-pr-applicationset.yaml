@@ -30,7 +30,7 @@ spec:
           components:
             - timescaledb/
             - redis/
-          patchesJson6902:
+          patches:
             - target:
                 kind: Deployment
                 name: mswa-timescaledb-{{.branch | normalize}}
