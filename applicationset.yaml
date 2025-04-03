@@ -19,24 +19,44 @@ spec:
         repo: mobility-scooter-web-app
         requeueAfterSeconds: 60
   template:
-    metadata:
-      name: 'mswa-{{.path.basename}}'
-    spec:
-      project: "default"
-      source:
-        repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-        targetRevision: 12-argocd-setup
-        path: '{{.path.path}}/.kube'
-        directory:
-          recurse: true
-      destination:
-        server: https://kubernetes.default.svc
-        namespace: '{{.path.basename}}'
-      syncPolicy:
-        syncOptions:
-        - CreateNamespace=true
-        - PruneLast=true
-        automated:
-          prune: true
-          selfHeal: true
-
+      metadata:
+        name: >-
+          {{- if eq .sourceType "GitDirectory" -}}
+            mswa-{{.path.basename}}
+          {{- else if eq .sourceType "PullRequest" -}}
+            mswa-pr-{{.number}} # Or some other identifier from the PR object
+          {{- else -}}
+            mswa-unknown
+          {{- end -}}
+      spec:
+        project: "default"
+        source:
+          repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
+          targetRevision: 12-argocd-setup
+          path: >-
+            {{- if eq .sourceType "GitDirectory" -}}
+              {{.path.path}}/.kube
+            {{- else if eq .sourceType "PullRequest" -}}
+              .kube # Or adjust based on where .kube exists for PRs
+            {{- else -}}
+              .kube
+            {{- end -}}
+          directory:
+            recurse: true
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: >-
+            {{- if eq .sourceType "GitDirectory" -}}
+              {{.path.basename}}
+            {{- else if eq .sourceType "PullRequest" -}}
+              mswa-pr-{{.number}} # Or some other identifier from the PR object
+            {{- else -}}
+              mswa-unknown
+            {{- end -}}
+        syncPolicy:
+          syncOptions:
+          - CreateNamespace=true
+          - PruneLast=true
+          automated:
+            prune: true
+            selfHeal: true
