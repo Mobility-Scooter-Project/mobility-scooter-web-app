@@ -7,20 +7,18 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-  - git:
-      repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-      revision: develop
-      directories:
-      - path: apps/*
-        recurse: true
+  - pullRequest:
+      github:
+        owner: mobility-scooter-project
+        repository: mobility-scooter-web-app
   template:
     metadata:
-      name: 'mswa-{{.path.basename}}'
+      name: 'mswa-{{.branch}}-{{.number}}'
     spec:
       project: "default"
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-        targetRevision: develop
+        targetRevision: '{{.head_sha}}'
         path: '{{.path.path}}/.kube'
         directory:
           recurse: true
