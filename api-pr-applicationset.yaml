@@ -22,7 +22,7 @@ spec:
         path: 'apps/api/.kube/'
         kustomize:
           nameSuffix: '{{.branch | normalize }}'
-          commonLabels:
+          labels:
             app.kubernetes.io/instance: '{{.branch | normalize }}-{{.number}}'
             app.kubernetes.io/part-of: mobility-scooter-web-app
             app.kubernetes.io/managed-by: argocd
