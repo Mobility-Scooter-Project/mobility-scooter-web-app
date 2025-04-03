@@ -22,7 +22,7 @@ spec:
         path: 'apps/api/.kube/'
         kustomize:
           namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
-          nameSuffix: '{{.branch | normalize}}'
+          nameSuffix: '-{{.branch | normalize}}'
           labels:
             app.kubernetes.io/instance: '{{.branch | normalize }}-{{.number}}'
             app.kubernetes.io/part-of: mobility-scooter-web-app
