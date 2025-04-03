@@ -25,6 +25,9 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.path.basename}}'
+      ignoreDifferences:
+        - group: '*'
+          kind: PersistentVolumeClaim # PR envs are ephemeral
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
