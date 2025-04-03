@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: mobiliy-scooter-web-app
+  name: mobiliy-scooter-web-app-pr
   namespace: argocd
 spec:
   goTemplate: true
