@@ -13,7 +13,7 @@ spec:
         repo: mobility-scooter-web-app
   template:
     metadata:
-      name: 'mswa-{{.branch}}-{{.number}}'
+      name: 'mswa-{{.branch | normalize}}-{{.number}}'
     spec:
       project: "default"
       source:
@@ -21,9 +21,9 @@ spec:
         targetRevision: '{{.head_sha}}'
         path: 'apps/api/.kube/'
         kustomize:
-          nameSuffix: '{{.branch}}'
+          nameSuffix: '{{.branch | normalize }}'
           commonLabels:
-            app.kubernetes.io/instance: '{{.branch}}-{{.number}}'
+            app.kubernetes.io/instance: '{{.branch | normalize }}-{{.number}}'
             app.kubernetes.io/part-of: mobility-scooter-web-app
             app.kubernetes.io/managed-by: argocd
           components:
@@ -31,7 +31,7 @@ spec:
             - redis/component.yaml
       destination:
         server: https://kubernetes.default.svc
-        namespace: 'mswa-{{.branch}}-{{.number}}'
+        namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
       ignoreDifferences:
         - group: '*'
           kind: PersistentVolumeClaim # PR envs are ephemeral
