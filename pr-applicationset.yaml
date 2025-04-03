@@ -24,6 +24,11 @@ spec:
           nameSuffix: '{{.branch}}'
           commonLabels:
             app.kubernetes.io/instance: '{{.branch}}-{{.number}}'
+            app.kubernetes.io/part-of: mobility-scooter-web-app
+            app.kubernetes.io/managed-by: argocd
+          components:
+            - timescaledb/component.yaml
+            - redis/component.yaml
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch}}-{{.number}}'
