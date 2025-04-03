@@ -10,7 +10,7 @@ import { Client } from "minio";
 export const storage = new Client({
   endPoint: STORAGE_URL,
   port: Number(STORAGE_PORT),
-  useSSL: ENVIRONMENT !== "development" && ENVIRONMENT !== "test",
+  useSSL: true,
   accessKey: STORAGE_ACCESS_KEY,
   secretKey: STORAGE_SECRET_KEY,
 });
