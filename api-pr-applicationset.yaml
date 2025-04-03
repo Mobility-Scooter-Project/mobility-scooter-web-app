@@ -37,14 +37,18 @@ spec:
                 name: mswa-timescaledb-{{.branch | normalize}}
               patch: |
                 - op: remove
-                  path: /spec/volumeClaimTemplates
+                  path: /spec/template/volumes
+                - op: remove
+                  path: /spec/template/spec/containers/0/volumeMounts/0
             - target:
                 group: '*'
                 kind: Deployment
                 name: mswa-redis-{{.branch | normalize}}
               patch: |
                 - op: remove
-                  path: /spec/volumeClaimTemplates
+                  path: /spec/template/volumes
+                - op: remove
+                  path: /spec/template/spec/containers/0/volumeMounts/0
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
