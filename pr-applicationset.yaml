@@ -10,7 +10,7 @@ spec:
   - pullRequest:
       github:
         owner: mobility-scooter-project
-        repository: mobility-scooter-web-app
+        repo: mobility-scooter-web-app
   template:
     metadata:
       name: 'mswa-{{.branch}}-{{.number}}'
