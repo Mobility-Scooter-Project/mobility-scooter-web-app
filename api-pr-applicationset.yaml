@@ -21,6 +21,7 @@ spec:
         targetRevision: '{{.head_sha}}'
         path: 'apps/api/.kube/'
         kustomize:
+          namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
           nameSuffix: '{{.branch | normalize }}'
           labels:
             app.kubernetes.io/instance: '{{.branch | normalize }}-{{.number}}'
