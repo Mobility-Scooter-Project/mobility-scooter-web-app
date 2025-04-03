@@ -18,7 +18,7 @@ spec:
       project: "default"
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-        targetRevision: '{{.head_sha}}'
+        targetRevision: '{{ branch }}'
         path: 'apps/api/.kube/'
         kustomize:
           namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
