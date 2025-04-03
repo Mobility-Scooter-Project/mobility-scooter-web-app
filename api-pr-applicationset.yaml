@@ -32,7 +32,6 @@ spec:
             - redis/
           patchesJson6902:
             - target:
-                group: '*'
                 kind: Deployment
                 name: mswa-timescaledb-{{.branch | normalize}}
               patch: |
@@ -41,7 +40,6 @@ spec:
                 - op: remove
                   path: /spec/template/spec/containers/0/volumeMounts/0
             - target:
-                group: '*'
                 kind: Deployment
                 name: mswa-redis-{{.branch | normalize}}
               patch: |
