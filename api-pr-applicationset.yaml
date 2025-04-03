@@ -32,16 +32,14 @@ spec:
             - redis/
           patchesJson6902:
             - target:
-                group: apps
-                version: v1
+                group: '*'
                 kind: Deployment
                 name: mswa-timescaledb-{{.branch | normalize}}
               patch: |
                 - op: remove
                   path: /spec/volumeClaimTemplates
             - target:
-                group: apps
-                version: v1
+                group: '*'
                 kind: Deployment
                 name: mswa-redis-{{.branch | normalize}}
               patch: |
