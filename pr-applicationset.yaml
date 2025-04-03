@@ -19,7 +19,7 @@ spec:
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
         targetRevision: '{{.head_sha}}'
-        path: './applicationset.yaml'
+        path: './'
         directory:
           recurse: true
       destination:
@@ -28,6 +28,10 @@ spec:
       ignoreDifferences:
         - group: '*'
           kind: PersistentVolumeClaim # PR envs are ephemeral
+        - group: '*'
+          kind: ApplicationSet
+          metadata:
+            name: mobiliy-scooter-web-app-pr
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
