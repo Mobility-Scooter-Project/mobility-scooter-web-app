@@ -28,29 +28,8 @@ spec:
             app.kubernetes.io/part-of: mobility-scooter-web-app
             app.kubernetes.io/managed-by: argocd
           components:
-            - timescaledb/
-            - redis/
-          patches:
-            - target:
-                kind: Deployment
-                name: mswa-timescaledb-{{.branch | normalize}}
-              patch: |
-                - op: replace
-                  path: /spec/template/spec/volumes
-                  value: []
-                - op: replace
-                  path: /spec/template/spec/containers/0/volumeMounts
-                  value: []
-            - target:
-                kind: Deployment
-                name: mswa-redis-{{.branch | normalize}}
-              patch: |
-                - op: replace
-                  path: /spec/template/spec/volumes
-                  value: []
-                - op: replace
-                  path: /spec/template/spec/containers/0/volumeMounts
-                  value: []
+            - timescaledb/dev/
+            - redis/dev/
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
