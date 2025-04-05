@@ -50,6 +50,32 @@ const generatePresignedVideoPutUrl = async (
   }
 };
 
+const generatePresignedVideoGetUrl = async (
+  filename: string,
+  patientId: string,
+  userId: string,
+  date: Date
+) => {
+  try {
+    return await storage.presignedGetObject(
+      patientId,
+      `videos/${date}/${filename}`,
+      60 * 60 * 24,
+    );
+  } catch (e) {
+    console.error(e);
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Failed to generate presigned URL",
+        }),
+      ),
+    });
+  }
+}
+
 export const storageService = {
   generatePresignedVideoPutUrl,
+  generatePresignedVideoGetUrl,
 };
