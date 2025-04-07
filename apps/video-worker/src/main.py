@@ -4,13 +4,12 @@ from threading import Thread
 from dotenv import load_dotenv
 from pika.exchange_type import ExchangeType
 import pika
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 
 from scripts.audio_detection import audio_detection
 from scripts.angle_calculation import pose_estimation
 
 load_dotenv()
-
 QUEUE_URL = os.getenv('QUEUE_URL')
 app = FastAPI()
 
@@ -24,11 +23,14 @@ def start_video_work():
 
 def callback(ch, method, properties, body):
     video = json.loads(body.decode())
+    Thread(target=process_video, args=(video,)).start()
+
+def process_video(video):
     audio_detection(video['videoUrl'])
-    pose_estimation(video['videoUrl'])
+    pose_estimation(video['videoUrl'], video['annotatedVideoUrl'])
 
 channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
 channel.queue_declare(queue='videos', durable=True, passive=False)
 channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
 
-Thread(target=start_video_work, daemon=True).start()
+start_video_work()  
