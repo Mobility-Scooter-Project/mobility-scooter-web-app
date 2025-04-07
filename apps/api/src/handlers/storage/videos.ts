@@ -102,11 +102,19 @@ app.post(
       date,
     );
 
-    pub.send("videos", {videoUrl, filename, patientId, date})
+    const annotatedVideoUrl = await storageService.generatePresignedVideoPutUrl(
+      `annotated_${filename}`,
+      userId,
+      patientId,
+      date,
+    )
+
+    pub.send("videos", {videoUrl, annotatedVideoUrl, filename, patientId, date})
     
     return c.json({
       data: {
         videoUrl,
+        annotatedVideoUrl,
         filename,
         patientId,
         date,
