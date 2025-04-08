@@ -172,13 +172,17 @@ def pose_estimation(videoUrl, annotatedVideoUrl):
   raw_frames_dir = extract_frames(videoUrl)
   annotated_video_path = images_to_video(raw_frames_dir, fps=30)
  
+  # store raw and annotated frames?
+  # requests.post("http://your-api/api/v1/storage/upload-frame", data=raw_frames_dir)
+  
   shutil.rmtree(raw_frames_dir)
 
   with open(annotated_video_path.name, "rb") as f:
     requests.put(annotatedVideoUrl, data=f)
-    print("Annotated video sent to object store successfully")
+
+    print("\nAnnotated video sent to object store successfully")
   
-  os.remove(annotated_video_path)
+  os.remove(annotated_video_path.name)
 
 
 

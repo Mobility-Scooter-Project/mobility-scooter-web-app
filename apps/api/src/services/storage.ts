@@ -43,7 +43,7 @@ const generatePresignedVideoPutUrl = async (
       res: new Response(
         JSON.stringify({
           data: null,
-          error: "Failed to generate presigned URL",
+          error: "Failed to generate presigned put URL",
         }),
       ),
     });
@@ -57,6 +57,19 @@ const generatePresignedVideoGetUrl = async (
   date: Date
 ) => {
   try {
+    await storage.statObject(patientId, `videos/${date}/${filename}`);
+  } catch (e) {
+    console.error(e);
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Video not found with the provided data",
+        }),
+      ),
+    });
+  }
+  try {
     return await storage.presignedGetObject(
       patientId,
       `videos/${date}/${filename}`,
@@ -68,7 +81,7 @@ const generatePresignedVideoGetUrl = async (
       res: new Response(
         JSON.stringify({
           data: null,
-          error: "Failed to generate presigned URL",
+          error: "Failed to generate presigned get URL",
         }),
       ),
     });

@@ -22,5 +22,5 @@ X-User: {{login.response.body.data.token}}
  "patientId": "abc-123-456-789"
 }
 
-### 
+### Upload Video to Minio Object Store
 PUT {{getPresignedUrl.response.body.data.url}}
