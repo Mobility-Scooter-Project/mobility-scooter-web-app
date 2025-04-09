@@ -36,30 +36,22 @@ def format_vtt(segments, mode):
 
   return vtt_output
 
-def get_transcript(audio_path):
+def get_transcript(videoUrl):
   model = whisper.load_model("small")
-  result = model.transcribe(audio_path, word_timestamps=True)
-  vtt_content = format_vtt(result["segments"], "segms")
 
-  with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
-    tmp.write(vtt_content.encode("utf-8"))  
+  try:
+    result = model.transcribe(videoUrl, word_timestamps=True, fp16=False)  
+    vtt_content = format_vtt(result["segments"], "segms")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
+      tmp.write(vtt_content.encode("utf-8"))  
       
-  print("Transcript generated successfully!")
-  return tmp
+    print("Transcript generated successfully!\n")
+    return tmp
+  except Exception as e:
+    print(f"Failed to generate trancript: {e}\n")
 
-def get_tasks(transcript):
-  captions = webvtt.read(transcript)
-  i = 0
-
-  while i < len(captions):
-    for task in TASK_LIST:
-      score = fuzz.partial_ratio(captions[i].text.lower(), task.lower())
-      if score > 75:
-        i = get_task_time(task, i, captions)
-    else:
-       i += 1
-
-def get_task_time(task, i, captions):
+def get_task_time(task, i, captions, tasks_time):
   for j, caption in enumerate(captions, start=i):
     if "start" in captions[j].text.lower():
       start_time = captions[j].start
@@ -68,18 +60,33 @@ def get_task_time(task, i, captions):
       end_time = captions[j].end
       tasks_time[task] = [start_time, end_time]
       return j
+    
+def get_tasks(transcript, filename):
+  tasks_time = {}
+  captions = webvtt.read(transcript)
+  i = 0
 
-tasks_time = {}
-def audio_detection(videoUrl):
-  transcript = get_transcript(videoUrl)
-  get_tasks(transcript.name)
+  while i < len(captions):
+    for task in TASK_LIST:
+      score = fuzz.partial_ratio(captions[i].text.lower(), task.lower())
+      if score > 75:
+        i = get_task_time(task, i, captions, tasks_time)
+    else:
+       i += 1
 
   if len(tasks_time) == 0:
-    print("No tasks detected from video")
+    print(f"No tasks detected from {filename}\n")
 
   for task in tasks_time:
     start_time, end_time = tasks_time[task]
-    print(f'Task: "{task}" starts at {start_time} and ends at {end_time}')
+    print(f'Task: "{task}" starts at {start_time} and ends at {end_time}\n')
+    
+def audio_detection(videoUrl, filename):
+  print(f"\nGenerating transcript for {filename}...")
+  transcript = get_transcript(videoUrl)  
+
+  print(f"Detecting tasks from transcript...")
+  get_tasks(transcript.name, filename)
   
   os.remove(transcript.name)
 

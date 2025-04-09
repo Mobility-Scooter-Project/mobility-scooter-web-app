@@ -7,7 +7,7 @@ import pika
 from fastapi import FastAPI
 
 from scripts.audio_detection import audio_detection
-from scripts.angle_calculation import pose_estimation
+from scripts.pose_estimation import pose_estimation
 
 load_dotenv()
 QUEUE_URL = os.getenv('QUEUE_URL')
@@ -26,8 +26,8 @@ def callback(ch, method, properties, body):
     Thread(target=process_video, args=(video,)).start()
 
 def process_video(video):
-    audio_detection(video['videoUrl'])
-    pose_estimation(video['videoUrl'], video['annotatedVideoUrl'])
+    audio_detection(video['videoUrl'], video['filename'])
+    pose_estimation(video['videoUrl'], video['annotatedVideoUrl'], video['filename'])
 
 channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
 channel.queue_declare(queue='videos', durable=True, passive=False)
