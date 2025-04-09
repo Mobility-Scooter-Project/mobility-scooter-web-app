@@ -10,8 +10,11 @@ def calculate_angle(p1, p2):
   Calculates the angle of a straight line connected by two points.
 
   Args:
-      p1 (tuple): Coordinates of a midpoint.
-      p2 (tuple): Coordinates of another midpoint.
+    p1 (tuple): Coordinates of a midpoint.
+    p2 (tuple): Coordinates of another midpoint.
+
+  Returns:
+    The calculated angle.
   """
   try:
     vector = np.array([p2[0] - p1[0], p2[1] - p1[1]])
@@ -29,13 +32,16 @@ def calculate_angle(p1, p2):
 
 def analyze_pose(video_url, model, filename, fps=30):
   """
-  Plots YOLO predictions over each frame of a video.
+  Plots YOLO predictions over each frame of the video.
 
   Args:
-      video_url (str): Url of the video file.
-      model (YOLO): The loaded YOLO model.
-      filename (str): Name of the video file.
-      fps (int): Frames per second of the output video.
+    video_url (str): Url of the video file.
+    model (YOLO): The loaded YOLO model.
+    filename (str): Name of the video file.
+    fps (int): Frames per second of the output video.
+
+  Returns:
+    The annotated video.
   """
   color = (255, 255, 0)
   upper_body_keypoints = [5, 6, 11, 12]
@@ -128,12 +134,12 @@ def analyze_pose(video_url, model, filename, fps=30):
 
 def pose_estimation(video_url, annotated_video_url, filename):
   """
-  Performs pose estimation on a video.
+  Performs pose estimation on the video.
   
   Args:
-      video_url (str): Url of the video file.
-      annotated_video_url (str): Url of the annotated video file.
-      filename (str): Name of the video file.
+    video_url (str): Url of the video file.
+    annotated_video_url (str): Url of the annotated video file.
+    filename (str): Name of the video file.
   """
   if "front" not in filename:
     print(f"Pose estimation failed on {filename}. Please ensure the video is recorded from a front-facing point of view.\n")
