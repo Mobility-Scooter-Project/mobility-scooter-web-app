@@ -18,7 +18,7 @@ export const app = new Hono<{ Variables: Variables }>()
   .get("/healthcheck", (c) => {
     return c.text("OK");
   })
-  .basePath("/v1/api")
+  .basePath("/api/v1")
   .route("/auth", auth)
   .route("/storage", storage);
 
