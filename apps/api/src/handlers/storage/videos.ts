@@ -109,15 +109,13 @@ app.post(
       date,
     )
 
-    pub.send("videos", {videoUrl, annotatedVideoUrl, filename, patientId, date})
+    pub.send("videos", {videoUrl, annotatedVideoUrl, filename})
     
     return c.json({
       data: {
         videoUrl,
         annotatedVideoUrl,
         filename,
-        patientId,
-        date,
       },
       error: null,
     });

@@ -14,6 +14,8 @@ const SHARED_DATA = {
   EMAIL: "video@example.com",
   PASSWORD: "password13580",
   DATE: new Date().toISOString(),
+  PATIENTID: "abc-123-456",
+  FILENAME: "test.txt",
 };
 
 export const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
@@ -34,7 +36,7 @@ describe("Videos", () => {
     };
 
     const userResponse = await fetch(
-      `${BASE_URL}/v1/api/auth/emailpass/register`,
+      `${BASE_URL}/api/v1/auth/emailpass/register`,
       {
         method: "POST",
         headers,
@@ -51,13 +53,13 @@ describe("Videos", () => {
 
   it("return a presigned url", async () => {
     const body = {
-      patientId: "abc-123-456",
-      filename: "test.txt",
+      patientId: SHARED_DATA.PATIENTID,
+      filename: SHARED_DATA.FILENAME,
       date: SHARED_DATA.DATE,
     };
 
     const response = await fetch(
-      `${BASE_URL}/v1/api/storage/videos/presigned-url`,
+      `${BASE_URL}/api/v1/storage/videos/presigned-url`,
       {
         method: "POST",
         headers: {
@@ -79,6 +81,48 @@ describe("Videos", () => {
 
     expect(response.status).toBe(HTTP_CODES.OK);
   });
+
+  it("should send the sample file to the queue using a presigned get url", async () => {
+    const body = {
+      patientId: SHARED_DATA.PATIENTID,
+      filename: SHARED_DATA.FILENAME,
+      date: SHARED_DATA.DATE,
+    };
+
+    const response = await fetch(
+      `${BASE_URL}/api/v1/storage/videos/send-to-queue`,
+      {
+        method: "POST",
+        headers: {
+          ...headers,
+          "X-User": token,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    expect(response.status).toBe(HTTP_CODES.OK);
+  })
+
+  it("should return 404 when the filename, patientID, or date does not exist in the object storage", async () => {
+    const body = {
+      patientId: SHARED_DATA.PATIENTID,
+      filename: "test1.txt",
+      date: SHARED_DATA.DATE,
+    };
+
+    const response = await fetch(
+      `${BASE_URL}/api/v1/storage/videos/send-to-queue`,
+      {
+        method: "POST",
+        headers: {
+          ...headers,
+          "X-User": token,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    expect(response.status).toBe(HTTP_CODES.NOT_FOUND);
+  })
 
   afterAll(async () => {
     await Promise.all([
