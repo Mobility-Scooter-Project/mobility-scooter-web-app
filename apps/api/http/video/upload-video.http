@@ -5,7 +5,7 @@ Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 
 {
-"email": "test@example.com",
+ "email": "test@example.com",
  "password": "test124"
 }
 
@@ -22,5 +22,5 @@ X-User: {{login.response.body.data.token}}
  "patientId": "abc-123-456-789"
 }
 
-### Upload Video to Minio Object Store
+### Upload Video to Object Store
 PUT {{getPresignedUrl.response.body.data.url}}

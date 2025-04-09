@@ -34,14 +34,14 @@ const createPasswordResetToken = async (token: string, userId: string) => {
 const markPasswordResetTokenUsed = async (token: string, userId: string) => {
   const data = (await vault.read(`kv/auth/password-reset/${userId}`)).getData();
   if (!data || data.token !== token) {
-    throw new HTTPException(404, {
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(JSON.stringify({ error: "Token not found" }), {
         status: HTTP_CODES.NOT_FOUND,
       }),
     });
   }
   if (data.used) {
-    throw new HTTPException(400, {
+    throw new HTTPException(HTTP_CODES.BAD_REQUEST, {
       res: new Response(JSON.stringify({ error: "Token already used" }), {
         status: HTTP_CODES.BAD_REQUEST,
       }),

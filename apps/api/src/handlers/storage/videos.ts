@@ -63,7 +63,7 @@ app.post(
 );
 
 app.post(
-  "/send-video",
+  "/send-to-queue",
   describeRoute({
     summary: "Generate a presigned URL and send a video to the video worker queue",
     description:

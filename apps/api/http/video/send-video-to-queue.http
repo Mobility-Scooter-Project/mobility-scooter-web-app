@@ -10,8 +10,7 @@ Content-Type: application/json
 }
 
 ### Send Video to Video Worker Queue
-
-POST http://localhost:3000/api/v1/storage/videos/send-video
+POST http://localhost:3000/api/v1/storage/videos/send-to-queue
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 X-User: {{login.response.body.data.token}}
