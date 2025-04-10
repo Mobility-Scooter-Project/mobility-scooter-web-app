@@ -1,32 +1,22 @@
-FROM node:20-alpine AS base
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.3.0 --activate
-
-FROM base AS builder
-
-RUN apk add --no-cache gcompat
+FROM node:20-alpine AS development-dependencies-env
+COPY . /app
 WORKDIR /app
+RUN npm ci
 
-COPY package.json pnpm-lock.yaml tsconfig.json ./
-COPY . .
-
-RUN pnpm install --frozen-lockfile && \
-    pnpm run build && \
-    pnpm prune --prod
-
-FROM base AS runner
+FROM node:20-alpine AS production-dependencies-env
+COPY ./package.json package-lock.json /app/
 WORKDIR /app
+RUN npm ci --omit=dev
 
-RUN addgroup --system --gid 1001 remix
-RUN adduser --system --uid 1001 remix
+FROM node:20-alpine AS build-env
+COPY . /app/
+COPY --from=development-dependencies-env /app/node_modules /app/node_modules
+WORKDIR /app
+RUN npm run build
 
-COPY --from=builder --chown=remix:nodejs /app/node_modules /app/node_modules
-COPY --from=builder --chown=remix:nodejs /app/build /app/build
-COPY --from=builder --chown=remix:nodejs /app/public /app/public
-COPY --from=builder --chown=remix:nodejs /app/package.json /app/package.json
-
-USER remix
-EXPOSE 3000
-
+FROM node:20-alpine
+COPY ./package.json package-lock.json /app/
+COPY --from=production-dependencies-env /app/node_modules /app/node_modules
+COPY --from=build-env /app/build /app/build
+WORKDIR /app
 CMD ["npm", "run", "start"]
