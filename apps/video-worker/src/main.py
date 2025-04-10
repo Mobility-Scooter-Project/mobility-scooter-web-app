@@ -13,9 +13,6 @@ load_dotenv()
 QUEUE_URL = os.getenv('QUEUE_URL')
 app = FastAPI()
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
-channel = connection.channel()
-
 def start_video_work():
   """
   Starts the video worker.
@@ -47,6 +44,8 @@ def process_video(video):
   audio_detection(video['videoUrl'], video['filename'])
   pose_estimation(video['videoUrl'], video['annotatedVideoUrl'], video['filename'])
 
+connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
+channel = connection.channel()
 channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
 channel.queue_declare(queue='videos', durable=True, passive=False)
 channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
