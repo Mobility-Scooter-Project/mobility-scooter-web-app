@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@mjackson/form-data-parser':
+        specifier: ^0.7.0
+        version: 0.7.0
       '@react-router/node':
         specifier: ^7.5.0
         version: 7.5.0(react-router@7.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(typescript@5.8.3)
@@ -31,7 +34,7 @@ importers:
         specifier: ^7.5.0
         version: 7.5.0(@react-router/serve@7.5.0(react-router@7.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(typescript@5.8.3))(@types/node@20.17.30)(babel-plugin-macros@3.1.0)(lightningcss@1.29.2)(react-router@7.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(typescript@5.8.3)(vite@5.4.17(@types/node@20.17.30)(lightningcss@1.29.2))
       '@tailwindcss/vite':
-        specifier: ^4.0.0
+        specifier: ^4.1.3
         version: 4.1.3(vite@5.4.17(@types/node@20.17.30)(lightningcss@1.29.2))
       '@types/node':
         specifier: ^20
@@ -46,7 +49,7 @@ importers:
         specifier: ^1.1.0
         version: 1.1.10(@types/react-dom@19.1.2(@types/react@19.1.0))(@types/react@19.1.0)(react-dom@19.1.0(react@19.1.0))(react-router@7.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)(vite@5.4.17(@types/node@20.17.30)(lightningcss@1.29.2))
       tailwindcss:
-        specifier: ^4.0.0
+        specifier: ^4.1.3
         version: 4.1.3
       typescript:
         specifier: ^5.7.2
@@ -429,6 +432,15 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
+
+  '@mjackson/form-data-parser@0.7.0':
+    resolution: {integrity: sha512-Y8O5+nsTv4K9Q8ziyuoru8JqYTLsP1PRi7xiFDAx4vrXEvO16NtOO7RmvXIJ2ZB59gP/wV3X1OvqdpoeRgsruA==}
+
+  '@mjackson/headers@0.10.0':
+    resolution: {integrity: sha512-U1Eu1gF979k7ZoIBsJyD+T5l9MjtPONsZfoXfktsQHPJD0s7SokBGx+tLKDLsOY+gzVYAWS0yRFDNY8cgbQzWQ==}
+
+  '@mjackson/multipart-parser@0.8.2':
+    resolution: {integrity: sha512-KltttyypazaJ9kD1GpiOTEop9/YA5aZPwKfpbmuMYoYSyJhQc+0pqaQcZSHUJVdJBvIWgx7TTQSDJdnNqP5dxA==}
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
@@ -2663,6 +2675,16 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@mjackson/form-data-parser@0.7.0':
+    dependencies:
+      '@mjackson/multipart-parser': 0.8.2
+
+  '@mjackson/headers@0.10.0': {}
+
+  '@mjackson/multipart-parser@0.8.2':
+    dependencies:
+      '@mjackson/headers': 0.10.0
 
   '@mjackson/node-fetch-server@0.2.0': {}
 
