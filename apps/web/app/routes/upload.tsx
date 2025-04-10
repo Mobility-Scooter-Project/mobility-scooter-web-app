@@ -1,7 +1,7 @@
-import { Form } from "react-router";
-import type { Route } from "../+types/root";
-import { parseFormData, type FileUpload } from "@mjackson/form-data-parser";
+import { Form, type ActionFunctionArgs } from "react-router";
+import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import * as crypto from "node:crypto"
+import { exit } from "node:process";
 
 enum ENCRYPTION {
     ALGORITHM = "aes-256-cbc", // mandated for HIPPA compliance
@@ -24,10 +24,29 @@ const uploadHandler = async (fileUpload: FileUpload) => {
     // TODO: upload key to vault
     // TODO: encryption
 
+    const fileStream = fileUpload.stream();
 
+    const encryptionStream = new TransformStream<Buffer, Buffer>({
+        start() {},
+        async transform(chunk, controller){
+            const encryptedChunk = cipher.update(chunk);
+            controller.enqueue(encryptedChunk);
+        },
+        flush() {
+            cipher.final();
+        }
+    })
+
+    const putStream = new WritableStream<Buffer>({
+        write(chunk) {
+            
+        }
+    });
+
+    fileStream.pipeThrough(encryptionStream).pipeTo(putStream)
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
     await parseFormData(request, uploadHandler);
 }
 
