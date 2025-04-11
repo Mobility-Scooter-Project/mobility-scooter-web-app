@@ -88,6 +88,7 @@ def analyze_pose(video_url, model, filename, fps=30):
     for i, (x1, y1, x2, y2) in enumerate(boxes):
       if x1 < x_mid < x2 and y1 < y_mid < y2:
         box_i = i
+        break
 
     x1, y1, x2, y2 = boxes[box_i]
     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -155,11 +156,3 @@ def pose_estimation(video_url, annotated_video_url, filename):
     print(f"\nannotated_{filename} sent to object store successfully!\n")
   
   os.remove(annotated_video_path.name)
-
-
-
-
-  
-
-
-

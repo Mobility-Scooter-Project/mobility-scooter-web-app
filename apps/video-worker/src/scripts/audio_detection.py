@@ -143,5 +143,3 @@ def audio_detection(video_url, filename):
   get_tasks(transcript.name, filename)
   
   os.remove(transcript.name)
-
-
