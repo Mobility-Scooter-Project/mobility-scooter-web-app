@@ -32,8 +32,8 @@ try {
   });
 
   // write to .env file
-  fs.appendFileSync(".env", `TESTING_API_KEY=${key}\n`);
-  fs.appendFileSync("../web/.env", `API_KEY=${key}\n`);
+  fs.appendFileSync(".env", `\nTESTING_API_KEY=${key}`);
+  fs.appendFileSync("../web/.env", `\nAPI_KEY=${key}`);
 
   console.log(`Successfully wrote API key to .env file for device ${hostname}`);
   exit(0);

@@ -1,7 +1,7 @@
 import { Form, type ActionFunctionArgs } from "react-router";
 import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import * as crypto from "node:crypto"
-import { apiClient } from "~/lib/api";
+import { getApiClient } from "~/lib/api";
 
 enum ENCRYPTION {
     ALGORITHM = "aes-256-cbc", // mandated for HIPPA compliance
@@ -24,35 +24,39 @@ const uploadHandler = async (fileUpload: FileUpload) => {
     // TODO: upload key to vault
     // TODO: encryption
 
-    const presignedURL = await apiClient.api.v1.storage.videos["presigned-url"].$post({
+    const client = getApiClient({"X-User": ""});
+    const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
         json: {
             date: new Date(),
             patientId: "1234",
-            filename: `Test`
+            filename: `Test.mp4`
         }
     })
-    console.log(await presignedURL.json())
-
-    const fileStream = fileUpload.stream();
+    const { data, error } = await presignedURL.json();
 
     const encryptionStream = new TransformStream<Buffer, Buffer>({
-        start() { },
         async transform(chunk, controller) {
             const encryptedChunk = cipher.update(chunk);
-            controller.enqueue(encryptedChunk);
+            controller.enqueue(chunk);
         },
         flush() {
             cipher.final();
         }
     })
 
-    const putStream = new WritableStream<Buffer>({
-        write(chunk) {
+    const fileStream = fileUpload.stream();
+    const uploadStream = fileStream.pipeThrough(encryptionStream);
 
-        }
-    });
+    const res = await fetch(data.url, {
+        method: "PUT",
+        headers: {
+            'Content-Type': 'application/octet-stream'
+        },
+        body: uploadStream,
+        duplex: "half"
+    })
 
-    fileStream.pipeThrough(encryptionStream).pipeTo(putStream)
+    console.log(await res.text())
 }
 
 export async function action({ request }: ActionFunctionArgs) {
