@@ -1,7 +1,7 @@
 import { Form, type ActionFunctionArgs } from "react-router";
 import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import * as crypto from "node:crypto"
-import { exit } from "node:process";
+import { apiClient } from "~/lib/api";
 
 enum ENCRYPTION {
     ALGORITHM = "aes-256-cbc", // mandated for HIPPA compliance
@@ -24,11 +24,20 @@ const uploadHandler = async (fileUpload: FileUpload) => {
     // TODO: upload key to vault
     // TODO: encryption
 
+    const presignedURL = await apiClient.api.v1.storage.videos["presigned-url"].$post({
+        json: {
+            date: new Date(),
+            patientId: "1234",
+            filename: `Test`
+        }
+    })
+    console.log(await presignedURL.json())
+
     const fileStream = fileUpload.stream();
 
     const encryptionStream = new TransformStream<Buffer, Buffer>({
-        start() {},
-        async transform(chunk, controller){
+        start() { },
+        async transform(chunk, controller) {
             const encryptedChunk = cipher.update(chunk);
             controller.enqueue(encryptedChunk);
         },
@@ -39,7 +48,7 @@ const uploadHandler = async (fileUpload: FileUpload) => {
 
     const putStream = new WritableStream<Buffer>({
         write(chunk) {
-            
+
         }
     });
 

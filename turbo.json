@@ -2,14 +2,20 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "build/**"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "compose:up": {
+      "persistent": true,
+      "cache": false
+    },
     "dev": {
+      "with": ["compose:up"],
       "persistent": true,
       "cache": false
     }
-  }
+  },
+  "ui": "tui"
 }

@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "allowJs": true,
     "baseUrl": ".",
+    "composite": true,
     "paths": {
       "@src/*": ["src/*"],
       "@config/*": ["src/config/*"],

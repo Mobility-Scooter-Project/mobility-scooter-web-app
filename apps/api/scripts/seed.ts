@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import fs from "fs";
 import { DATABASE_URL } from "../src/config/constants";
 import { metadata, tenants, units } from "../src/db/schema/tenants";
+import { exit } from "process";
 
 const db = drizzle(DATABASE_URL, {
   casing: "snake_case",
@@ -40,7 +41,7 @@ try {
   console.log(
     `Successfully wrote unit ID to .env file for tenant ${tenant.id}`,
   );
-  // Let the process exit normally
+  exit(0);
 } catch (e) {
   console.error(`Failed to write unit ID to .env file: ${e}`);
   throw new Error(`Seed failed: ${e}`);

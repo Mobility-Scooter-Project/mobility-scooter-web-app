@@ -1,5 +1,5 @@
 {
-  "name": "@mobility-scooter-web-app/backend",
+  "name": "@mobility-scooter-web-app/api",
   "type": "module",
   "private": "true",
   "scripts": {
@@ -7,6 +7,7 @@
     "start": "node dist/index.js",
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --packages=external",
     "lint": "eslint --fix .",
+    "compose:up": "docker compose up",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -57,5 +58,8 @@
     "ts-jest": "^29.2.6",
     "tsx": "^4.7.1",
     "typescript": "^5.8.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
   }
 }
