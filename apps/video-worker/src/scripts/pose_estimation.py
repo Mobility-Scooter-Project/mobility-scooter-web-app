@@ -1,6 +1,5 @@
 import os
 import cv2
-from ultralytics import YOLO
 import numpy as np
 import requests
 import tempfile
@@ -133,7 +132,7 @@ def analyze_pose(video_url, model, filename, fps=30):
   video.release()
   return annotatedVideo
 
-def pose_estimation(video_url, annotated_video_url, filename):
+def pose_estimation(model, video_url, annotated_video_url, filename):
   """
   Performs pose estimation on the video.
   
@@ -146,8 +145,6 @@ def pose_estimation(video_url, annotated_video_url, filename):
     print(f"Pose estimation failed on {filename}. Please ensure the video is recorded from a front-facing point of view.\n")
     return
   
-  model = YOLO("yolo11n-pose.pt", verbose=False)
-
   annotated_video_path = analyze_pose(video_url, model, filename)
 
   with open(annotated_video_path.name, "rb") as f:

@@ -1,4 +1,3 @@
-import whisper
 from datetime import timedelta
 import webvtt
 from constants.tasks import TASK_LIST
@@ -127,7 +126,7 @@ def get_tasks(transcript, filename):
     start_time, end_time = tasks_time[task]
     print(f'Task: "{task}" starts at {start_time} and ends at {end_time}\n')
     
-def audio_detection(video_url, filename):
+def audio_detection(model, video_url, filename):
   """
   Calls functions to generate a transcript and determine if the video has any tasks.
 
@@ -136,7 +135,6 @@ def audio_detection(video_url, filename):
     filename (str): Name of the video file.
   """
   print(f"\nGenerating transcript for {filename}...")
-  model = whisper.load_model("small")
   transcript = get_transcript(video_url, model)  
 
   print(f"Detecting tasks from transcript...")
