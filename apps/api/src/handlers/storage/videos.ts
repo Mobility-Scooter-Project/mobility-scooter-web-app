@@ -45,16 +45,15 @@ const app = new Hono<{ Variables: Variables }>().post(
     const { filename, patientId, date } = c.req.valid("json");
     const userId = c.get("userId")!;
 
-    const url = await storageService.generatePresignedVideoPutUrl(
+    const data = await storageService.generatePresignedVideoPutUrl(
       filename,
       userId,
       patientId,
       date,
     );
+
     return c.json({
-      data: {
-        url,
-      },
+      data: {...data},
       error: null,
     });
   },

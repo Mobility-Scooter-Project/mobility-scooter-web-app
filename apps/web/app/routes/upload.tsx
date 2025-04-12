@@ -1,30 +1,10 @@
 import { Form, type ActionFunctionArgs } from "react-router";
 import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
-import * as crypto from "node:crypto"
 import { getApiClient } from "~/lib/api";
-
-enum ENCRYPTION {
-    ALGORITHM = "aes-256-cbc", // mandated for HIPPA compliance
-    ITERATIONS = 100000,
-    KEY_LENGTH = 32,
-    IV_LENGTH = 16,
-    DIGEST = "sha256"
-}
+import * as crypto from "node:crypto"
 
 const uploadHandler = async (fileUpload: FileUpload) => {
-    // cryptography
-    const secret = crypto.randomBytes(ENCRYPTION.KEY_LENGTH).toString('hex');
-    const salt = crypto.randomBytes(32).toString('hex');
-
-    const keyBuffer = crypto.pbkdf2Sync(secret, salt, ENCRYPTION.ITERATIONS, ENCRYPTION.KEY_LENGTH, ENCRYPTION.DIGEST);
-    const key = keyBuffer.toString('hex');
-    const iv = keyBuffer.subarray(0, ENCRYPTION.IV_LENGTH);
-    const cipher = crypto.createCipheriv(ENCRYPTION.ALGORITHM, keyBuffer, iv);
-
-    // TODO: upload key to vault
-    // TODO: encryption
-
-    const client = getApiClient({"X-User": ""});
+    const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
     const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
         json: {
             date: new Date(),
@@ -34,29 +14,36 @@ const uploadHandler = async (fileUpload: FileUpload) => {
     })
     const { data, error } = await presignedURL.json();
 
-    const encryptionStream = new TransformStream<Buffer, Buffer>({
+    const algorithm = "aes-256-cbc"
+    const cipher = crypto.createCipheriv(algorithm, Buffer.from(data.encryptionKey, 'hex'), Buffer.from(data.encryptionIv, 'hex'));
+
+    const encryptionTransform = new TransformStream<Buffer, Buffer>({
         async transform(chunk, controller) {
-            const encryptedChunk = cipher.update(chunk);
+            //const encryptedChunk = cipher.update(chunk);
             controller.enqueue(chunk);
         },
         flush() {
-            cipher.final();
+        }
+    })
+
+    let partNumber = 1;
+    const fetchWriteStream = new WritableStream<Buffer>({
+        async write(chunk) {
+            const url = `${data.url}&partNumber=${partNumber}`
+            const res = await fetch(url, {
+                method: "PUT",
+                body: chunk
+            })
+            if (partNumber == 1) {
+                console.log(url)
+                console.log(await res.text())
+            }
+            partNumber += 1
         }
     })
 
     const fileStream = fileUpload.stream();
-    const uploadStream = fileStream.pipeThrough(encryptionStream);
-
-    const res = await fetch(data.url, {
-        method: "PUT",
-        headers: {
-            'Content-Type': 'application/octet-stream'
-        },
-        body: uploadStream,
-        duplex: "half"
-    })
-
-    console.log(await res.text())
+    await fileStream.pipeThrough(encryptionTransform).pipeTo(fetchWriteStream);
 }
 
 export async function action({ request }: ActionFunctionArgs) {

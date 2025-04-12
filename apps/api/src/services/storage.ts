@@ -1,5 +1,6 @@
 import { HTTP_CODES } from "@src/config/http-codes";
 import { storage } from "@src/integrations/storage";
+import { createObjectEncryptionIv, createObjectEncryptionKey, vault } from "@src/integrations/vault";
 import { HTTPException } from "hono/http-exception";
 
 const generatePresignedVideoPutUrl = async (
@@ -28,11 +29,28 @@ const generatePresignedVideoPutUrl = async (
     });
   }
   try {
-    return await storage.presignedPutObject(
+    const uploadPath = `videos/${date}/${filename}`;
+    const uploadId = await storage.initiateNewMultipartUpload(patientId, filename, {});
+
+
+    const presignedUrl = await storage.presignedPutObject(
       patientId,
-      `videos/${date}/${filename}`,
+      uploadPath,
       60 * 60 * 24,
     );
+
+    const encryptionKey = await createObjectEncryptionKey(
+      patientId,
+      uploadPath,
+    );
+
+    const encryptionIv = await createObjectEncryptionIv(
+      patientId,
+      uploadPath,
+    );
+
+    const url = `${presignedUrl}&uploadId=${uploadId}`;
+    return { url, encryptionKey, encryptionIv };
   } catch (e) {
     console.error(e);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {

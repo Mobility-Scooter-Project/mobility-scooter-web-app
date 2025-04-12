@@ -9,5 +9,7 @@ export const presignedUrlSchema = z.object({
 export const presignedUrlResponseSchema = z.object({
   data: z.object({
     url: z.string().nonempty(),
+    encryptionKey: z.string().nonempty(),
+    encryptionIv: z.string().nonempty(),
   }),
 });
