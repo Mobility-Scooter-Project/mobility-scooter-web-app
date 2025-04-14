@@ -1,9 +1,8 @@
-from datetime import timedelta
-import webvtt
-from constants.tasks import TASK_LIST
-from rapidfuzz import fuzz
 import tempfile
-import os
+import webvtt
+from datetime import timedelta
+from rapidfuzz import fuzz
+from constants.tasks import TASK_LIST
 
 def format_time(td):
   """
@@ -136,8 +135,8 @@ def audio_detection(model, video_url, filename):
   """
   print(f"\nGenerating transcript for {filename}...")
   transcript = get_transcript(video_url, model)  
+  # TODO: Store the transcript
 
   print(f"Detecting tasks from transcript...")
   get_tasks(transcript.name, filename)
   
-  os.remove(transcript.name)
