@@ -63,7 +63,7 @@ export const createUserWithPassword = async (
 const signInWithPassword = async (db: DB, email: string, password: string) => {
   const user = await userRepository.findUserWithPassword(db, email, password);
   if (!user) {
-    throw new HTTPException(401, {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
       res: new Response(
         JSON.stringify({ data: null, error: "Invalid email or password" }),
       ),
@@ -95,7 +95,7 @@ const refreshToken = async (db: DB, refreshToken: string) => {
     !record.expiresAt ||
     record.expiresAt < new Date()
   ) {
-    throw new HTTPException(401, {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
       res: new Response(
         JSON.stringify({ data: null, error: "Invalid refresh token" }),
       ),
@@ -126,7 +126,7 @@ const generateResetPasswordToken = async (email: string) => {
   const data = await userRepository.findUserByEmail(db, email);
 
   if (!data) {
-    throw new HTTPException(404, {
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({ data: null, error: "User not found" }),
       ),

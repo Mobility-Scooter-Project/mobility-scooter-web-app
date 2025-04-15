@@ -6,21 +6,17 @@ Content-Type: application/json
 
 {
  "email": "test@example.com",
- "password": "test124"
+ "password": "testing124"
 }
 
-### Get Video Presigned URL
-# @name getPresignedUrl
-POST http://localhost:3000/api/v1/storage/videos/presigned-url
+### Send Video to Video Worker Queue
+POST http://localhost:3000/api/v1/storage/videos/send-to-queue
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 X-User: {{login.response.body.data.token}}
 
 {
  "date": "{{$datetime iso8601}}",
- "filename": "{{$randomInt 0 1000}}.txt",
+ "filename": "test.mp4",
  "patientId": "abc-123-456-789"
 }
-
-### Upload Video to Object Store
-PUT {{getPresignedUrl.response.body.data.url}}
