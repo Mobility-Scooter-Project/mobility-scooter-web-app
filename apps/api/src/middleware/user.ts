@@ -17,8 +17,8 @@ export const userMiddleware = async (c: Context, next: Next) => {
   const user = c.req.header("X-User");
 
   if (!user) {
-    throw new HTTPException(400, {
-      message: "Unauthorized",
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      message: "Missing X-User header in request",
     });
   }
   try {

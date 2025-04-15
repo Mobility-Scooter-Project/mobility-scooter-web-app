@@ -5,7 +5,7 @@ Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 
 {
-"email": "test@example.com",
+ "email": "test@example.com",
  "password": "testing124"
 }
 

@@ -43,7 +43,9 @@ services:
   storage:
     image: "minio/minio"
     command: server --console-address ":9001" /data
-    network_mode: "host"
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Web UI
     depends_on:
       - queue
     environment:
