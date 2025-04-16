@@ -11,7 +11,13 @@ Content-Type: application/json
 
 ### Get Video Presigned URL
 
-GET http://localhost:3000/api/v1/storage/videos/presigned-url/1234567/Test.mp4
+POST http://localhost:3000/api/v1/storage/videos/presigned-url
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 X-User: {{login.response.body.data.token}}
+
+{
+ "date": "{{$datetime iso8601}}",
+ "filename": "test.mp4",
+ "patientId": "abc-123-456-789"
+}

@@ -42,18 +42,70 @@ const app = new Hono<{ Variables: Variables }>().post(
   validateApiKey,
   zValidator("json", presignedUrlSchema),
   async (c) => {
-    const { filename, patientId, date } = c.req.valid("json");
+    const { filename, patientId } = c.req.valid("json");
     const userId = c.get("userId")!;
 
     const data = await storageService.generatePresignedVideoPutUrl(
       filename,
       userId,
       patientId,
-      date,
     );
 
     return c.json({
-      data: {...data},
+      data: { ...data },
+      error: null,
+    });
+  },
+).get(
+  "/presigned-url/:patientId/:filename",
+  describeRoute({
+    summary: "Get a presigned URL for uploading a video",
+    description:
+      "Get a presigned URL for uploading a video to the storage bucket",
+    tags: ["storage"],
+    parameters: [
+      {
+        patientId: {
+          description: "The ID of the patient",
+          required: true,
+          type: "string",
+        }
+      },
+      {
+        filename: {
+          description: "The name of the file to upload",
+          required: true,
+          type: "string",
+        }
+      }
+    ],
+    responses: {
+      200: {
+        description: "Presigned URL generated successfully",
+        content: {
+          "application/json": {
+            schema: resolver(presignedUrlResponseSchema),
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  async (c) => {
+    const filename = c.req.param("filename");
+    const patientId = c.req.param("patientId");
+    const userId = c.get("userId")!;
+
+    const data = await storageService.generatePresignedVideoGetUrl(
+      filename,
+      userId,
+      patientId,
+    );
+
+    return c.json({
+      data: { ...data },
       error: null,
     });
   },

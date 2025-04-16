@@ -8,7 +8,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
         json: {
-            date: new Date(),
             patientId: '1234567',
             filename: `Test.mp4`
         }
