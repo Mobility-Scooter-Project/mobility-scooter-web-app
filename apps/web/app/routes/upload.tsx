@@ -3,51 +3,56 @@ import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import { getApiClient } from "~/lib/api";
 import * as crypto from "node:crypto"
 
-const uploadHandler = async (fileUpload: FileUpload) => {
+export async function action({ request }: ActionFunctionArgs) {
     const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
+
     const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
         json: {
             date: new Date(),
-            patientId: "1234",
+            patientId: '1234567',
             filename: `Test.mp4`
         }
     })
+
     const { data, error } = await presignedURL.json();
 
     const algorithm = "aes-256-cbc"
     const cipher = crypto.createCipheriv(algorithm, Buffer.from(data.encryptionKey, 'hex'), Buffer.from(data.encryptionIv, 'hex'));
 
-    const encryptionTransform = new TransformStream<Buffer, Buffer>({
-        async transform(chunk, controller) {
-            //const encryptedChunk = cipher.update(chunk);
-            controller.enqueue(chunk);
-        },
-        flush() {
-        }
-    })
+    const formData = await parseFormData(request, async (fileUpload: FileUpload) => {
+        const fileStream = fileUpload.stream();
 
-    let partNumber = 1;
-    const fetchWriteStream = new WritableStream<Buffer>({
-        async write(chunk) {
-            const url = `${data.url}&partNumber=${partNumber}`
-            const res = await fetch(url, {
-                method: "PUT",
-                body: chunk
-            })
-            if (partNumber == 1) {
-                console.log(url)
-                console.log(await res.text())
+        const encryptionTransform = new TransformStream<Buffer, Buffer>({
+            start() {
+                console.log("Beginning encryption...")
+            },
+            async transform(chunk, controller) {
+                if (!chunk) {
+                    controller.terminate();
+                }
+                const encryptedChunk = cipher.update(chunk);
+                controller.enqueue(encryptedChunk);
+            },
+            flush() {
+                cipher.final();
+                console.log('Encryption complete')
             }
-            partNumber += 1
-        }
-    })
+        });
 
-    const fileStream = fileUpload.stream();
-    await fileStream.pipeThrough(encryptionTransform).pipeTo(fetchWriteStream);
-}
+        // convert stream to a File object
+        const encryptedStream = fileStream.pipeThrough(encryptionTransform);
+        const blob = await new Response(encryptedStream).blob();
 
-export async function action({ request }: ActionFunctionArgs) {
-    await parseFormData(request, uploadHandler);
+        return new File([blob], fileUpload.name, {
+            type: fileUpload.type,
+        });
+    });
+
+    const encryptedFile = formData.get("file");
+    const res = await fetch(data.url, {
+        method: "PUT",
+        body: encryptedFile,
+    });
 }
 
 export default function Upload() {

@@ -5,8 +5,8 @@ import { HTTPException } from "hono/http-exception";
 
 const generatePresignedVideoPutUrl = async (
   filename: string,
-  patientId: string,
   userId: string,
+  patientId: string,
   date: Date,
 ) => {
   // TODO: check if user has access to patientId
@@ -30,10 +30,8 @@ const generatePresignedVideoPutUrl = async (
   }
   try {
     const uploadPath = `videos/${date}/${filename}`;
-    const uploadId = await storage.initiateNewMultipartUpload(patientId, filename, {});
 
-
-    const presignedUrl = await storage.presignedPutObject(
+    const url = await storage.presignedPutObject(
       patientId,
       uploadPath,
       60 * 60 * 24,
@@ -49,7 +47,6 @@ const generatePresignedVideoPutUrl = async (
       uploadPath,
     );
 
-    const url = `${presignedUrl}&uploadId=${uploadId}`;
     return { url, encryptionKey, encryptionIv };
   } catch (e) {
     console.error(e);
