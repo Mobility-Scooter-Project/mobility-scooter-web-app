@@ -17,8 +17,7 @@ Content-Type: application/json
 X-User: {{login.response.body.data.token}}
 
 {
- "date": "{{$datetime iso8601}}",
- "filename": "{{$randomInt 0 1000}}.txt",
+ "filename": "{{$datetime iso8601}}.txt",
  "patientId": "abc-123-456-789"
 }
 

@@ -2,6 +2,7 @@ import { HTTP_CODES } from "@src/config/http-codes";
 import { storage } from "@src/integrations/storage";
 import { createObjectEncryptionIv, createObjectEncryptionKey, getObjectEncryptionIv, getObjectEncryptionKey, vault } from "@src/integrations/vault";
 import { HTTPException } from "hono/http-exception";
+import crypto from "node:crypto";
 
 const generatePresignedVideoPutUrl = async (
   filename: string,
@@ -30,23 +31,19 @@ const generatePresignedVideoPutUrl = async (
   try {
     const uploadPath = `videos/${filename}`;
 
+    const encryptionKey = await createObjectEncryptionKey(
+      patientId,
+      uploadPath,
+    );
+
+
     const url = await storage.presignedPutObject(
       patientId,
       uploadPath,
       60 * 60 * 24,
     );
 
-    const encryptionKey = await createObjectEncryptionKey(
-      patientId,
-      uploadPath,
-    );
-
-    const encryptionIv = await createObjectEncryptionIv(
-      patientId,
-      uploadPath,
-    );
-
-    return { url, encryptionKey, encryptionIv };
+    return { url, encryptionKey };
   } catch (e) {
     console.error(e);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {

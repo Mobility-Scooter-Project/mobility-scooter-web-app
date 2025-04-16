@@ -1,57 +1,52 @@
 import { Form, type ActionFunctionArgs } from "react-router";
 import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import { getApiClient } from "~/lib/api";
-import * as crypto from "node:crypto"
+import * as crypto from "node:crypto";
+
+const uploadHandler = async (fileUpload: FileUpload) => {
+    const fileStream = fileUpload.stream()
+    const blob = await new Response(fileStream).blob();
+
+    return new File([blob], fileUpload.name, {
+        type: fileUpload.type,
+    });
+};
+
 
 export async function action({ request }: ActionFunctionArgs) {
     const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
 
     const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
         json: {
-            patientId: '1234567',
+            patientId: '12345678',
             filename: `Test.mp4`
         }
     })
 
     const { data, error } = await presignedURL.json();
 
-    const algorithm = "aes-256-cbc"
-    const cipher = crypto.createCipheriv(algorithm, Buffer.from(data.encryptionKey, 'hex'), Buffer.from(data.encryptionIv, 'hex'));
+    const formData = await parseFormData(request, uploadHandler);
+    const file = formData.get("file");
 
-    const formData = await parseFormData(request, async (fileUpload: FileUpload) => {
-        const fileStream = fileUpload.stream();
+    const algorithm = "AES-256";
+    const { encryptionKey } = data;
+    const encryptionKeyMd5 = crypto.hash("md5", encryptionKey);
 
-        const encryptionTransform = new TransformStream<Buffer, Buffer>({
-            start() {
-                console.log("Beginning encryption...")
-            },
-            async transform(chunk, controller) {
-                if (!chunk) {
-                    controller.terminate();
-                }
-                const encryptedChunk = cipher.update(chunk);
-                controller.enqueue(encryptedChunk);
-            },
-            flush() {
-                cipher.final();
-                console.log('Encryption complete')
-            }
-        });
 
-        // convert stream to a File object
-        const encryptedStream = fileStream.pipeThrough(encryptionTransform);
-        const blob = await new Response(encryptedStream).blob();
-
-        return new File([blob], fileUpload.name, {
-            type: fileUpload.type,
-        });
-    });
-
-    const encryptedFile = formData.get("file");
     const res = await fetch(data.url, {
         method: "PUT",
-        body: encryptedFile,
+        body: file,
+        headers: {
+            "X-Amz-Server-Side-Encryption-Customer-Algorithm": algorithm,
+            "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKey,
+            "X-Amz-Server-Side-Encryption-Customer-Key-MD5": encryptionKeyMd5,
+        },
     });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Failed to upload file: ${errorText}`);
+    }
 }
 
 export default function Upload() {
