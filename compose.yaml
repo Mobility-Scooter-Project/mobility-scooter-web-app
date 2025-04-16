@@ -24,6 +24,7 @@ services:
       - 15672:15672
     volumes:
       - queue:/var/lib/rabbitmq
+    restart: always
   vault:
     image: hashicorp/vault:latest
     network_mode: "host"
@@ -33,15 +34,37 @@ services:
     command: sh /init.sh
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"
+      VAULT_DEV_ROOT_TOKEN_ID: "root" # Ensure token matches command if using dev mode
+    cap_add:
+      - IPC_LOCK # Needed for vault
+  cert-generator:
+    image: alpine/curl
+    volumes:
+      - certs:/certs
+    command: >
+      sh -c '
+        curl https://github.com/minio/certgen/releases/latest/download/certgen-linux-amd64 -o /usr/local/bin/certgen &&
+        chmod +x /usr/local/bin/certgen &&
+        certgen --host localhost
+      '
+    # This service only needs to run once to generate certs if they don't exist
   storage:
     image: "minio/minio"
-    command: server --console-address ":9001" /data
+    # Use --certs-dir to specify TLS cert location
+    command: server --console-address ":9001" --certs-dir /certs /data
     network_mode: "host"
+    ports: # Map ports explicitly now that host network mode is removed
+      - "9000:9000" # Minio API (HTTPS)
+      - "9001:9001" # Minio Console (HTTPS)
     depends_on:
-      - queue
+      queue:
+        condition: service_started # Ensure queue is started before minio
+      cert-generator:
+        condition: service_completed_successfully # Ensure certs are generated
     environment:
       MINIO_ROOT_USER: "minioadmin"
       MINIO_ROOT_PASSWORD: "minioadmin"
+      # Update AMQP URL to use service name 'queue' instead of 'localhost'
       MINIO_NOTIFY_AMQP_ENABLE_put_video: "on"
       MINIO_NOTIFY_AMQP_URL_put_video: "amqp://guest:guest@localhost:5672/"
       MINIO_NOTIFY_AMQP_EXCHANGE_put_video: "storage"
@@ -54,9 +77,13 @@ services:
       retries: 5
     volumes:
       - storage:/data
+      - certs:/certs # Mount the shared certificate volume
+    restart: always
+
 volumes:
- db:
- kv:
- queue:
- storage:
- vault:
+  db:
+  kv:
+  queue:
+  storage:
+  vault:
+  certs: # Define the shared volume for certificates
