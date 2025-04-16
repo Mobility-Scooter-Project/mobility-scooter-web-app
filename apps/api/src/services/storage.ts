@@ -36,14 +36,21 @@ const generatePresignedVideoPutUrl = async (
       uploadPath,
     );
 
+    const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
+    const encryptionKeyBase64 = Buffer.from(encryptionKey, 'hex').toString("base64");
+    const encryptionKeyMd5Base64 = Buffer.from(encryptionKeyMd5, 'hex').toString("base64");
 
-    const url = await storage.presignedPutObject(
+    const url = await storage.presignedUrl(
+      "PUT",
       patientId,
       uploadPath,
       60 * 60 * 24,
+      {
+        "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
+      }
     );
 
-    return { url, encryptionKey };
+    return { url, encryptionKey: encryptionKeyBase64, encryptionKeyMd5: encryptionKeyMd5Base64 };
   } catch (e) {
     console.error(e);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
@@ -75,33 +82,27 @@ const generatePresignedVideoGetUrl = async (
   }
 
   const uploadPath = `videos/${filename}`;
-  const url = await storage.presignedGetObject(
-    patientId,
-    uploadPath,
-    60 * 60 * 24,
-  );
 
   const encryptionKey = await getObjectEncryptionKey(
     patientId,
     uploadPath,
   );
 
-  const encryptionIv = await getObjectEncryptionIv(
+  const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
+  const base64EncryptionKey = Buffer.from(encryptionKey, 'hex').toString("base64");
+  const base64EncryptionKeyMd5 = Buffer.from(encryptionKeyMd5).toString("base64");
+
+  const url = await storage.presignedUrl(
+    "GET",
     patientId,
     uploadPath,
+    60 * 60 * 24,
+    {
+      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
+      "X-Amz-Server-Side-Encryption-Customer-Key": Buffer.from(encryptionKey, 'hex').toString("base64"),
+      "X-Amz-Server-Side-Encryption-Customer-Key-MD5": Buffer.from(crypto.hash("md5", Buffer.from(encryptionKey, 'hex'))).toString("base64"),
+    }
   );
-
-  if (!encryptionKey || !encryptionIv) {
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Encryption key not found",
-        }),
-      ),
-    });
-  }
-
 
   if (!url) {
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
@@ -114,7 +115,7 @@ const generatePresignedVideoGetUrl = async (
     });
   }
 
-  return { url, encryptionKey, encryptionIv };
+  return { url };
 }
 
 export const storageService = {

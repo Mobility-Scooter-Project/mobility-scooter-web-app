@@ -19,7 +19,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
         json: {
             patientId: '12345678',
-            filename: `Test.mp4`
+            filename: 'Test.mp4',
         }
     })
 
@@ -28,12 +28,11 @@ export async function action({ request }: ActionFunctionArgs) {
     const formData = await parseFormData(request, uploadHandler);
     const file = formData.get("file");
 
-    const algorithm = "AES-256";
-    const { encryptionKey } = data;
-    const encryptionKeyMd5 = crypto.hash("md5", encryptionKey);
+    const algorithm = "AES256";
+    const { encryptionKey, encryptionKeyMd5, url } = data;
 
 
-    const res = await fetch(data.url, {
+    const res = await fetch(url, {
         method: "PUT",
         body: file,
         headers: {
@@ -46,7 +45,9 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!res.ok) {
         const errorText = await res.text();
         console.error(`Failed to upload file: ${errorText}`);
+        return;
     }
+    console.info("File uploaded successfully!");
 }
 
 export default function Upload() {
