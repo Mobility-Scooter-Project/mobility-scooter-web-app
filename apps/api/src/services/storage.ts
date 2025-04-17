@@ -64,7 +64,7 @@ const generatePresignedVideoPutUrl = async (
   }
 };
 
-const generatePresignedVideoGetUrl = async (
+const getObjectStream = async (
   filename: string,
   patientId: string,
 ) => {
@@ -108,5 +108,5 @@ const generatePresignedVideoGetUrl = async (
 
 export const storageService = {
   generatePresignedVideoPutUrl,
-  generatePresignedVideoGetUrl
+   getObjectStream
 };

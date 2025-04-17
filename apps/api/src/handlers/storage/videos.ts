@@ -97,7 +97,7 @@ const app = new Hono<{ Variables: Variables }>().post(
     const filename = c.req.param("filename");
     const patientId = c.req.param("patientId");
 
-    const data = await storageService.generatePresignedVideoGetUrl(
+    const data = await storageService.getObjectStream(
       filename,
       patientId,
     );
