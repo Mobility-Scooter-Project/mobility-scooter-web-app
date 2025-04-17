@@ -6,7 +6,6 @@ import auth from "@src/handlers/auth";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { openAPISpecs } from "hono-openapi";
-import { error } from "console";
 import { HTTPException } from "hono/http-exception";
 
 export type Variables = {

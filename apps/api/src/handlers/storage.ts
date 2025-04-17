@@ -86,9 +86,10 @@ const app = new Hono<{ Variables: Variables }>()
   .get(
     "/presigned-url",
     describeRoute({
-      summary: "Get a presigned URL for uploading a video",
+      summary: "Get a presigned URL for downing a video",
+      tags: ["storage"],
       description:
-        "Get a presigned URL for uploading a video to the storage bucket",
+        "Get a presigned URL for downloading a video to the storage bucket",
       responses: {
         200: {
           description: "Presigned URL generated successfully",

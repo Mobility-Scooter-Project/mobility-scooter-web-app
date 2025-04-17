@@ -1,16 +1,7 @@
 import { Form, type ActionFunctionArgs } from "react-router";
-import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
+import { parseFormData } from "@mjackson/form-data-parser";
 import { getApiClient } from "~/lib/api";
-
-const uploadHandler = async (fileUpload: FileUpload) => {
-    const fileStream = fileUpload.stream()
-    const blob = await new Response(fileStream).blob();
-
-    return new File([blob], fileUpload.name, {
-        type: fileUpload.type,
-    });
-};
-
+import { uploadHandler } from "~/lib/upload";
 
 export async function action({ request }: ActionFunctionArgs) {
     const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });

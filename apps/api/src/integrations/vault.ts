@@ -89,23 +89,3 @@ export const getObjectEncryptionKey = async (bucketId: string, path: string) => 
     });
   }
 };
-
-export const createObjectEncryptionIv = async (bucketId: string, path: string) => {
-  const iv = crypto.randomBytes(16).toString("hex");
-  await vault.write(`kv/storage/${bucketId}/${path}/iv`, { iv });
-  return iv;
-}
-
-export const getObjectEncryptionIv = async (bucketId: string, path: string) => {
-  try {
-    const iv = await vault.read(`kv/storage/${bucketId}/${path}/iv`);
-    return iv.getData().iv as string;
-  } catch (e) {
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "IV does not exist" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
-  }
-};
