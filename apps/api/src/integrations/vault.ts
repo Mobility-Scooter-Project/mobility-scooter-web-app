@@ -1,3 +1,4 @@
+import { COMMON_HEADERS } from "@src/config/common-headers";
 import { VAULT_ADDR, VAULT_TOKEN } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPException } from "hono/http-exception";
@@ -45,6 +46,7 @@ export const getOtpSecretByUserId = async (userId: string) => {
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({ data: null, error: "TOTP does not exist" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
       ),
     });
   }
@@ -82,6 +84,7 @@ export const getObjectEncryptionKey = async (bucketId: string, path: string) => 
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({ data: null, error: "Encryption key does not exist" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
       ),
     });
   }
@@ -101,6 +104,7 @@ export const getObjectEncryptionIv = async (bucketId: string, path: string) => {
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({ data: null, error: "IV does not exist" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
       ),
     });
   }

@@ -6,6 +6,8 @@ import auth from "@src/handlers/auth";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { openAPISpecs } from "hono-openapi";
+import { error } from "console";
+import { HTTPException } from "hono/http-exception";
 
 export type Variables = {
   db: DB;
@@ -21,6 +23,27 @@ export const app = new Hono<{ Variables: Variables }>()
   .basePath("/api/v1")
   .route("/auth", auth)
   .route("/storage", storage);
+
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    console.error(err);
+    return err.getResponse();
+  }
+
+  return c.json({
+    error: "Internal Server Error",
+    data: null,
+  }, 500);
+});
+
+app.notFound((c) => {
+  return c.json({
+    error: "Method or Route Not Found",
+    data: null,
+  }, 404);
+}
+);
 
 app.get(
   "/openapi",

@@ -1,3 +1,4 @@
+import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { apiKeys } from "@src/db/schema/auth";
 import { db } from "@src/middleware/db";
@@ -30,7 +31,8 @@ const bumpLastUsed = async (apiKey: string) => {
     console.error(e);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
-        JSON.stringify({ message: "Failed to update last used timestamp" }),
+        JSON.stringify({ data: null, error: "Failed to update last used timestamp" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON},
       ),
     });
   }

@@ -12,3 +12,13 @@ export const presignedUrlResponseSchema = z.object({
     encryptionIv: z.string().nonempty(),
   }),
 });
+
+
+export const presignedQuerySchema = z.object({
+  "X-MSWA-Filename": z.string(),
+  "X-MSWA-Bucket": z.string(),
+  "X-MSWA-UserId": z.string(),
+  "X-MSWA-Method": z.string(),
+  "X-MSWA-Expires": z.string(),
+  "X-MSWA-Signature": z.string()
+})

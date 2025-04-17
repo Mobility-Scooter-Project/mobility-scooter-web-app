@@ -1,4 +1,5 @@
 import { JWT_SECRET } from "@config/constants";
+import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -17,8 +18,11 @@ export const userMiddleware = async (c: Context, next: Next) => {
   const user = c.req.header("X-User");
 
   if (!user) {
-    throw new HTTPException(400, {
-      message: "Unauthorized",
+    throw new HTTPException(HTTP_CODES.BAD_REQUEST, {
+      res: new Response(
+        JSON.stringify({ error: "No user data provided", data: null }),
+        { headers:  COMMON_HEADERS.CONTENT_TYPE_JSON},
+      ),
     });
   }
   try {
@@ -26,7 +30,10 @@ export const userMiddleware = async (c: Context, next: Next) => {
 
     if (!userId || !sessionId) {
       throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-        message: "Failed to authenticate user",
+        res: new Response(
+          JSON.stringify({ error: "Invalid user data", data: null }),
+          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+        ),
       });
     }
 
@@ -37,7 +44,10 @@ export const userMiddleware = async (c: Context, next: Next) => {
   } catch (e) {
     console.error(e);
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: "Unauthorized",
+      res: new Response(
+        JSON.stringify({ error: "Invalid user data", data: null }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+      ),
     });
   }
 };

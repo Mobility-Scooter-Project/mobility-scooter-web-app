@@ -1,3 +1,4 @@
+import { COMMON_HEADERS } from "@src/config/common-headers";
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { storage } from "@src/integrations/storage";
@@ -26,6 +27,7 @@ const generatePresignedVideoPutUrl = async (
           data: null,
           error: "Failed to create or retrieve bucket",
         }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -60,6 +62,9 @@ const generatePresignedVideoPutUrl = async (
           data: null,
           error: "Failed to generate presigned URL",
         }),
+        {
+          headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
+        }
       ),
     });
   }
@@ -78,7 +83,7 @@ const generatePresignedGetUrl = async (
   const params = new URLSearchParams({
     "X-MSWA-Method": method,
     "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
-    "X-MSWA-Filename": filename,
+    "X-MSWA-Filename": encodeURIComponent(filename),
     "X-MSWA-Bucket": patientId,
     "X-MSWA-UserId": userId,
   })
@@ -91,7 +96,7 @@ const generatePresignedGetUrl = async (
 
   params.append("X-MSWA-Signature", signature);
 
-  const url = `${BASE_URL}/api/v1/storage/videos?${params.toString()}`;
+  const url = `${BASE_URL}/api/v1/storage/presigned-url?${params.toString()}`;
   return { url };
 }
 
@@ -107,6 +112,7 @@ const getObjectStream = async (
           data: null,
           error: "Bucket not found",
         }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -155,6 +161,7 @@ const validatePresignedUrl = async (
           data: null,
           error: "Presigned URL expired",
         }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -170,6 +177,7 @@ const validatePresignedUrl = async (
           data: null,
           error: "Invalid signature",
         }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -182,6 +190,7 @@ const validatePresignedUrl = async (
           data: null,
           error: "Bucket not found",
         }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }

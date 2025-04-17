@@ -1,3 +1,4 @@
+import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { vault } from "@src/integrations/vault";
 import { HTTPException } from "hono/http-exception";
@@ -34,16 +35,16 @@ const createPasswordResetToken = async (token: string, userId: string) => {
 const markPasswordResetTokenUsed = async (token: string, userId: string) => {
   const data = (await vault.read(`kv/auth/password-reset/${userId}`)).getData();
   if (!data || data.token !== token) {
-    throw new HTTPException(404, {
-      res: new Response(JSON.stringify({ error: "Token not found" }), {
-        status: HTTP_CODES.NOT_FOUND,
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
+      res: new Response(JSON.stringify({ data: null, error: "Token not found" }), {
+        headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
       }),
     });
   }
   if (data.used) {
-    throw new HTTPException(400, {
-      res: new Response(JSON.stringify({ error: "Token already used" }), {
-        status: HTTP_CODES.BAD_REQUEST,
+    throw new HTTPException(HTTP_CODES.CONFLICT, {
+      res: new Response(JSON.stringify({ data: null, error: "Token already used" }), {
+        headers: COMMON_HEADERS.CONTENT_TYPE_JSON
       }),
     });
   }
@@ -55,7 +56,12 @@ const markPasswordResetTokenUsed = async (token: string, userId: string) => {
     });
   } catch (e) {
     console.error(`Failed to mark password reset token as used: ${e}`);
-    throw new Error("Failed to mark password reset token as used");
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Failed to mark token as used" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+      ),
+    });
   }
 };
 

@@ -1,5 +1,6 @@
 import { identities, users } from "@db/schema/auth";
 import type { DB } from "@middleware/db";
+import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { eq, sql, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
@@ -69,13 +70,17 @@ const createUser = async (db: DB, newUser: NewUser) => {
       throw new HTTPException(HTTP_CODES.CONFLICT, {
         res: new Response(
           JSON.stringify({ data: null, error: "User already exists" }),
+          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
         ),
       });
     }
 
     console.error(`Failed to create user: ${e}`);
-    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: "Failed to create user",
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Failed to create user" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+      ),
     });
   }
 };

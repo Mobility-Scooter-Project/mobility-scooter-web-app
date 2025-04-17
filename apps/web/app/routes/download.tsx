@@ -1,10 +1,9 @@
 import { useLoaderData } from "react-router";
-import { API_BASE_URL } from "~/config/constants";
 import { getApiClient } from "~/lib/api";
 
 export async function loader() {
     const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
-    const res = await client.api.v1.storage.videos["presigned-url"].$post({
+    const res = await client.api.v1.storage["presigned-url"].$post({
         json: {
             filename: "Test.mp4",
             patientId: "12345678",

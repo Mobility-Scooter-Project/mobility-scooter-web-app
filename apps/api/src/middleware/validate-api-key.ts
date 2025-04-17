@@ -4,6 +4,7 @@ import { apiKeyService } from "@src/services/auth/api-key";
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { db } from "./db";
+import { COMMON_HEADERS } from "@src/config/common-headers";
 
 /**
  * Middleware function to validate API key from Authorization header
@@ -16,7 +17,10 @@ export const validateApiKey = async (c: Context, next: Next) => {
 
   if (!authHeader) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: "Missing Authorization Header",
+      res: new Response(
+        JSON.stringify({ data: null, error: "Authorization header is missing" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+      ),
     });
   }
 
@@ -25,7 +29,10 @@ export const validateApiKey = async (c: Context, next: Next) => {
 
   if (!result) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: "Invalid Authorization Token",
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid API key" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+      ),
     });
   }
 

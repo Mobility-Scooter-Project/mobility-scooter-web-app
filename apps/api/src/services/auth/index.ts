@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { sign, verify } from "hono/jwt";
 import { sessionService } from "./session";
+import { COMMON_HEADERS } from "@src/config/common-headers";
 
 /**
  * Creates a new user with email/password authentication and returns a session
@@ -63,9 +64,10 @@ export const createUserWithPassword = async (
 const signInWithPassword = async (db: DB, email: string, password: string) => {
   const user = await userRepository.findUserWithPassword(db, email, password);
   if (!user) {
-    throw new HTTPException(401, {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
       res: new Response(
         JSON.stringify({ data: null, error: "Invalid email or password" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -95,9 +97,10 @@ const refreshToken = async (db: DB, refreshToken: string) => {
     !record.expiresAt ||
     record.expiresAt < new Date()
   ) {
-    throw new HTTPException(401, {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
       res: new Response(
         JSON.stringify({ data: null, error: "Invalid refresh token" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -126,9 +129,10 @@ const generateResetPasswordToken = async (email: string) => {
   const data = await userRepository.findUserByEmail(db, email);
 
   if (!data) {
-    throw new HTTPException(404, {
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({ data: null, error: "User not found" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),
     });
   }
@@ -174,7 +178,9 @@ const resetPassword = async (token: string, password: string) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(JSON.stringify({ data: null, error: "Invalid token" })),
+      res: new Response(JSON.stringify({ data: null, error: "Invalid token" }), {
+        headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
+      }),
     });
   }
 
@@ -186,7 +192,10 @@ const resetPassword = async (token: string, password: string) => {
   } catch (e) {
     console.error(`Failed to reset password: ${e}`);
     throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: "Failed to reset password",
+      res: new Response(
+        JSON.stringify({ data: null, error: "Failed to reset password" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
+      ),
     });
   }
 };

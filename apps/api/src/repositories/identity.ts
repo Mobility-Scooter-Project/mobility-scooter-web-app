@@ -27,6 +27,7 @@ const getIdentityByUserId = async (db: DB, userId: string) => {
           data: null,
           error: "Failed to get identity",
         }),
+        { headers: { "Content-Type": "application/json" } },
       ),
     });
   }

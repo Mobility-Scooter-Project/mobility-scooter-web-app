@@ -1,7 +1,6 @@
 import { Form, type ActionFunctionArgs } from "react-router";
 import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import { getApiClient } from "~/lib/api";
-import * as crypto from "node:crypto";
 
 const uploadHandler = async (fileUpload: FileUpload) => {
     const fileStream = fileUpload.stream()
@@ -16,7 +15,7 @@ const uploadHandler = async (fileUpload: FileUpload) => {
 export async function action({ request }: ActionFunctionArgs) {
     const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
 
-    const presignedURL = await client.api.v1.storage.videos["presigned-url"].$post({
+    const presignedURL = await client.api.v1.storage["presigned-url"].upload.$post({
         json: {
             patientId: '12345678',
             filename: 'Test.mp4',

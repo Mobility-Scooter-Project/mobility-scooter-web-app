@@ -8,6 +8,7 @@ import pg from "pg";
 import * as auth from "../db/schema/auth";
 import * as tenants from "../db/schema/tenants";
 import * as videos from "../db/schema/videos";
+import { COMMON_HEADERS } from "@src/config/common-headers";
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -51,6 +52,7 @@ export const dbMiddleware = async (c: Context, next: Next) => {
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
       res: new Response(
         JSON.stringify({ data: null, error: "Failed to set user context" }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
       ),
     });
   }
