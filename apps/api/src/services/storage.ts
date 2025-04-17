@@ -66,7 +66,6 @@ const generatePresignedVideoPutUrl = async (
 
 const generatePresignedVideoGetUrl = async (
   filename: string,
-  userId: string,
   patientId: string,
 ) => {
   const bucket = await storage.bucketExists(patientId);
@@ -90,32 +89,21 @@ const generatePresignedVideoGetUrl = async (
 
   const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
   const base64EncryptionKey = Buffer.from(encryptionKey, 'hex').toString("base64");
-  const base64EncryptionKeyMd5 = Buffer.from(encryptionKeyMd5).toString("base64");
+  const base64EncryptionKeyMd5 = Buffer.from(encryptionKeyMd5, 'hex').toString("base64");
 
-  const url = await storage.presignedUrl(
-    "GET",
+  const object = await storage.getObject(
     patientId,
     uploadPath,
-    60 * 60 * 24,
     {
-      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-      "X-Amz-Server-Side-Encryption-Customer-Key": Buffer.from(encryptionKey, 'hex').toString("base64"),
-      "X-Amz-Server-Side-Encryption-Customer-Key-MD5": Buffer.from(crypto.hash("md5", Buffer.from(encryptionKey, 'hex'))).toString("base64"),
+      SSECustomerAlgorithm: "AES256",
+      SSECustomerKey: base64EncryptionKey,
+      SSECustomerKeyMD5: base64EncryptionKeyMd5,
     }
-  );
+  )
 
-  if (!url) {
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "File not found",
-        }),
-      ),
-    });
+  return {
+    stream: object
   }
-
-  return { url };
 }
 
 export const storageService = {
