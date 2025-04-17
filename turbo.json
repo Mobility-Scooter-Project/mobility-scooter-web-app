@@ -15,6 +15,11 @@
       "with": ["compose:up"],
       "persistent": true,
       "cache": false
+    },
+    "test": {
+      "with": ["compose:up"],
+      "cache": false,
+      "persistent": false
     }
   },
   "ui": "tui"

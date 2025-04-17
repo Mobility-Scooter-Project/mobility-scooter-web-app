@@ -3,7 +3,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo watch dev",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "turbo": "latest"

@@ -12,7 +12,7 @@
     "esModuleInterop": true,
     "allowJs": true,
     "baseUrl": ".",
-    "composite": true, // allows type inference from other projects
+    "composite": true,
     "paths": {
       "@src/*": ["src/*"],
       "@config/*": ["src/config/*"],

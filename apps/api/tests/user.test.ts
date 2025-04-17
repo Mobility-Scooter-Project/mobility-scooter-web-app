@@ -1,7 +1,7 @@
-import { db } from "@middleware/db";
-import { HTTP_CODES } from "@src/config/http-codes";
-import { kv } from "@src/integrations/kv";
+import { db } from "../src/middleware/db";
+import { HTTP_CODES } from "../src/config/http-codes";
 import { sql } from "drizzle-orm";
+import { kv } from "../src/integrations/kv"
 
 const headers = {
   Authorization: `Bearer ${process.env.TESTING_API_KEY}`,
