@@ -9,7 +9,14 @@ Content-Type: application/json
  "password": "testing124"
 }
 
-### Get OTP
-GET http://localhost:3000/api/v1/auth/otp
+### Send Video to Video Worker Queue
+POST http://localhost:3000/api/v1/storage/videos/send-to-queue
 Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
 X-User: {{login.response.body.data.token}}
+
+{
+ "date": "{{$datetime iso8601}}",
+ "filename": "test.mp4",
+ "patientId": "abc-123-456-789"
+}

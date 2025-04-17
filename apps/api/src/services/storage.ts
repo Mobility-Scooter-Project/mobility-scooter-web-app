@@ -78,7 +78,7 @@ const generatePresignedVideoPutUrl = async (
       res: new Response(
         JSON.stringify({
           data: null,
-          error: "Failed to generate presigned URL",
+          error: "Failed to generate presigned put URL",
         }),
         {
           headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
