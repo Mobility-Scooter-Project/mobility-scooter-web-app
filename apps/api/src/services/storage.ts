@@ -1,6 +1,7 @@
+import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { storage } from "@src/integrations/storage";
-import { createObjectEncryptionIv, createObjectEncryptionKey, getObjectEncryptionIv, getObjectEncryptionKey, vault } from "@src/integrations/vault";
+import { createObjectEncryptionKey, getObjectEncryptionKey } from "@src/integrations/vault";
 import { HTTPException } from "hono/http-exception";
 import crypto from "node:crypto";
 
@@ -64,6 +65,36 @@ const generatePresignedVideoPutUrl = async (
   }
 };
 
+const generatePresignedGetUrl = async (
+  filename: string,
+  patientId: string,
+  userId: string,
+) => {
+
+  const date = new Date();
+  const expires = new Date(date.getTime() + 60 * 60 * 24 * 1000);
+  const method = "GET";
+
+  const params = new URLSearchParams({
+    "X-MSWA-Method": method,
+    "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
+    "X-MSWA-Filename": filename,
+    "X-MSWA-Bucket": patientId,
+    "X-MSWA-UserId": userId,
+  })
+
+  // sign the URL
+  const signature = crypto
+    .createHmac("sha256", STORAGE_SECRET)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filename}\n${patientId}\n${userId}`)
+    .digest("hex");
+
+  params.append("X-MSWA-Signature", signature);
+
+  const url = `${BASE_URL}/api/v1/storage/videos?${params.toString()}`;
+  return { url };
+}
+
 const getObjectStream = async (
   filename: string,
   patientId: string,
@@ -106,7 +137,60 @@ const getObjectStream = async (
   }
 }
 
+const validatePresignedUrl = async (
+  filename: string,
+  patientId: string,
+  userId: string,
+  method: string,
+  expires: string,
+  signature: string,
+) => {
+  const date = new Date();
+  const expiresDate = new Date(parseInt(expires) * 1000);
+
+  if (expiresDate < date) {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Presigned URL expired",
+        }),
+      ),
+    });
+  }
+
+  const expectedSignature = crypto
+    .createHmac("sha256", STORAGE_SECRET)
+    .update(`${method}\n${expires}\n${filename}\n${patientId}\n${userId}`)
+    .digest("hex");
+  if (signature !== expectedSignature) {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Invalid signature",
+        }),
+      ),
+    });
+  }
+
+  const bucket = await storage.bucketExists(patientId);
+  if (!bucket) {
+    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Bucket not found",
+        }),
+      ),
+    });
+  }
+
+}
+
 export const storageService = {
   generatePresignedVideoPutUrl,
-   getObjectStream
+  generatePresignedGetUrl,
+  getObjectStream,
+  validatePresignedUrl,
 };

@@ -13,9 +13,10 @@ import { describeRoute } from "hono-openapi";
 import { resolver } from "hono-openapi/zod";
 import { stream, streamText, streamSSE } from 'hono/streaming'
 import Stream from "stream";
+import { z } from "zod";
 
 const app = new Hono<{ Variables: Variables }>().post(
-  "/presigned-url",
+  "/presigned-url/upload",
   describeRoute({
     summary: "Generate a presigned URL for uploading a video",
     description:
@@ -58,8 +59,23 @@ const app = new Hono<{ Variables: Variables }>().post(
       error: null,
     });
   },
-).get(
-  ":patientId/:filename",
+).post("/presigned-url", userMiddleware, dbMiddleware, validateApiKey, zValidator("json", presignedUrlSchema), async (c) => {
+
+  const { filename, patientId } = c.req.valid("json");
+  const userId = c.get("userId")!;
+
+  const data = await storageService.generatePresignedGetUrl(
+    filename,
+    patientId,
+    userId,
+  );
+
+  return c.json({
+    data: { ...data },
+    error: null,
+  });
+}).get(
+  "/",
   describeRoute({
     summary: "Get a presigned URL for uploading a video",
     description:
@@ -93,9 +109,30 @@ const app = new Hono<{ Variables: Variables }>().post(
     },
   }),
   dbMiddleware,
+  zValidator("query", z.object({
+    "X-MSWA-Filename": z.string(),
+    "X-MSWA-Bucket": z.string(),
+    "X-MSWA-UserId": z.string(),
+    "X-MSWA-Method": z.string(),
+    "X-MSWA-Expires": z.string(),
+    "X-MSWA-Signature": z.string(),
+  })),
   async (c) => {
-    const filename = c.req.param("filename");
-    const patientId = c.req.param("patientId");
+    const filename = c.req.valid("query")["X-MSWA-Filename"];
+    const patientId = c.req.valid("query")["X-MSWA-Bucket"];
+    const presignedUserId = c.req.valid("query")["X-MSWA-UserId"];
+    const method = c.req.valid("query")["X-MSWA-Method"];
+    const expires = c.req.valid("query")["X-MSWA-Expires"];
+    const signature = c.req.valid("query")["X-MSWA-Signature"];
+
+    await storageService.validatePresignedUrl(
+      filename,
+      patientId,
+      presignedUserId,
+      method,
+      expires,
+      signature,
+    );
 
     const data = await storageService.getObjectStream(
       filename,
