@@ -7,7 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import crypto from "node:crypto";
 
 const generatePresignedVideoPutUrl = async (
-  filename: string,
+  filePath: string,
   userId: string,
   patientId: string,
 ) => {
@@ -32,11 +32,9 @@ const generatePresignedVideoPutUrl = async (
     });
   }
   try {
-    const uploadPath = `videos/${filename}`;
-
     const encryptionKey = await createObjectEncryptionKey(
       patientId,
-      uploadPath,
+      filePath,
     );
 
     const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
@@ -46,7 +44,7 @@ const generatePresignedVideoPutUrl = async (
     const url = await storage.presignedUrl(
       "PUT",
       patientId,
-      uploadPath,
+      filePath,
       60 * 60 * 24,
       {
         "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
@@ -71,7 +69,7 @@ const generatePresignedVideoPutUrl = async (
 };
 
 const generatePresignedGetUrl = async (
-  filename: string,
+  filePath: string,
   patientId: string,
   userId: string,
 ) => {
@@ -83,7 +81,7 @@ const generatePresignedGetUrl = async (
   const params = new URLSearchParams({
     "X-MSWA-Method": method,
     "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
-    "X-MSWA-Filename": encodeURIComponent(filename),
+    "X-MSWA-FilePath": filePath,
     "X-MSWA-Bucket": patientId,
     "X-MSWA-UserId": userId,
   })
@@ -91,7 +89,7 @@ const generatePresignedGetUrl = async (
   // sign the URL
   const signature = crypto
     .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filename}\n${patientId}\n${userId}`)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${patientId}\n${userId}`)
     .digest("hex");
 
   params.append("X-MSWA-Signature", signature);
@@ -101,7 +99,7 @@ const generatePresignedGetUrl = async (
 }
 
 const getObjectStream = async (
-  filename: string,
+  filePath: string,
   patientId: string,
 ) => {
   const bucket = await storage.bucketExists(patientId);
@@ -117,29 +115,42 @@ const getObjectStream = async (
     });
   }
 
-  const uploadPath = `videos/${filename}`;
-
   const encryptionKey = await getObjectEncryptionKey(
     patientId,
-    uploadPath,
+    filePath,
   );
 
   const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
   const base64EncryptionKey = Buffer.from(encryptionKey, 'hex').toString("base64");
   const base64EncryptionKeyMd5 = Buffer.from(encryptionKeyMd5, 'hex').toString("base64");
 
-  const object = await storage.getObject(
-    patientId,
-    uploadPath,
-    {
-      SSECustomerAlgorithm: "AES256",
-      SSECustomerKey: base64EncryptionKey,
-      SSECustomerKeyMD5: base64EncryptionKeyMd5,
-    }
-  )
+  try {
+    const object = await storage.getObject(
+      patientId,
+      filePath,
+      {
+        SSECustomerAlgorithm: "AES256",
+        SSECustomerKey: base64EncryptionKey,
+        SSECustomerKeyMD5: base64EncryptionKeyMd5,
+      }
+    )
 
-  return {
-    stream: object
+    return {
+      stream: object
+    }
+  } catch (e) {
+    console.error(e);
+    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Failed to retrieve object",
+        }),
+        {
+          headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
+        }
+      ),
+    });
   }
 }
 
@@ -154,18 +165,6 @@ const validatePresignedUrl = async (
   const date = new Date();
   const expiresDate = new Date(parseInt(expires) * 1000);
 
-  if (expiresDate < date) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Presigned URL expired",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
-  }
-
   const expectedSignature = crypto
     .createHmac("sha256", STORAGE_SECRET)
     .update(`${method}\n${expires}\n${filename}\n${patientId}\n${userId}`)
@@ -176,6 +175,18 @@ const validatePresignedUrl = async (
         JSON.stringify({
           data: null,
           error: "Invalid signature",
+        }),
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
+      ),
+    });
+  }
+
+  if (expiresDate < date) {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      res: new Response(
+        JSON.stringify({
+          data: null,
+          error: "Presigned URL expired",
         }),
         { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
       ),

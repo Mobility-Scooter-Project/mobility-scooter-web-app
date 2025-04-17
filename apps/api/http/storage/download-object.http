@@ -17,10 +17,10 @@ X-User: {{login.response.body.data.token}}
 Content-Type: application/json
 
 {
-  "filename": "sample.mp4",
-  "patientId": "1235678"
+  "filePath": "videos/sample.mp4",
+  "patientId": "http-client"
 }
 
 ### Download Video
 # @name downloadVideo
-GET {{getPresignedUrl.response.body.data.url}}
+#GET {{getPresignedUrl.response.body.data.url}} -> view this link in your browser to avoid crashing VSCode

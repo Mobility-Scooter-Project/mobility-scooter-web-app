@@ -5,7 +5,7 @@ export async function loader() {
     const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
     const res = await client.api.v1.storage["presigned-url"].$post({
         json: {
-            filename: "Test.mp4",
+            filePath: "videos/Test.mp4",
             patientId: "12345678",
         },
     });

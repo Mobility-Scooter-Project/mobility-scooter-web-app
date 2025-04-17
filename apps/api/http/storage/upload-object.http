@@ -17,13 +17,16 @@ X-User: {{login.response.body.data.token}}
 Content-Type: application/json
 
 {
- "filename": "sample.mp4",
- "patientId": "1235678"
+ "filePath": "videos/sample.mp4",
+ "patientId": "http-client"
 }
 
 ### Upload Video
 # @name uploadVideo
 PUT {{getPresignedUrl.response.body.data.url}}
 Content-Type: multipart/form-data
+X-Amz-Server-Side-Encryption-Customer-Algorithm: AES256
+X-Amz-Server-Side-Encryption-Customer-Key: {{getPresignedUrl.response.body.data.encryptionKey}}
+X-Amz-Server-Side-Encryption-Customer-Key-MD5: {{getPresignedUrl.response.body.data.encryptionKeyMd5}}
 
 < sample.mp4

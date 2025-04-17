@@ -18,7 +18,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const presignedURL = await client.api.v1.storage["presigned-url"].upload.$post({
         json: {
             patientId: '12345678',
-            filename: 'Test.mp4',
+            filePath: 'videos/Test.mp4',
         }
     })
 

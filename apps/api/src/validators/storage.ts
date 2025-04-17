@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const presignedUrlSchema = z.object({
-  filename: z.string(),
+  filePath: z.string(),
   patientId: z.string(),
 });
 
@@ -13,9 +13,8 @@ export const presignedUrlResponseSchema = z.object({
   }),
 });
 
-
 export const presignedQuerySchema = z.object({
-  "X-MSWA-Filename": z.string(),
+  "X-MSWA-FilePath": z.string(),
   "X-MSWA-Bucket": z.string(),
   "X-MSWA-UserId": z.string(),
   "X-MSWA-Method": z.string(),
