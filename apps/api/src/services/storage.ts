@@ -7,6 +7,25 @@ import { createObjectEncryptionKey, getObjectEncryptionKey } from "@src/integrat
 import { HTTPException } from "hono/http-exception";
 import crypto from "node:crypto";
 
+/**
+ * Uploads an object to a specified bucket with server-side encryption and generates a presigned URL for retrieval.
+ * 
+ * @param filePath - The path where the file will be stored in the bucket
+ * @param userId - The ID of the user uploading the file
+ * @param bucketName - The name of the bucket where the file will be stored
+ * @param object - The Blob object to be uploaded
+ * 
+ * @throws {HTTPException} When bucket creation/retrieval fails
+ * @throws {HTTPException} When upload or presigned URL generation fails
+ * 
+ * @returns {Promise<{ success: boolean } | undefined>} Returns an object indicating success, or undefined if upload fails
+ * 
+ * @remarks
+ * - Creates a bucket if it doesn't exist
+ * - Implements server-side encryption using AES256
+ * - Generates a presigned URL for PUT operation
+ * - Publishes video information to "videos" channel upon successful upload
+ */
 const putObjectStream = async (
   filePath: string,
   userId: string,
@@ -148,6 +167,17 @@ const generatePresignedGetUrl = async (
   return { url };
 }
 
+/**
+ * Retrieves an encrypted object stream from a specified bucket.
+ * 
+ * @param bucketName - The name of the bucket to retrieve the object from
+ * @param filePath - The path to the file within the bucket
+ * 
+ * @throws {HTTPException} With status NOT_FOUND if bucket doesn't exist
+ * @throws {HTTPException} With status INTERNAL_SERVER_ERROR if object retrieval fails
+ * 
+ * @returns {Promise<{stream: Object}>} A promise that resolves to an object containing the file stream
+ */
 const getObjectStream = async (
   bucketName: string,
   filePath: string,
