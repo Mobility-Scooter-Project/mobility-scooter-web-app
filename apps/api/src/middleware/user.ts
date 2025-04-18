@@ -5,6 +5,7 @@ import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { verify } from "hono/jwt";
 
+
 /**
  * Middleware function for user authentication.
  * Verifies the user JWT token and sets userId and sessionId in the context.
@@ -16,12 +17,13 @@ import { verify } from "hono/jwt";
  */
 export const userMiddleware = async (c: Context, next: Next) => {
   const user = c.req.header("X-User");
+  const { logger } = c.var;
 
   if (!user) {
     throw new HTTPException(HTTP_CODES.BAD_REQUEST, {
       res: new Response(
         JSON.stringify({ error: "No user data provided", data: null }),
-        { headers:  COMMON_HEADERS.CONTENT_TYPE_JSON},
+        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
       ),
     });
   }
@@ -39,6 +41,7 @@ export const userMiddleware = async (c: Context, next: Next) => {
 
     c.set("userId", userId);
     c.set("sessionId", sessionId);
+    logger.assign({ userId, sessionId });
 
     await next();
   } catch (e) {

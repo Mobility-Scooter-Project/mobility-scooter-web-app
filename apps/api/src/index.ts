@@ -4,18 +4,35 @@ import type { DB } from "@middleware/db";
 import { apiReference } from "@scalar/hono-api-reference";
 import auth from "@src/handlers/auth";
 import { Hono } from "hono";
-import { logger } from "hono/logger";
 import { openAPISpecs } from "hono-openapi";
 import { HTTPException } from "hono/http-exception";
+import { PinoLogger, pinoLogger } from 'hono-pino'
+import { ENVIRONMENT } from "./config/constants";
+import { prometheus } from '@hono/prometheus'
 
 export type Variables = {
   db: DB;
   userId?: string;
   sessionId?: string;
+  logger: PinoLogger;
 };
 
+const { printMetrics, registerMetrics } = prometheus()
+
 export const app = new Hono<{ Variables: Variables }>()
-  .use(logger())
+  .use(pinoLogger({
+    pino: {
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: ENVIRONMENT === "development",
+          sync: ENVIRONMENT === "test",
+        }
+      }
+    }
+  }))
+  .use('*', registerMetrics)
+  .get("/metrics", printMetrics)
   .get("/healthcheck", (c) => {
     return c.text("OK");
   })
@@ -25,8 +42,9 @@ export const app = new Hono<{ Variables: Variables }>()
 
 
 app.onError((err, c) => {
+  const { logger } = c.var;
   if (err instanceof HTTPException) {
-    console.error(err);
+    logger.error(err.message);
     return err.getResponse();
   }
 
