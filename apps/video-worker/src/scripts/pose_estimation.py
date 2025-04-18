@@ -1,6 +1,8 @@
 import cv2
+import time
 from datetime import timedelta
 import numpy as np
+import cupy as cp
 from scripts.audio_detection import format_time
 
 def calculate_angle(p1, p2):
@@ -15,15 +17,15 @@ def calculate_angle(p1, p2):
     The calculated angle.
   """
   try:
-    vector = np.array([p2[0] - p1[0], p2[1] - p1[1]])
-    vertical = np.array([0, 1])
+    vector = cp.array([p2[0] - p1[0], p2[1] - p1[1]])
+    vertical = cp.array([0, 1])
 
     # Dot product and magnitude
-    dot_product = np.dot(vector, vertical)
-    magnitude = np.linalg.norm(vector) * np.linalg.norm(vertical)
-    angle_rad = np.arccos(dot_product / magnitude)
-    angle_sign = -np.sign(vector[0])
-    angle_deg = angle_sign * np.degrees(angle_rad)
+    dot_product = cp.dot(vector, vertical)
+    magnitude = cp.linalg.norm(vector) * cp.linalg.norm(vertical)
+    angle_rad = cp.arccos(dot_product / magnitude)
+    angle_sign = -cp.sign(vector[0])
+    angle_deg = angle_sign * cp.degrees(angle_rad)
     return angle_deg
   except Exception as e:
     print(f"Calculating Angle Error: {e}")
@@ -59,8 +61,8 @@ def pose_estimation(model, video_url, filename):
   
   # Get bounding boxes and keypoints
   if result.keypoints is not None and result.boxes is not None: 
-    keypoints = result.keypoints.xy.cpu().numpy().astype(int)
-    boxes = result.boxes.xyxy.cpu().numpy().astype(int)
+    keypoints = result.keypoints.xy
+    boxes = result.boxes.xyxy
 
   x1, y1, x2, y2 = boxes[0]
   x_mid = (x1 + x2)/2
@@ -113,7 +115,7 @@ def pose_estimation(model, video_url, filename):
     
     # Get keypoints
     if result.keypoints is not None and result.boxes is not None: 
-      keypoints = result.keypoints.xy.cpu().numpy().astype(int)
-      boxes = result.boxes.xyxy.cpu().numpy().astype(int)
-
+      keypoints = result.keypoints.xy
+      boxes = result.boxes.xyxy
+    
   cap.release()

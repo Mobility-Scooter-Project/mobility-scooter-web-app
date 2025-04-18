@@ -37,8 +37,8 @@ def process_video(body):
     body (bytes): Video data from the queue.
   """  
   video = json.loads(body.decode())
-  audio_detection(asr_model, video['videoUrl'], video['filename'])
-  pose_estimation(pe_model, video['videoUrl'], video['filename'])
+  audio_detection(asr_model, video['videoGetUrl'], video['transcriptPutUrl'], video['filename'])
+  pose_estimation(pe_model, video['videoGetUrl'], video['filename'])
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
 channel = connection.channel()

@@ -1,5 +1,7 @@
 import tempfile
 import webvtt
+import requests
+import time
 from datetime import timedelta
 from rapidfuzz import fuzz
 from constants.tasks import TASK_LIST
@@ -65,13 +67,14 @@ def get_transcript(video_url, model):
   
   """
   try:
-    result = model.transcribe(video_url, word_timestamps=True, fp16=False)  
+    start_time = time.time()
+    result = model.transcribe(video_url, word_timestamps=True, fp16=True)  
     vtt_content = format_vtt(result["segments"], "segms")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
       tmp.write(vtt_content.encode("utf-8"))  
       
-    print("Transcript generated successfully!\n")
+    print(f"Transcript generated successfully after {time.time() - start_time:.2f}s!\n")
     return tmp
   except Exception as e:
     print(f"Failed to generate trancript: {e}\n")
@@ -125,7 +128,7 @@ def get_tasks(transcript, filename):
     start_time, end_time = tasks_time[task]
     print(f'Task: "{task}" starts at {start_time} and ends at {end_time}\n')
     
-def audio_detection(model, video_url, filename):
+def audio_detection(model, video_url, transcript_url, filename):
   """
   Calls functions to generate a transcript and determine if the video has any tasks.
 
@@ -134,8 +137,11 @@ def audio_detection(model, video_url, filename):
     filename (str): Name of the video file.
   """
   print(f"\nGenerating transcript for {filename}...")
-  transcript = get_transcript(video_url, model)  
-  # TODO: Store the transcript
+  transcript = get_transcript(video_url, model) 
+
+  with open(transcript.name, "rb") as f:
+    requests.put(transcript_url, data=f)  
+  # TODO: Store the transcript metadata
 
   print(f"Detecting tasks from transcript...")
   get_tasks(transcript.name, filename)

@@ -47,15 +47,16 @@ app.post(
     const { filename, patientId, date } = c.req.valid("json");
     const userId = c.get("userId")!;
 
-    const url = await storageService.generatePresignedVideoPutUrl(
+    const videoPutUrl = await storageService.generatePresignedPutUrl(
       filename,
-      userId,
       patientId,
+      "Video",
+      userId,
       date,
     );
     return c.json({
       data: {
-        url,
+        videoPutUrl,
       },
       error: null,
     });
@@ -94,20 +95,34 @@ app.post(
   async (c) => {
     const { filename, patientId, date } = c.req.valid("json");
     const userId = c.get("userId")!;
+    const db = c.get("db");
 
-    const videoUrl = await storageService.generatePresignedVideoGetUrl(
+    const videoGetUrl = await storageService.generatePresignedGetUrl(
       filename,
-      userId,
       patientId,
+      "Video",
+      userId,
       date,
     );
 
-    pub.send("videos", {videoUrl, filename})
+    const transcriptName = `${filename.split(".", 2)[0]}.vtt`
+    
+    const transcriptPutUrl = await storageService.generatePresignedPutUrl(
+      transcriptName,
+      patientId,
+      "Trancript",
+      userId,
+      date,
+    )
+
+    pub.send("videos", {videoGetUrl, transcriptPutUrl, filename})
     
     return c.json({
       data: {
-        videoUrl,
+        videoGetUrl, 
+        transcriptPutUrl,
         filename,
+        transcriptName,
       },
       error: null,
     });

@@ -19,9 +19,10 @@ import { HTTPException } from "hono/http-exception";
  *
  * @throws {HTTPException} With status 500 if the storage cannot create a bucket or pre-signed url
  */
-const generatePresignedVideoPutUrl = async (
+const generatePresignedPutUrl = async (
   filename: string,
   patientId: string,
+  content: string,
   userId: string,
   date: Date,
 ) => {
@@ -50,7 +51,7 @@ const generatePresignedVideoPutUrl = async (
   try {
     return await storage.presignedPutObject(
       patientId,
-      `videos/${date}/${filename}`,
+      `${date}/${content}s/${filename}`,
       60 * 60 * 24,
     );
   } catch (e) {
@@ -83,21 +84,22 @@ const generatePresignedVideoPutUrl = async (
  * @throws {HTTPException} With status 500 if the storage cannot create a pre-signed url
  * @throws {HTTPException} With status 404 if the storage cannot find a video with the provided data
  */
-const generatePresignedVideoGetUrl = async (
+const generatePresignedGetUrl = async (
   filename: string,
   patientId: string,
+  content: string,
   userId: string,
-  date: Date
+  date: Date,
 ) => {
   try {
-    await storage.statObject(patientId, `videos/${date}/${filename}`);
+    await storage.statObject(patientId, `${date}/${content}s/${filename}`);
   } catch (e) {
     console.error(e);
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
         JSON.stringify({
           data: null,
-          error: "Video not found with the provided data",
+          error: `${content} not found with the provided data`,
         }),
       ),
     });
@@ -105,7 +107,7 @@ const generatePresignedVideoGetUrl = async (
   try {
     return await storage.presignedGetObject(
       patientId,
-      `videos/${date}/${filename}`,
+      `${date}/${content}s/${filename}`,
       60 * 60 * 24,
     );
   } catch (e) {
@@ -122,6 +124,6 @@ const generatePresignedVideoGetUrl = async (
 }
 
 export const storageService = {
-  generatePresignedVideoPutUrl,
-  generatePresignedVideoGetUrl,
+  generatePresignedPutUrl,
+  generatePresignedGetUrl,
 };
