@@ -56,29 +56,29 @@ export const getOtpSecretByUserId = async (userId: string) => {
  * Creates and stores a new encryption key for a specific object in a bucket.
  * 
  * Generates a random 256-bit (32-byte) key for AES-256 encryption and stores it
- * in HashiCorp Vault under the path `kv/storage/${bucketId}/${objectId}`.
+ * in HashiCorp Vault under the path `kv/storage/${bucketName}/${objectId}`.
  * 
- * @param bucketId - The identifier of the bucket containing the object
+ * @param bucketName - The identifier of the bucket containing the object
  * @param path - The full path of the object for which to create the encryption key
  * @returns The generated encryption key as a hexadecimal string
  */
-export const createObjectEncryptionKey = async (bucketId: string, path: string) => {
+export const createObjectEncryptionKey = async (bucketName: string, path: string) => {
   const secret = crypto.randomBytes(32).toString("hex"); // 32 bytes = 256 bits for AES-256 encryption
-  await vault.write(`kv/storage/${bucketId}/${path}`, { secret });
+  await vault.write(`kv/storage/${bucketName}/${path}`, { secret });
   return secret;
 }
 
 /**
  * Retrieves the encryption key for a specific object in a bucket from the vault.
  * 
- * @param bucketId - The ID of the bucket containing the object
+ * @param bucketName - The ID of the bucket containing the object
  * @param path - The full path of the object for which to retrieve the encryption key
  * @returns A Promise that resolves to the encryption key as a string
  * @throws {HTTPException} With NOT_FOUND status if the encryption key does not exist in the vault
  */
-export const getObjectEncryptionKey = async (bucketId: string, path: string) => {
+export const getObjectEncryptionKey = async (bucketName: string, path: string) => {
   try {
-    const secret = await vault.read(`kv/storage/${bucketId}/${path}`);
+    const secret = await vault.read(`kv/storage/${bucketName}/${path}`);
     return secret.getData().secret as string;
   } catch (e) {
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {

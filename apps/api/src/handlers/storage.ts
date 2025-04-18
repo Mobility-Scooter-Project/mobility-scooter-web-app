@@ -16,8 +16,8 @@ import { stream } from "hono/streaming";
 import Stream from "stream";
 
 const app = new Hono<{ Variables: Variables }>()
-  .post(
-    "/presigned-url/upload",
+  .put(
+    "/:bucketName/:filePath",
     describeRoute({
       summary: "Generate a presigned URL for uploading a video",
       description:
@@ -44,15 +44,18 @@ const app = new Hono<{ Variables: Variables }>()
     validateApiKey,
     userMiddleware,
     dbMiddleware,
-    zValidator("json", presignedUrlSchema),
     async (c) => {
-      const { filePath, patientId } = c.req.valid("json");
+      const bucketName = c.req.param("bucketName");
+      const filePath = decodeURIComponent(c.req.param("filePath"));
+      const objectBlob = await c.req.blob();
+
       const userId = c.get("userId")!;
 
-      const data = await storageService.generatePresignedVideoPutUrl(
+      const data = await storageService.putObjectStream(
         filePath,
         userId,
-        patientId,
+        bucketName,
+        objectBlob,
       );
 
       return c.json({
@@ -68,12 +71,12 @@ const app = new Hono<{ Variables: Variables }>()
     dbMiddleware,
     zValidator("json", presignedUrlSchema),
     async (c) => {
-      const { filePath, patientId } = c.req.valid("json");
+      const { filePath, bucketName } = c.req.valid("json");
       const userId = c.get("userId")!;
 
       const data = await storageService.generatePresignedGetUrl(
         filePath,
-        patientId,
+        bucketName,
         userId,
       );
 
@@ -105,7 +108,7 @@ const app = new Hono<{ Variables: Variables }>()
     zValidator("query", presignedQuerySchema),
     async (c) => {
       const filePath = c.req.valid("query")["X-MSWA-FilePath"];
-      const patientId = c.req.valid("query")["X-MSWA-Bucket"];
+      const bucketName = c.req.valid("query")["X-MSWA-Bucket"];
       const presignedUserId = c.req.valid("query")["X-MSWA-UserId"];
       const method = c.req.valid("query")["X-MSWA-Method"];
       const expires = c.req.valid("query")["X-MSWA-Expires"];
@@ -113,14 +116,14 @@ const app = new Hono<{ Variables: Variables }>()
 
       await storageService.validatePresignedUrl(
         filePath,
-        patientId,
+        bucketName,
         presignedUserId,
         method,
         expires,
         signature,
       );
 
-      const data = await storageService.getObjectStream(filePath, patientId);
+      const data = await storageService.getObjectStream(bucketName, filePath);
 
       // Assuming data is a ReadableStream<Uint8Array> or similar
       if (!data) {
