@@ -6,13 +6,12 @@ export async function loader() {
     const res = await client.api.v1.storage["presigned-url"].$post({
         json: {
             filePath: "videos/Test.mp4",
-            patientId: "12345678",
+            bucketName: "web-bucket",
         },
     });
 
     return await res.json();
 }
-
 
 export default function Download() {
     const { data, error } = useLoaderData<typeof loader>();

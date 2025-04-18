@@ -4,40 +4,27 @@ import { getApiClient } from "~/lib/api";
 import { uploadHandler } from "~/lib/upload";
 
 export async function action({ request }: ActionFunctionArgs) {
-    const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
 
-    const presignedURL = await client.api.v1.storage["presigned-url"].upload.$post({
-        json: {
-            patientId: '12345678',
-            filePath: 'videos/Test.mp4',
+    const formData = await parseFormData(request, uploadHandler);
+    const object = formData.get("file") as File;
+
+    const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT, "Content-Length": object.size.toString() });
+    const bucketName = "web-bucket";
+    const filePath = encodeURIComponent(`videos/Test.mp4`);
+
+    const res = await client.api.v1.storage[":bucketName"][":filePath"].$put({
+        param: {
+            bucketName,
+            filePath
+        },
+    }, {
+        init: {
+            body: object,
         }
     })
 
-    const { data, error } = await presignedURL.json();
+    console.log("Response from upload:", await res.json());
 
-    const formData = await parseFormData(request, uploadHandler);
-    const file = formData.get("file");
-
-    const algorithm = "AES256";
-    const { encryptionKey, encryptionKeyMd5, url } = data;
-
-
-    const res = await fetch(url, {
-        method: "PUT",
-        body: file,
-        headers: {
-            "X-Amz-Server-Side-Encryption-Customer-Algorithm": algorithm,
-            "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKey,
-            "X-Amz-Server-Side-Encryption-Customer-Key-MD5": encryptionKeyMd5,
-        },
-    });
-
-    if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`Failed to upload file: ${errorText}`);
-        return;
-    }
-    console.info("File uploaded successfully!");
 }
 
 export default function Upload() {

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const presignedUrlSchema = z.object({
   filePath: z.string(),
-  patientId: z.string(),
+  bucketName: z.string(),
 });
 
 export const presignedUrlResponseSchema = z.object({

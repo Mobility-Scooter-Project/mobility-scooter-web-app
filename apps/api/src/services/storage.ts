@@ -1,43 +1,44 @@
 import { COMMON_HEADERS } from "@src/config/common-headers";
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { pub } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { createObjectEncryptionKey, getObjectEncryptionKey } from "@src/integrations/vault";
 import { HTTPException } from "hono/http-exception";
 import crypto from "node:crypto";
 
 /**
- * Generates a pre-signed URL for uploading a video file using the PUT method.
- * It ensures a dedicated bucket exists for the specified patient and configures
- * server-side encryption using a customer-provided key (SSE-C).
- *
- * @param filePath - The desired path/name for the object within the bucket.
- * @param userId - The ID of the user requesting the upload URL. TODO: Implement access control check.
- * @param patientId - The ID of the patient, used as the bucket name and for deriving the encryption key.
- * @returns A promise that resolves to an object containing the pre-signed URL,
- *          the base64 encoded encryption key, and the base64 encoded MD5 hash of the encryption key.
- * @throws {HTTPException} If there's an error creating or retrieving the patient's bucket.
- * @throws {HTTPException} If there's an error generating the pre-signed URL or the encryption key.
- * @remarks This function first attempts to find or create a bucket named after the `patientId`.
- *          It then generates a unique encryption key for the object based on the `patientId` and `filePath`.
- *          The pre-signed URL is configured for SSE-C using the generated key. The client uploading
- *          the file must provide the correct `X-Amz-Server-Side-Encryption-Customer-Algorithm`,
- *          `X-Amz-Server-Side-Encryption-Customer-Key`, and `X-Amz-Server-Side-Encryption-Customer-Key-MD5`
- *          headers using the returned key details. The URL is valid for 24 hours.
- * @todo Check if the `userId` has the necessary permissions to access/upload data for the given `patientId`.
+ * Uploads an object to a specified bucket with server-side encryption and generates a presigned URL for retrieval.
+ * 
+ * @param filePath - The path where the file will be stored in the bucket
+ * @param userId - The ID of the user uploading the file
+ * @param bucketName - The name of the bucket where the file will be stored
+ * @param object - The Blob object to be uploaded
+ * 
+ * @throws {HTTPException} When bucket creation/retrieval fails
+ * @throws {HTTPException} When upload or presigned URL generation fails
+ * 
+ * @returns {Promise<{ success: boolean } | undefined>} Returns an object indicating success, or undefined if upload fails
+ * 
+ * @remarks
+ * - Creates a bucket if it doesn't exist
+ * - Implements server-side encryption using AES256
+ * - Generates a presigned URL for PUT operation
+ * - Publishes video information to "videos" channel upon successful upload
  */
-const generatePresignedVideoPutUrl = async (
+const putObjectStream = async (
   filePath: string,
   userId: string,
-  patientId: string,
+  bucketName: string,
+  object: Blob,
 ) => {
   // TODO: check if user has access to patientId
 
   // each patient gets their own bucket to attempt to isolate their data
   try {
-    const bucket = await storage.bucketExists(patientId);
+    const bucket = await storage.bucketExists(bucketName);
     if (!bucket) {
-      await storage.makeBucket(patientId);
+      await storage.makeBucket(bucketName);
     }
   } catch (e) {
     console.error(e);
@@ -53,28 +54,60 @@ const generatePresignedVideoPutUrl = async (
   }
   try {
     const encryptionKey = await createObjectEncryptionKey(
-      patientId,
+      bucketName,
       filePath,
     );
 
     const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
     const encryptionKeyBase64 = Buffer.from(encryptionKey, 'hex').toString("base64");
     const encryptionKeyMd5Base64 = Buffer.from(encryptionKeyMd5, 'hex').toString("base64");
+    const expires = 60 * 60 * 24;
 
-    const url = await storage.presignedUrl(
+    const presignedUrl = await storage.presignedUrl(
       "PUT",
-      patientId,
+      bucketName,
       filePath,
-      60 * 60 * 24,
+      expires,
       {
         "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
       }
     );
 
-    return { url, encryptionKey: encryptionKeyBase64, encryptionKeyMd5: encryptionKeyMd5Base64 };
+    const res = await fetch(presignedUrl, {
+      method: "PUT",
+      body: object,
+      headers: {
+        "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
+        "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
+        "X-Amz-Server-Side-Encryption-Customer-Key-MD5": encryptionKeyMd5Base64,
+      },
+    });
+
+    if (!res.ok) {
+      return;
+    }
+    
+    const data = await generatePresignedGetUrl(
+      filePath,
+      bucketName,
+      userId,
+    );
+
+    if (res.ok) {
+      await pub.send("videos", {
+        videoUrl: data.url,
+        filename: filePath,
+      });
+
+      return {
+        success: true,
+      }
+    }
+
   } catch (e) {
     console.error(e);
     throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
+      message: e instanceof Error ? e.message : "Failed to upload object",
       res: new Response(
         JSON.stringify({
           data: null,
@@ -97,7 +130,7 @@ const generatePresignedVideoPutUrl = async (
  * The signing process uses HMAC-SHA256 with a predefined secret (`STORAGE_SECRET`).
  *
  * @param filePath - The path to the file within the storage bucket (e.g., 'documents/report.pdf').
- * @param patientId - The identifier for the storage bucket, typically the patient's ID.
+ * @param bucketName - The identifier for the storage bucket, typically the patient's ID.
  * @param userId - The identifier of the user requesting the URL.
  * @returns An object containing the generated presigned URL.
  * @example
@@ -106,7 +139,7 @@ const generatePresignedVideoPutUrl = async (
  */
 const generatePresignedGetUrl = async (
   filePath: string,
-  patientId: string,
+  bucketName: string,
   userId: string,
 ) => {
 
@@ -118,14 +151,14 @@ const generatePresignedGetUrl = async (
     "X-MSWA-Method": method,
     "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
     "X-MSWA-FilePath": filePath,
-    "X-MSWA-Bucket": patientId,
+    "X-MSWA-Bucket": bucketName,
     "X-MSWA-UserId": userId,
   })
 
   // sign the URL
   const signature = crypto
     .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${patientId}\n${userId}`)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}\n${userId}`)
     .digest("hex");
 
   params.append("X-MSWA-Signature", signature);
@@ -134,11 +167,22 @@ const generatePresignedGetUrl = async (
   return { url };
 }
 
+/**
+ * Retrieves an encrypted object stream from a specified bucket.
+ * 
+ * @param bucketName - The name of the bucket to retrieve the object from
+ * @param filePath - The path to the file within the bucket
+ * 
+ * @throws {HTTPException} With status NOT_FOUND if bucket doesn't exist
+ * @throws {HTTPException} With status INTERNAL_SERVER_ERROR if object retrieval fails
+ * 
+ * @returns {Promise<{stream: Object}>} A promise that resolves to an object containing the file stream
+ */
 const getObjectStream = async (
+  bucketName: string,
   filePath: string,
-  patientId: string,
 ) => {
-  const bucket = await storage.bucketExists(patientId);
+  const bucket = await storage.bucketExists(bucketName);
   if (!bucket) {
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
@@ -152,7 +196,7 @@ const getObjectStream = async (
   }
 
   const encryptionKey = await getObjectEncryptionKey(
-    patientId,
+    bucketName,
     filePath,
   );
 
@@ -162,7 +206,7 @@ const getObjectStream = async (
 
   try {
     const object = await storage.getObject(
-      patientId,
+      bucketName,
       filePath,
       {
         SSECustomerAlgorithm: "AES256",
@@ -193,8 +237,8 @@ const getObjectStream = async (
 /**
  * Validates a presigned URL by checking the signature, expiration date, and bucket existence
  * 
- * @param filename - The name of the file to be accessed
- * @param patientId - The ID of the patient associated with the bucket
+ * @param filePath - The path to the file within the storage bucket
+ * @param bucketName - The ID of the patient associated with the bucket
  * @param userId - The ID of the user making the request
  * @param method - The HTTP method to be used (GET, PUT, etc.)
  * @param expires - The expiration timestamp in seconds since epoch
@@ -208,8 +252,8 @@ const getObjectStream = async (
  * @returns {Promise<void>} Resolves if validation is successful
  */
 const validatePresignedUrl = async (
-  filename: string,
-  patientId: string,
+  filePath: string,
+  bucketName: string,
   userId: string,
   method: string,
   expires: string,
@@ -220,7 +264,7 @@ const validatePresignedUrl = async (
 
   const expectedSignature = crypto
     .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${expires}\n${filename}\n${patientId}\n${userId}`)
+    .update(`${method}\n${expires}\n${filePath}\n${bucketName}\n${userId}`)
     .digest("hex");
   if (signature !== expectedSignature) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
@@ -246,7 +290,7 @@ const validatePresignedUrl = async (
     });
   }
 
-  const bucket = await storage.bucketExists(patientId);
+  const bucket = await storage.bucketExists(bucketName);
   if (!bucket) {
     throw new HTTPException(HTTP_CODES.NOT_FOUND, {
       res: new Response(
@@ -262,8 +306,8 @@ const validatePresignedUrl = async (
 }
 
 export const storageService = {
-  generatePresignedVideoPutUrl,
   generatePresignedGetUrl,
   getObjectStream,
+  putObjectStream,
   validatePresignedUrl,
 };
