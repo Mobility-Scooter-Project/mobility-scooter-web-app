@@ -1,6 +1,7 @@
 import { COMMON_HEADERS } from "@src/config/common-headers";
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { pub } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { createObjectEncryptionKey, getObjectEncryptionKey } from "@src/integrations/vault";
 import { HTTPException } from "hono/http-exception";
@@ -64,14 +65,21 @@ const putObjectStream = async (
     });
 
     if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`Failed to upload file: ${errorText}`);
       return;
     }
-    console.info("File uploaded successfully!");
-
+    
+    const data = await generatePresignedGetUrl(
+      filePath,
+      bucketName,
+      userId,
+    );
 
     if (res.ok) {
+      await pub.send("videos", {
+        videoUrl: data.url,
+        filename: filePath,
+      });
+
       return {
         success: true,
       }

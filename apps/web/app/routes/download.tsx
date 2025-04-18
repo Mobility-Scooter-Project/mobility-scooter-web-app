@@ -13,7 +13,6 @@ export async function loader() {
     return await res.json();
 }
 
-
 export default function Download() {
     const { data, error } = useLoaderData<typeof loader>();
 
