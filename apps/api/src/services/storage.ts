@@ -34,86 +34,43 @@ const putObjectStream = async (
   // TODO: check if user has access to patientId
 
   // each patient gets their own bucket to attempt to isolate their data
-  try {
-    const bucket = await storage.bucketExists(bucketName);
-    if (!bucket) {
-      await storage.makeBucket(bucketName);
+
+  const expires = 60 * 60 * 24;
+
+  await storage.getOrCreateBucket(bucketName);
+
+  const presignedUrlPromise = storage.presignedUrl(
+    "PUT",
+    bucketName,
+    filePath,
+    expires,
+    {
+      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
     }
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to create or retrieve bucket",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
-  }
-  try {
-    const encryptionKey = await vault.createObjectEncryptionKey(
-      bucketName,
-      filePath,
-    );
+  );
 
-    const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
-    const encryptionKeyBase64 = Buffer.from(encryptionKey, 'hex').toString("base64");
-    const encryptionKeyMd5Base64 = Buffer.from(encryptionKeyMd5, 'hex').toString("base64");
-    const expires = 60 * 60 * 24;
+  const encryptionKeyPromise = vault.createObjectEncryptionKey(
+    bucketName,
+    filePath,
+  );
 
-    const presignedUrl = await storage.presignedUrl(
-      "PUT",
-      bucketName,
-      filePath,
-      expires,
-      {
-        "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-      }
-    );
+  const [encryptionKey, presignedUrl] = await Promise.all([
+    encryptionKeyPromise,
+    presignedUrlPromise,
+  ]);
 
-    const res = await fetch(presignedUrl, {
-      method: "PUT",
-      body: object,
-      headers: {
-        "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-        "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
-        "X-Amz-Server-Side-Encryption-Customer-Key-MD5": encryptionKeyMd5Base64,
-      },
-    });
+  await storage.uploadToPresignedUrl(
+    presignedUrl,
+    object,
+    encryptionKey,
+  );
 
-    if (!res.ok) {
-      return;
-    }
 
-    const data = await generatePresignedGetUrl(
-      filePath,
-      bucketName,
-      userId,
-    );
-
-    if (res.ok) {
-
-      return {
-        success: true,
-      }
-    }
-
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      message: e instanceof Error ? e.message : "Failed to upload object",
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to generate presigned put URL",
-        }),
-        {
-          headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
-        }
-      ),
-    });
-  }
+  const data = await generatePresignedGetUrl(
+    filePath,
+    bucketName,
+    userId,
+  );
 };
 
 /**
@@ -177,55 +134,25 @@ const getObjectStream = async (
   bucketName: string,
   filePath: string,
 ) => {
-  const bucket = await storage.bucketExists(bucketName);
-  if (!bucket) {
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Bucket not found",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
-  }
-
-  const encryptionKey = await vault.getObjectEncryptionKey(
+  const bucketExistsPromise = storage.bucketExists(bucketName);
+  const encryptionKeyPromise = vault.getObjectEncryptionKey(
     bucketName,
     filePath,
   );
 
-  const encryptionKeyMd5 = crypto.hash("md5", Buffer.from(encryptionKey, 'hex'));
-  const base64EncryptionKey = Buffer.from(encryptionKey, 'hex').toString("base64");
-  const base64EncryptionKeyMd5 = Buffer.from(encryptionKeyMd5, 'hex').toString("base64");
+  const [_, encryptionKey] = await Promise.all([
+    bucketExistsPromise,
+    encryptionKeyPromise,
+  ]);
 
-  try {
-    const object = await storage.getObject(
-      bucketName,
-      filePath,
-      {
-        SSECustomerAlgorithm: "AES256",
-        SSECustomerKey: base64EncryptionKey,
-        SSECustomerKeyMD5: base64EncryptionKeyMd5,
-      }
-    )
+  const object = await storage.getObject(
+    bucketName,
+    filePath,
+    encryptionKey
+  )
 
-    return {
-      stream: object
-    }
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to retrieve object",
-        }),
-        {
-          headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
-        }
-      ),
-    });
+  return {
+    stream: object
   }
 }
 
@@ -254,50 +181,14 @@ const validatePresignedUrl = async (
   expires: string,
   signature: string,
 ) => {
-  const date = new Date();
-  const expiresDate = new Date(parseInt(expires) * 1000);
-
-  const expectedSignature = crypto
-    .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${expires}\n${filePath}\n${bucketName}\n${userId}`)
-    .digest("hex");
-  if (signature !== expectedSignature) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Invalid signature",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
-  }
-
-  if (expiresDate < date) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Presigned URL expired",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
-  }
-
-  const bucket = await storage.bucketExists(bucketName);
-  if (!bucket) {
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Bucket not found",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
-  }
-
+  await storage.validatePresignedUrl(
+    filePath,
+    bucketName,
+    userId,
+    method,
+    expires,
+    signature,
+  );
 }
 
 export const storageService = {
