@@ -11,6 +11,7 @@ import { sign, verify } from "hono/jwt";
 import { sessionService } from "./session";
 import { COMMON_HEADERS } from "@src/config/common-headers";
 import { vault } from "@src/integrations/vault";
+import { HTTPError } from "@src/lib/errors";
 
 /**
  * Creates a new user with email/password authentication and returns a session
@@ -62,20 +63,36 @@ export const createUserWithPassword = async (
  * @throws {HTTPException} With status 401 if the email or password is invalid
  */
 const signInWithPassword = async (db: DB, email: string, password: string) => {
-  const user = await userRepository.findUserWithPassword(db, email, password);
-  if (!user) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Invalid email or password" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
+  let user;
+  try {
+    user = await userRepository.findUserWithPassword(db, email, password);
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to find user",
+    );
   }
 
-  await db.transaction(async (tx) => {
-    await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`));
-    await tx.execute(sql`SET ROLE authenticated_user`);
-  });
+  if (!user) {
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      "Invalid email or password",
+    )
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`));
+      await tx.execute(sql`SET ROLE authenticated_user`);
+    });
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to set session user",
+    );
+  }
 
   return await sessionService.createSession(db, user.id);
 };
@@ -97,12 +114,10 @@ const refreshToken = async (db: DB, refreshToken: string) => {
     !record.expiresAt ||
     record.expiresAt < new Date()
   ) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Invalid refresh token" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      "Invalid refresh token",
+    );
   }
 
   await refreshTokenRepository.revokeRefreshToken(db, refreshToken);
@@ -126,30 +141,56 @@ const refreshToken = async (db: DB, refreshToken: string) => {
  * 6. In non-production environments, returns the token
  */
 const generateResetPasswordToken = async (email: string) => {
-  const data = await userRepository.findUserByEmail(db, email);
+  let data;
+  try {
+    data = await userRepository.findUserByEmail(db, email);
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to find user",
+    );
+  }
 
   if (!data) {
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "User not found" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON }
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.NOT_FOUND,
+      "User not found",
+    );
   }
 
   const { id } = data;
 
   const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
 
-  const token = await sign(payload, JWT_SECRET);
-  await vault.createPasswordResetToken(token, id);
-  if (ENVIRONMENT === "production") {
-    await sendEmail(
-      email,
-      "MSB Password Reset",
-      "no-reply@example.com",
-      `Click here to reset your password: ${BASE_URL}/reset-password?token=${token}`,
+  let token;
+  try {
+    token = await sign(payload, JWT_SECRET);
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to sign JWT",
     );
+  }
+
+  await vault.createPasswordResetToken(token, id);
+
+  if (ENVIRONMENT === "production") {
+    try {
+      await sendEmail(
+        email,
+        "MSB Password Reset",
+        "no-reply@example.com",
+        `Click here to reset your password: ${BASE_URL}/reset-password?token=${token}`,
+      );
+    } catch (e) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        "Failed to send email",
+      );
+    }
   } else {
     return token;
   }
@@ -177,11 +218,11 @@ const resetPassword = async (token: string, password: string) => {
     payload = await verify(token, JWT_SECRET);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(JSON.stringify({ data: null, error: "Invalid token" }), {
-        headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
-      }),
-    });
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      e,
+      "Invalid token",
+    );
   }
 
   const { userId } = payload as { userId: string };
@@ -190,13 +231,11 @@ const resetPassword = async (token: string, password: string) => {
   try {
     await userRepository.updatePassword(db, userId, password);
   } catch (e) {
-    console.error(`Failed to reset password: ${e}`);
-    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Failed to reset password" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to update password",
+    );
   }
 };
 

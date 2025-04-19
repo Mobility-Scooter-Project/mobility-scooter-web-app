@@ -1,6 +1,7 @@
 import { sessions } from "@db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import { HTTPException } from "hono/http-exception";
 
 /**
@@ -16,10 +17,11 @@ const createSession = async (db: DB, userId: string) => {
     const data = await db.insert(sessions).values({ userId }).returning();
     return data[0];
   } catch (e) {
-    console.error(`Failed to create session: ${e}`);
-    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: "Failed to create session",
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to create session",
+    );
   }
 };
 

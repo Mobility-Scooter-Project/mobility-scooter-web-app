@@ -1,6 +1,7 @@
 import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { apiKeys } from "@src/db/schema/auth";
+import { HTTPError } from "@src/lib/errors";
 import { db } from "@src/middleware/db";
 import { eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
@@ -28,13 +29,11 @@ const bumpLastUsed = async (apiKey: string) => {
         ),
       );
   } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Failed to update last used timestamp" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON},
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to update last used timestamp",
+    );
   }
 };
 

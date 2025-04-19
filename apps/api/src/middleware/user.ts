@@ -1,8 +1,7 @@
 import { JWT_SECRET } from "@config/constants";
-import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import type { Context, Next } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { verify } from "hono/jwt";
 
 
@@ -20,37 +19,37 @@ export const userMiddleware = async (c: Context, next: Next) => {
   const { logger } = c.var;
 
   if (!user) {
-    throw new HTTPException(HTTP_CODES.BAD_REQUEST, {
-      res: new Response(
-        JSON.stringify({ error: "No user data provided", data: null }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.BAD_REQUEST,
+      "No user data provided",
+    )
   }
+
+  let userId: string;
+  let sessionId: string;
+
   try {
-    const { userId, sessionId } = await verify(user, JWT_SECRET);
-
-    if (!userId || !sessionId) {
-      throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-        res: new Response(
-          JSON.stringify({ error: "Invalid user data", data: null }),
-          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-        ),
-      });
-    }
-
-    c.set("userId", userId);
-    c.set("sessionId", sessionId);
-    logger.assign({ userId, sessionId });
-
-    await next();
+    const data = await verify(user, JWT_SECRET);
+    userId = data.userId as string;
+    sessionId = data.sessionId as string;
   } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({ error: "Invalid user data", data: null }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      e,
+      "Failed to authenticate user",
+    );
   }
+
+  if (!userId || !sessionId) {
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      "Invalid user data",
+    );
+  }
+
+  c.set("userId", userId);
+  c.set("sessionId", sessionId);
+  logger.assign({ userId, sessionId });
+
+  await next();
 };

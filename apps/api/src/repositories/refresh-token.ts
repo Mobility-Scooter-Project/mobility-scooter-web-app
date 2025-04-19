@@ -3,6 +3,7 @@ import { signJWT } from "@lib/jwt";
 import type { DB } from "@middleware/db";
 import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import { eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
@@ -38,16 +39,11 @@ const createRefreshToken = async (
       .returning();
     return data[0].token;
   } catch (e) {
-    console.error(`Failed to create refresh token: ${e}`);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to create refresh token",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to create refresh token",
+    );
   }
 };
 
@@ -58,9 +54,17 @@ const createRefreshToken = async (
  * @returns A promise that resolves to the found refresh token record or null if not found
  */
 const getRefreshToken = async (db: DB, token: string) => {
-  return await db.query.refreshTokens.findFirst({
-    where: (fields) => sql`${fields.token} = ${token}`,
-  });
+  try {
+    return await db.query.refreshTokens.findFirst({
+      where: (fields) => sql`${fields.token} = ${token}`,
+    });
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to get refresh token",
+    );
+  }
 };
 
 /**
@@ -76,16 +80,11 @@ const revokeRefreshToken = async (db: DB, token: string) => {
       .set({ revoked: true })
       .where(eq(refreshTokens.token, token));
   } catch (e) {
-    console.error(`Failed to revoke refresh token: ${e}`);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to revoke refresh token",
-        }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to revoke refresh token",
+    );
   }
 };
 

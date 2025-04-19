@@ -1,6 +1,7 @@
 import { identities } from "@db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import { sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
@@ -20,16 +21,11 @@ const getIdentityByUserId = async (db: DB, userId: string) => {
 
     return data[0];
   } catch (e) {
-    console.error(`Failed to get identity by user id: ${e}`);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to get identity",
-        }),
-        { headers: { "Content-Type": "application/json" } },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to get identity",
+    );
   }
 };
 

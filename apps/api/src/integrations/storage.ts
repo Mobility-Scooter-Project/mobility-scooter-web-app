@@ -8,6 +8,7 @@ import {
   STORAGE_URL,
 } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import { HTTPException } from "hono/http-exception";
 import { Client } from "minio";
 import crypto from "node:crypto";
@@ -41,29 +42,15 @@ export class Storage {
    * @param bucketName - The name of the bucket to check
    */
   public async bucketExists(bucketName: string) {
+    let bucketExists = false;
     try {
-      const bucketExists = await Storage.instance.bucketExists(bucketName);
-      if (!bucketExists) {
-        throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-          res: new Response(
-            JSON.stringify({
-              data: null,
-              error: "Bucket does not exist",
-            }),
-            { headers: { "Content-Type": "application/json" } },
-          ),
-        });
-      }
+      bucketExists = await Storage.instance.bucketExists(bucketName);
     } catch (error) {
-      throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Failed to check bucket existence",
-          }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
-      });
+      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, error, "Failed to check bucket existence");
+    }
+
+    if (!bucketExists) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Bucket not found");
     }
   }
 
@@ -80,15 +67,10 @@ export class Storage {
         await Storage.instance.makeBucket(bucketName, "us-east-1");
       }
     } catch (error) {
-      throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Failed to create bucket",
-          }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
-      });
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to create bucket");
     }
   }
 
@@ -124,15 +106,11 @@ export class Storage {
         SSECustomerKeyMD5: base64EncryptionKeyMd5,
       });
     } catch (error) {
-      throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Failed to get object",
-          }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
-      });
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to get object",
+      );
     }
   }
 
@@ -166,15 +144,11 @@ export class Storage {
         requestDate,
       );
     } catch (error) {
-      throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Failed to get presigned URL",
-          }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
-      });
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to generate pre-signed URL",
+      );
     }
   }
 
@@ -207,15 +181,11 @@ export class Storage {
         },
       });
     } catch (error) {
-      throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Failed to upload to presigned URL",
-          }),
-          { headers: { "Content-Type": "application/json" } },
-        ),
-      });
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to upload to pre-signed URL",
+      );
     }
   }
 
@@ -251,27 +221,17 @@ export class Storage {
       .update(`${method}\n${expires}\n${filePath}\n${bucketName}\n${userId}`)
       .digest("hex");
     if (signature !== expectedSignature) {
-      throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Invalid signature",
-          }),
-          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-        ),
-      });
+      throw new HTTPError(
+        HTTP_CODES.UNAUTHORIZED,
+        "Invalid signature",
+      );
     }
 
     if (expiresDate < date) {
-      throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-        res: new Response(
-          JSON.stringify({
-            data: null,
-            error: "Presigned URL expired",
-          }),
-          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-        ),
-      });
+      throw new HTTPError(
+        HTTP_CODES.UNAUTHORIZED,
+        "URL has expired",
+      );
     }
 
     await storage.bucketExists(bucketName);

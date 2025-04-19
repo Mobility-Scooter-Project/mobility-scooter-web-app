@@ -1,6 +1,7 @@
 import { COMMON_HEADERS } from "@src/config/common-headers";
 import { VAULT_ADDR, VAULT_TOKEN } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import { HTTPException } from "hono/http-exception";
 import VaultClient from "node-vault-client";
 import * as crypto from "node:crypto";
@@ -47,19 +48,14 @@ export class Vault {
    *
    * @param userId - The unique identifier of the user whose OTP secret is being retrieved
    * @returns A Promise that resolves to the user's OTP secret as a string
-   * @throws {HTTPException} With status code 404 if the TOTP does not exist for the user
+   * @throws {HTTPError} With status code 404 if the TOTP does not exist for the user
    */
   public async getOtpSecretByUserId(userId: string) {
     try {
       const secret = await Vault.instance.read(`kv/auth/otp/${userId}`);
       return secret.getData().secret as string;
     } catch (e) {
-      throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-        res: new Response(
-          JSON.stringify({ data: null, error: "TOTP does not exist" }),
-          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-        ),
-      });
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, e, "TOTP does not exist");
     }
   };
 
@@ -75,7 +71,11 @@ export class Vault {
    */
   public async createObjectEncryptionKey(bucketName: string, path: string) {
     const secret = crypto.randomBytes(32).toString("hex"); // 32 bytes = 256 bits for AES-256 encryption
-    await Vault.instance.write(`kv/storage/${bucketName}/${path}`, { secret });
+    try {
+      await Vault.instance.write(`kv/storage/${bucketName}/${path}`, { secret });
+    } catch (e) {
+      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create encryption key");
+    }
     return secret;
   }
 
@@ -85,19 +85,14 @@ export class Vault {
    * @param bucketName - The ID of the bucket containing the object
    * @param path - The full path of the object for which to retrieve the encryption key
    * @returns A Promise that resolves to the encryption key as a string
-   * @throws {HTTPException} With NOT_FOUND status if the encryption key does not exist in the vault
+   * @throws {HTTPError} With NOT_FOUND status if the encryption key does not exist in the vault
    */
   public async getObjectEncryptionKey(bucketName: string, path: string) {
     try {
       const secret = await Vault.instance.read(`kv/storage/${bucketName}/${path}`);
       return secret.getData().secret as string;
     } catch (e) {
-      throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-        res: new Response(
-          JSON.stringify({ data: null, error: "Encryption key does not exist" }),
-          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-        ),
-      });
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Encryption key does not exist");
     }
   };
 
@@ -106,7 +101,7 @@ export class Vault {
  * @param {string} token - The password reset token to be stored.
  * @param {string} userId - The ID of the user for whom the token is being created.
  * @returns {Promise<void>} A promise that resolves when the token is successfully created.
- * @throws {Error} Throws an error if the token creation fails.
+ * @throws {HTTPError} Throws an error if the token creation fails.
  */
   public async createPasswordResetToken(token: string, userId: string) {
     try {
@@ -115,8 +110,7 @@ export class Vault {
         used: false,
       });
     } catch (e) {
-      console.error(`Failed to create password reset token: ${e}`);
-      throw new Error("Failed to create password reset token");
+      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create password reset token");
     }
   };
 
@@ -133,18 +127,10 @@ export class Vault {
   public async markPasswordResetTokenUsed(token: string, userId: string) {
     const data = (await Vault.instance.read(`kv/auth/password-reset/${userId}`)).getData();
     if (!data || data.token !== token) {
-      throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-        res: new Response(JSON.stringify({ data: null, error: "Token not found" }), {
-          headers: COMMON_HEADERS.CONTENT_TYPE_JSON,
-        }),
-      });
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Token not found");
     }
     if (data.used) {
-      throw new HTTPException(HTTP_CODES.CONFLICT, {
-        res: new Response(JSON.stringify({ data: null, error: "Token already used" }), {
-          headers: COMMON_HEADERS.CONTENT_TYPE_JSON
-        }),
-      });
+      throw new HTTPError(HTTP_CODES.BAD_REQUEST, "Token already used");
     }
 
     try {
@@ -153,13 +139,7 @@ export class Vault {
         used: true,
       });
     } catch (e) {
-      console.error(`Failed to mark password reset token as used: ${e}`);
-      throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-        res: new Response(
-          JSON.stringify({ data: null, error: "Failed to mark token as used" }),
-          { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-        ),
-      });
+      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to mark token as used");
     }
   };
 }

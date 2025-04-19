@@ -9,6 +9,7 @@ import * as auth from "../db/schema/auth";
 import * as tenants from "../db/schema/tenants";
 import * as videos from "../db/schema/videos";
 import { COMMON_HEADERS } from "@src/config/common-headers";
+import { HTTPError } from "@src/lib/errors";
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -48,13 +49,11 @@ export const dbMiddleware = async (c: Context, next: Next) => {
       await db.execute(sql`SET ROLE anonymous_user`);
     }
   } catch (e) {
-    console.error(`Failed to set user context: ${e}`);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Failed to set user context" }),
-        { headers: COMMON_HEADERS.CONTENT_TYPE_JSON },
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to set user context",
+    );
   }
 
   c.set("db", db);
