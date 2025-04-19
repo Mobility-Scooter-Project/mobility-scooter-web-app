@@ -3,18 +3,12 @@ import { HTTP_CODES } from "@src/config/http-codes";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { Context, Next } from "hono";
-import { HTTPException } from "hono/http-exception";
-import pg from "pg";
 import * as auth from "../db/schema/auth";
 import * as tenants from "../db/schema/tenants";
 import * as videos from "../db/schema/videos";
-import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTPError } from "@src/lib/errors";
-const { Pool } = pg;
+import { pool } from "@src/integrations/db";
 
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-});
 
 /**
  * Middleware for handling database connections and user context in the application.
@@ -62,9 +56,9 @@ export const dbMiddleware = async (c: Context, next: Next) => {
 };
 
 // For Postgres Role
-export const db = drizzle(DATABASE_URL, {
+export const postgresDB = drizzle(DATABASE_URL, {
   casing: "snake_case",
   schema: { ...auth, ...videos, ...tenants },
 });
 
-export type DB = typeof db;
+export type DB = typeof postgresDB;

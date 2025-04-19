@@ -5,14 +5,23 @@ import type { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 
 
+
 /**
- * Middleware function for user authentication.
- * Verifies the user JWT token and sets userId and sessionId in the context.
- *
- * @param c - The Hono context object
- * @param next - The next middleware function to be called
- * @throws {HTTPException} 400 - If no user data is provided in the request
- * @throws {HTTPException} 401 - If user authentication fails
+ * Middleware function to authenticate and process user information from JWT token.
+ * 
+ * @param c - The Context object containing request and variable information
+ * @param next - The Next function to be called after middleware processing
+ * @throws {HTTPError} 
+ *  - HTTP 400 if no user header is provided
+ *  - HTTP 401 if JWT verification fails
+ *  - HTTP 401 if userId or sessionId is missing from verified token
+ * 
+ * @remarks
+ * This middleware:
+ * 1. Extracts user JWT from X-User header
+ * 2. Verifies the JWT and extracts userId and sessionId
+ * 3. Sets userId and sessionId in the context
+ * 4. Adds user information to logger
  */
 export const userMiddleware = async (c: Context, next: Next) => {
   const user = c.req.header("X-User");

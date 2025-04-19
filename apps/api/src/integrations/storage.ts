@@ -1,4 +1,3 @@
-import { COMMON_HEADERS } from "@src/config/common-headers";
 import {
   ENVIRONMENT,
   STORAGE_ACCESS_KEY,
@@ -9,10 +8,35 @@ import {
 } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import { HTTPException } from "hono/http-exception";
 import { Client } from "minio";
 import crypto from "node:crypto";
 
+/**
+ * A singleton class that manages interactions with a storage service (MinIO).
+ * This class provides methods for bucket operations, object storage, and presigned URL handling.
+ * 
+ * @class Storage
+ * @description Handles storage operations including:
+ * - Bucket existence checking and creation
+ * - Object retrieval with server-side encryption
+ * - Presigned URL generation and validation
+ * - File upload using presigned URLs
+ * 
+ * @example
+ * ```typescript
+ * const storage = new Storage();
+ * await storage.getOrCreateBucket('my-bucket');
+ * ```
+ * 
+ * @remarks
+ * This class implements a singleton pattern to maintain a single connection to the storage service.
+ * It uses server-side encryption for secure object storage and retrieval.
+ * 
+ * @throws {HTTPError}
+ * - HTTP 500 for general storage operation failures
+ * - HTTP 404 when bucket is not found
+ * - HTTP 401 for authentication/authorization failures
+ */
 export class Storage {
   private static instance: Client;
   public constructor() {

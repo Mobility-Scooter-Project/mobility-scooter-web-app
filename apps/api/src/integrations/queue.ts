@@ -1,6 +1,17 @@
 import { QUEUE_URL } from "@src/config/constants";
 import { Connection } from "rabbitmq-client";
 
+/**
+ * A singleton class that manages the connection to a message queue (RabbitMQ).
+ * Provides a centralized way to access the queue connection throughout the application.
+ * 
+ * @class Queue
+ * @static
+ * @example
+ * ```typescript
+ * const queue = Queue.getInstance();
+ * ```
+ */
 export class Queue {
     private static instance: Connection;
 

@@ -2,15 +2,14 @@ import { sessions } from "@db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import { HTTPException } from "hono/http-exception";
+
 
 /**
- * Creates a new session for a user in the database.
- *
+ * Creates a new session for a user in the database
  * @param db - The database instance
  * @param userId - The ID of the user to create a session for
- * @returns The newly created session object
- * @throws {HTTPException} With status 501 if session creation fails
+ * @returns The created session record
+ * @throws {HTTPError} When the session creation fails with a 500 Internal Server Error
  */
 const createSession = async (db: DB, userId: string) => {
   try {

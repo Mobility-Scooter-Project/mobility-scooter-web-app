@@ -3,25 +3,7 @@ import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
 import crypto from "node:crypto";
 
-/**
- * Uploads an object to a specified bucket with server-side encryption and generates a presigned URL for retrieval.
- * 
- * @param filePath - The path where the file will be stored in the bucket
- * @param userId - The ID of the user uploading the file
- * @param bucketName - The name of the bucket where the file will be stored
- * @param object - The Blob object to be uploaded
- * 
- * @throws {HTTPException} When bucket creation/retrieval fails
- * @throws {HTTPException} When upload or presigned URL generation fails
- * 
- * @returns {Promise<{ success: boolean } | undefined>} Returns an object indicating success, or undefined if upload fails
- * 
- * @remarks
- * - Creates a bucket if it doesn't exist
- * - Implements server-side encryption using AES256
- * - Generates a presigned URL for PUT operation
- * - Publishes video information to "videos" channel upon successful upload
- */
+
 const putObjectStream = async (
   filePath: string,
   userId: string,
@@ -70,21 +52,25 @@ const putObjectStream = async (
   );
 };
 
+
 /**
- * Generates a presigned URL for retrieving a file from the custom storage system.
- *
- * This function creates a URL with specific query parameters, including an expiration time
- * (24 hours from the time of generation) and a cryptographic signature. This URL grants
- * temporary GET access to the specified file associated with a patient and user.
- * The signing process uses HMAC-SHA256 with a predefined secret (`STORAGE_SECRET`).
- *
- * @param filePath - The path to the file within the storage bucket (e.g., 'documents/report.pdf').
- * @param bucketName - The identifier for the storage bucket, typically the patient's ID.
- * @param userId - The identifier of the user requesting the URL.
- * @returns An object containing the generated presigned URL.
- * @example
- * const { url } = await generatePresignedGetUrl('scans/mri_01.dcm', 'patient-123', 'user-456');
- * console.log(url); // Outputs the presigned URL string
+ * Generates a pre-signed URL for GET operations on stored files
+ * 
+ * @param filePath - The path to the file in storage
+ * @param bucketName - The name of the storage bucket
+ * @param userId - The ID of the user requesting access
+ * 
+ * @returns A Promise that resolves to an object containing the pre-signed URL
+ * @returns {Promise<{url: string}>} The pre-signed URL for accessing the file
+ * 
+ * @remarks
+ * The generated URL includes several custom headers with a signature for authentication:
+ * - X-MSWA-Method: Always "GET" for this function
+ * - X-MSWA-Expires: Expiration timestamp (24 hours from generation)
+ * - X-MSWA-FilePath: The provided file path
+ * - X-MSWA-Bucket: The provided bucket name
+ * - X-MSWA-UserId: The provided user ID
+ * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
  */
 const generatePresignedGetUrl = async (
   filePath: string,
@@ -116,16 +102,14 @@ const generatePresignedGetUrl = async (
   return { url };
 }
 
+
 /**
- * Retrieves an encrypted object stream from a specified bucket.
+ * Retrieves an object stream from storage with encryption.
  * 
  * @param bucketName - The name of the bucket to retrieve the object from
- * @param filePath - The path to the file within the bucket
- * 
- * @throws {HTTPException} With status NOT_FOUND if bucket doesn't exist
- * @throws {HTTPException} With status INTERNAL_SERVER_ERROR if object retrieval fails
- * 
- * @returns {Promise<{stream: Object}>} A promise that resolves to an object containing the file stream
+ * @param filePath - The file path of the object within the bucket
+ * @returns A promise that resolves to an object containing the stream
+ * @throws {Error} If the bucket does not exist or if there's an issue retrieving the encryption key
  */
 const getObjectStream = async (
   bucketName: string,
@@ -153,22 +137,17 @@ const getObjectStream = async (
   }
 }
 
+
 /**
- * Validates a presigned URL by checking the signature, expiration date, and bucket existence
- * 
- * @param filePath - The path to the file within the storage bucket
- * @param bucketName - The ID of the patient associated with the bucket
+ * Validates a pre-signed URL for storage operations
+ * @param filePath - The path to the file in storage
+ * @param bucketName - The name of the storage bucket
  * @param userId - The ID of the user making the request
- * @param method - The HTTP method to be used (GET, PUT, etc.)
- * @param expires - The expiration timestamp in seconds since epoch
- * @param signature - The signature to validate against
- * 
- * @throws {HTTPException} 
- * - With status UNAUTHORIZED if signature is invalid
- * - With status UNAUTHORIZED if URL has expired
- * - With status NOT_FOUND if patient bucket doesn't exist
- * 
- * @returns {Promise<void>} Resolves if validation is successful
+ * @param method - The HTTP method for the pre-signed URL
+ * @param expires - The expiration timestamp of the pre-signed URL
+ * @param signature - The signature of the pre-signed URL for validation
+ * @throws {Error} If the pre-signed URL validation fails
+ * @returns {Promise<void>}
  */
 const validatePresignedUrl = async (
   filePath: string,

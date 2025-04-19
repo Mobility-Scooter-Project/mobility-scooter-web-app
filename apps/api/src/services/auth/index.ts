@@ -1,5 +1,5 @@
 import type { DB } from "@middleware/db";
-import { db } from "@middleware/db";
+import { postgresDB } from "@middleware/db";
 import { refreshTokenRepository } from "@repositories/refresh-token";
 import { userRepository } from "@repositories/user";
 import { BASE_URL, ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
@@ -143,7 +143,7 @@ const refreshToken = async (db: DB, refreshToken: string) => {
 const generateResetPasswordToken = async (email: string) => {
   let data;
   try {
-    data = await userRepository.findUserByEmail(db, email);
+    data = await userRepository.findUserByEmail(postgresDB, email);
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -229,7 +229,7 @@ const resetPassword = async (token: string, password: string) => {
 
   await vault.markPasswordResetTokenUsed(token, userId);
   try {
-    await userRepository.updatePassword(db, userId, password);
+    await userRepository.updatePassword(postgresDB, userId, password);
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,

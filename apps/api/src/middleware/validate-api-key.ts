@@ -2,16 +2,19 @@ import { HTTP_CODES } from "@src/config/http-codes";
 import { apiKeyRepository } from "@src/repositories/api-keys";
 import { apiKeyService } from "@src/services/auth/api-key";
 import type { Context, Next } from "hono";
-import { HTTPException } from "hono/http-exception";
-import { db } from "./db";
-import { COMMON_HEADERS } from "@src/config/common-headers";
+import { postgresDB } from "./db";
 import { HTTPError } from "@src/lib/errors";
 
+
 /**
- * Middleware function to validate API key from Authorization header
+ * Middleware that validates API key from the Authorization header
  * @param c - The Context object containing request information
  * @param next - The Next function to be called if validation succeeds
- * @throws {HTTPException} With status 401 if Authorization header is missing or API key is invalid
+ * @throws {HTTPError} When Authorization header is missing or API key is invalid
+ * @remarks
+ * This middleware expects the API key to be provided in the Authorization header
+ * using the Bearer scheme format. It validates the API key against the database
+ * and updates the last used timestamp if valid.
  */
 export const validateApiKey = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
@@ -24,7 +27,7 @@ export const validateApiKey = async (c: Context, next: Next) => {
   }
 
   const [, apiKey] = authHeader.split("Bearer ");
-  const result = await apiKeyService.retrieveApiKey(db, apiKey);
+  const result = await apiKeyService.retrieveApiKey(postgresDB, apiKey);
 
   if (!result) {
     throw new HTTPError(

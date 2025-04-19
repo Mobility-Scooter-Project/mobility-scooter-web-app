@@ -1,21 +1,21 @@
 import { refreshTokens } from "@db/schema/auth";
 import { signJWT } from "@lib/jwt";
 import type { DB } from "@middleware/db";
-import { COMMON_HEADERS } from "@src/config/common-headers";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import { eq, sql } from "drizzle-orm";
-import { HTTPException } from "hono/http-exception";
 
 /**
- * Creates a refresh token for a user session and stores it in the database.
- * The token expires after 30 days from creation.
- *
- * @param db - Database instance for storing the refresh token
+ * Creates a refresh token for a user session
+ * 
+ * @param db - Database instance for performing operations
  * @param userId - Unique identifier of the user
- * @param sessionId - Unique identifier of the user's session
- * @returns Promise containing the created refresh token string
- * @throws HTTPException with status 501 if token creation fails
+ * @param sessionId - Unique identifier of the session
+ * @returns Promise containing the generated refresh token string
+ * @throws {HTTPError} When token creation fails with HTTP 500 Internal Server Error
+ *
+ * @remarks
+ * The refresh token expires in 30 days from creation
  */
 const createRefreshToken = async (
   db: DB,
@@ -47,11 +47,13 @@ const createRefreshToken = async (
   }
 };
 
+
 /**
  * Retrieves a refresh token from the database
  * @param db - The database instance
  * @param token - The refresh token string to search for
- * @returns A promise that resolves to the found refresh token record or null if not found
+ * @returns A promise that resolves to the refresh token record if found, or null if not found
+ * @throws {HTTPError} With status 500 if the database query fails
  */
 const getRefreshToken = async (db: DB, token: string) => {
   try {
@@ -67,11 +69,13 @@ const getRefreshToken = async (db: DB, token: string) => {
   }
 };
 
+
 /**
- * Revokes a refresh token by setting its 'revoked' status to true in the database
- * @param db - The database connection instance
+ * Revokes a refresh token by setting its 'revoked' status to true in the database.
+ * 
+ * @param db - The database instance to perform the update operation
  * @param token - The refresh token string to be revoked
- * @throws {HTTPException} - Throws 501 error if token revocation fails
+ * @throws {HTTPError} With status 500 if the database operation fails
  */
 const revokeRefreshToken = async (db: DB, token: string) => {
   try {

@@ -1,11 +1,28 @@
-import { COMMON_HEADERS } from "@src/config/common-headers";
 import { VAULT_ADDR, VAULT_TOKEN } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import { HTTPException } from "hono/http-exception";
 import VaultClient from "node-vault-client";
 import * as crypto from "node:crypto";
 
+/**
+ * A singleton class that handles interactions with HashiCorp Vault for secret management.
+ * This class provides functionality for managing OTP secrets, encryption keys, and password reset tokens.
+ * 
+ * @class
+ * @description The Vault class implements various secret management operations including:
+ * - OTP (One-Time Password) secret management
+ * - Object encryption key management for storage
+ * - Password reset token management
+ * 
+ * The class uses a singleton pattern to maintain a single instance of the VaultClient.
+ * 
+ * @throws {Error} When initialization of the Vault client fails
+ * @example
+ * ```typescript
+ * const vault = new Vault();
+ * await vault.createOtpSecret('userId', 'secretValue');
+ * ```
+ */
 export class Vault {
   private static instance: VaultClient;
 
@@ -29,26 +46,30 @@ export class Vault {
     }
   }
 
-  /**
-   * Creates an OTP (One-Time Password) secret for a user in Vault.
-   *
-   * This function stores a secret value in Vault under the path `kv/auth/otp/{userId}`.
-   * The secret is stored in a key-value pair where the key is "secret" and the value is the provided secret string.
-   *
-   * @param userId - The unique identifier of the user for whom the OTP secret is being created
-   * @param secret - The OTP secret value to store in Vault
-   * @returns A Promise that resolves when the secret has been written to Vault
-   */
-  public async createOtpSecret(userId: string, secret: string) {
-    await Vault.instance.write(`kv/auth/otp/${userId}`, { secret });
-  };
 
   /**
-   * Retrieves the OTP (One-Time Password) secret for a specific user from Vault.
-   *
-   * @param userId - The unique identifier of the user whose OTP secret is being retrieved
-   * @returns A Promise that resolves to the user's OTP secret as a string
-   * @throws {HTTPError} With status code 404 if the TOTP does not exist for the user
+   * Creates a one-time password (OTP) secret for a user in the Vault.
+   * 
+   * @param userId - The unique identifier of the user
+   * @param secret - The OTP secret to be stored
+   * @throws {HTTPError} With status 500 if the secret creation fails
+   * @returns {Promise<void>}
+   */
+  public async createOtpSecret(userId: string, secret: string) {
+    try {
+      await Vault.instance.write(`kv/auth/otp/${userId}`, { secret });
+    } catch (e) {
+      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create OTP secret");
+    }
+  };
+
+
+  /**
+   * Retrieves the TOTP secret for a specific user from the Vault.
+   * 
+   * @param userId - The unique identifier of the user
+   * @returns A Promise that resolves to the user's TOTP secret as a string
+   * @throws {HTTPError} When the TOTP secret is not found in the Vault with status code 404
    */
   public async getOtpSecretByUserId(userId: string) {
     try {
@@ -59,15 +80,13 @@ export class Vault {
     }
   };
 
+
   /**
-   * Creates and stores a new encryption key for a specific object in a bucket.
-   * 
-   * Generates a random 256-bit (32-byte) key for AES-256 encryption and stores it
-   * in HashiCorp Vault under the path `kv/storage/${bucketName}/${objectId}`.
-   * 
-   * @param bucketName - The identifier of the bucket containing the object
-   * @param path - The full path of the object for which to create the encryption key
-   * @returns The generated encryption key as a hexadecimal string
+   * Creates and stores an encryption key in Vault for object encryption
+   * @param bucketName - The name of the storage bucket
+   * @param path - The path within the bucket where the object will be stored
+   * @returns A hexadecimal string representing the generated 256-bit encryption key
+   * @throws {HTTPError} If the encryption key cannot be stored in Vault
    */
   public async createObjectEncryptionKey(bucketName: string, path: string) {
     const secret = crypto.randomBytes(32).toString("hex"); // 32 bytes = 256 bits for AES-256 encryption
@@ -80,12 +99,11 @@ export class Vault {
   }
 
   /**
-   * Retrieves the encryption key for a specific object in a bucket from the vault.
-   * 
-   * @param bucketName - The ID of the bucket containing the object
-   * @param path - The full path of the object for which to retrieve the encryption key
-   * @returns A Promise that resolves to the encryption key as a string
-   * @throws {HTTPError} With NOT_FOUND status if the encryption key does not exist in the vault
+   * Retrieves an encryption key for a specified object from Vault.
+   * @param bucketName - The name of the bucket where the object is stored
+   * @param path - The path to the object within the bucket
+   * @returns A promise that resolves to the encryption key as a string
+   * @throws {HTTPError} With status 404 if the encryption key does not exist in Vault
    */
   public async getObjectEncryptionKey(bucketName: string, path: string) {
     try {
@@ -97,12 +115,12 @@ export class Vault {
   };
 
   /**
- * Creates a password reset token for a user in the vault.
- * @param {string} token - The password reset token to be stored.
- * @param {string} userId - The ID of the user for whom the token is being created.
- * @returns {Promise<void>} A promise that resolves when the token is successfully created.
- * @throws {HTTPError} Throws an error if the token creation fails.
- */
+   * Creates a password reset token for a user in the vault.
+   * @param token - The password reset token to be stored
+   * @param userId - The ID of the user requesting password reset
+   * @throws {HTTPError} Throws with status 500 if token creation fails
+   * @returns {Promise<void>}
+   */
   public async createPasswordResetToken(token: string, userId: string) {
     try {
       await Vault.instance.write(`kv/auth/password-reset/${userId}`, {
@@ -114,15 +132,15 @@ export class Vault {
     }
   };
 
+
   /**
-   * Marks a password reset token as used in the vault.
-   *
+   * Marks a password reset token as used in the Vault KV store.
    * @param token - The password reset token to mark as used
-   * @param userId - The user ID associated with the token
-   * @throws {HTTPException} - With status 404 if the token is not found for the user
-   * @throws {HTTPException} - With status 400 if the token has already been used
-   * @throws {Error} - If there's an issue updating the token in the vault
-   * @returns {Promise<void>} - A promise that resolves when the token is successfully marked as used
+   * @param userId - The ID of the user associated with the token
+   * @throws {HTTPError} 
+   *  - NOT_FOUND if token is not found or doesn't match stored token
+   *  - BAD_REQUEST if token has already been used
+   *  - INTERNAL_SERVER_ERROR if updating token status fails
    */
   public async markPasswordResetTokenUsed(token: string, userId: string) {
     const data = (await Vault.instance.read(`kv/auth/password-reset/${userId}`)).getData();

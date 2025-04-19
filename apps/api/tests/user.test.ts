@@ -1,4 +1,4 @@
-import { db } from "../src/middleware/db";
+import { postgresDB } from "../src/middleware/db";
 import { HTTP_CODES } from "../src/config/http-codes";
 import { sql } from "drizzle-orm";
 import { kv } from "../src/integrations/kv"
@@ -477,7 +477,7 @@ describe("User", () => {
 
   afterAll(async () => {
     await Promise.all([
-      db.execute(
+      postgresDB.execute(
         sql`DELETE FROM auth.users WHERE email = ${SHARED_DATA.EMAIL}`,
       ),
       kv.flushall(),
