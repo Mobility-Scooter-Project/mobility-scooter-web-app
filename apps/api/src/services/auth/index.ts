@@ -5,12 +5,12 @@ import { userRepository } from "@repositories/user";
 import { BASE_URL, ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { sendEmail } from "@src/integrations/smtp";
-import { resetPasswordTokensRepository } from "@src/repositories/reset-password-tokens";
 import { sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { sign, verify } from "hono/jwt";
 import { sessionService } from "./session";
 import { COMMON_HEADERS } from "@src/config/common-headers";
+import { vault } from "@src/integrations/vault";
 
 /**
  * Creates a new user with email/password authentication and returns a session
@@ -142,7 +142,7 @@ const generateResetPasswordToken = async (email: string) => {
   const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
 
   const token = await sign(payload, JWT_SECRET);
-  await resetPasswordTokensRepository.createPasswordResetToken(token, id);
+  await vault.createPasswordResetToken(token, id);
   if (ENVIRONMENT === "production") {
     await sendEmail(
       email,
@@ -186,7 +186,7 @@ const resetPassword = async (token: string, password: string) => {
 
   const { userId } = payload as { userId: string };
 
-  await resetPasswordTokensRepository.markPasswordResetTokenUsed(token, userId);
+  await vault.markPasswordResetTokenUsed(token, userId);
   try {
     await userRepository.updatePassword(db, userId, password);
   } catch (e) {

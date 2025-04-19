@@ -1,4 +1,4 @@
-import { createOtpSecret, getOtpSecretByUserId } from "@src/integrations/vault";
+import { vault } from "@src/integrations/vault";
 import { generateTOTP, verifyTOTP } from "@src/lib/otp";
 import type { DB } from "@src/middleware/db";
 import { userRepository } from "@src/repositories/user";
@@ -14,7 +14,7 @@ import { userRepository } from "@src/repositories/user";
 const generateOTP = async (db: DB, userId: string) => {
   const { email } = await userRepository.findUserById(db, userId);
   const totp = generateTOTP(email);
-  await createOtpSecret(userId, totp.secret.base32);
+  await vault.createOtpSecret(userId, totp.secret.base32);
   return totp;
 };
 
@@ -30,7 +30,7 @@ const generateOTP = async (db: DB, userId: string) => {
  */
 const verifyUserTOTP = async (db: DB, userId: string, token: string) => {
   const { email } = await userRepository.findUserById(db, userId);
-  const secret = await getOtpSecretByUserId(userId);
+  const secret = await vault.getOtpSecretByUserId(userId);
 
   return verifyTOTP(email, token, secret);
 };
