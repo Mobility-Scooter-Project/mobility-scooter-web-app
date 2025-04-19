@@ -22,6 +22,7 @@ const { printMetrics, registerMetrics } = prometheus()
 export const app = new Hono<{ Variables: Variables }>()
   .use(pinoLogger({
     pino: {
+      level: ENVIRONMENT === "test" ? "silent" : "info",
       transport: {
         target: 'pino-pretty',
         options: {
@@ -80,7 +81,6 @@ app.get(
   "/docs",
   apiReference({
     theme: "elysiajs",
-    // @ts-expect-error - This is a valid configuration
     spec: { url: "/api/v1/openapi" },
   }),
 );

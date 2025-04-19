@@ -23,7 +23,9 @@ export class KV {
     public static getInstance(): Redis {
         if (!this.instance) {
             try {
-                this.instance = new Redis(KV_URL);
+                this.instance = new Redis({
+                    lazyConnect: true,
+                });
             } catch (error) {
                 console.error("Failed to connect to Redis:", error);
             }

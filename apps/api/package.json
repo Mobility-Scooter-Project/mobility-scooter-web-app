@@ -14,7 +14,7 @@
     "db:drop": "drizzle-kit drop",
     "db:seed": "tsx scripts/seed.ts",
     "generate-api-key": "tsx scripts/generate-api-key.ts",
-    "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest --force-exit'"
+    "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",

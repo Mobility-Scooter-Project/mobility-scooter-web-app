@@ -1,6 +1,6 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { TOPICS } from "@src/config/topic";
-import { pub } from "@src/integrations/queue";
+import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
 import crypto from "node:crypto";
@@ -54,10 +54,12 @@ const putObjectStream = async (
     userId,
   );
 
-  await pub.send(TOPICS.VIDEOS, {
-    videoUrl: data.url,
-    filename: filePath,
-  })
+  await queue.publish(
+    TOPICS.VIDEOS,
+    {
+      videoUrl: data.url,
+      filename: filePath,
+    });
 };
 
 
