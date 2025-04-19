@@ -29,7 +29,7 @@ export class HTTPError extends HTTPException {
             headers: COMMON_HEADERS.CONTENT_TYPE_JSON
         });
 
-        const options = { cause, res }
+        const options = { cause, res, message: consoleMessage as string };
         super(status, options);
     }
 }

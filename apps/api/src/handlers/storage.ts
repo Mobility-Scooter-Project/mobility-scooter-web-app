@@ -48,10 +48,11 @@ const app = new Hono<{ Variables: Variables }>()
       const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
       const objectBlob = await c.req.blob();
+      console.log("objectBlob", objectBlob);
 
       const userId = c.get("userId")!;
 
-      const data = await storageService.putObjectStream(
+      await storageService.putObjectStream(
         filePath,
         userId,
         bucketName,
@@ -59,7 +60,9 @@ const app = new Hono<{ Variables: Variables }>()
       );
 
       return c.json({
-        data: { ...data },
+        data: {
+          success: true,
+        },
         error: null,
       });
     },

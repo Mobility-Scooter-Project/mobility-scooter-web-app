@@ -37,7 +37,7 @@ def process_video(body):
     body (bytes): Video data from the queue.
   """  
   video = json.loads(body.decode())
-  print(f"Processing video: {video['filename']}")
+  print(f"Data received from queue: {video}\n")
   audio_detection(asr_model, video['videoUrl'], video['filename'])
   pose_estimation(pe_model, video['videoUrl'], video['filename'])
 

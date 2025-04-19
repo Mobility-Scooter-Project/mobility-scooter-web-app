@@ -1,4 +1,6 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
+import { TOPICS } from "@src/config/topic";
+import { pub } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
 import crypto from "node:crypto";
@@ -44,12 +46,18 @@ const putObjectStream = async (
     encryptionKey,
   );
 
+  // TODO: @tdang2180 - add your metadata upload here
 
   const data = await generatePresignedGetUrl(
     filePath,
     bucketName,
     userId,
   );
+
+  await pub.send(TOPICS.VIDEOS, {
+    videoUrl: data.url,
+    filename: filePath,
+  })
 };
 
 

@@ -5,10 +5,10 @@ import { apiReference } from "@scalar/hono-api-reference";
 import auth from "@src/handlers/auth";
 import { Hono } from "hono";
 import { openAPISpecs } from "hono-openapi";
-import { HTTPException } from "hono/http-exception";
 import { PinoLogger, pinoLogger } from 'hono-pino'
 import { ENVIRONMENT } from "./config/constants";
 import { prometheus } from '@hono/prometheus'
+import { HTTPError } from "./lib/errors";
 
 export type Variables = {
   db: DB;
@@ -43,7 +43,7 @@ export const app = new Hono<{ Variables: Variables }>()
 
 app.onError((err, c) => {
   const { logger } = c.var;
-  if (err instanceof HTTPException) {
+  if (err instanceof HTTPError) {
     logger.error(err.message);
     return err.getResponse();
   }

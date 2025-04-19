@@ -176,6 +176,13 @@ export class Storage {
     }
   }
 
+  /**
+   * Uploads a blob object to a pre-signed URL with server-side encryption
+   * @param url - The pre-signed URL where the object will be uploaded
+   * @param object - The blob object to be uploaded
+   * @param encryptionKey - The encryption key in hexadecimal format for server-side encryption
+   * @throws {HTTPError} When the upload fails with HTTP 500 Internal Server Error
+   */
   public async uploadToPresignedUrl(
     url: string,
     object: Blob,
