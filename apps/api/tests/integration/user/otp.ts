@@ -76,8 +76,6 @@ export default () =>
                 ),
             );
 
-            console.log("statuses", statuses);
-
             expect(statuses.includes(HTTP_CODES.RATE_LIMIT_EXCEEDED)).toBe(true);
         });
     });

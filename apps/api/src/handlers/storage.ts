@@ -18,29 +18,6 @@ import Stream from "stream";
 const app = new Hono<{ Variables: Variables }>()
   .put(
     "/:bucketName/:filePath",
-    describeRoute({
-      summary: "Generate a presigned URL for uploading a video",
-      description:
-        "Generate a presigned URL for uploading a video to the storage bucket",
-      tags: ["storage"],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: resolver(presignedUrlSchema),
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Presigned URL generated successfully",
-          content: {
-            "application/json": {
-              schema: resolver(presignedUrlResponseSchema),
-            },
-          },
-        },
-      },
-    }),
     validateApiKey,
     userMiddleware,
     dbMiddleware,

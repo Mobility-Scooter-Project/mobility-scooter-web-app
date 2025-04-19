@@ -38,7 +38,7 @@ import crypto from "node:crypto";
  * - HTTP 401 for authentication/authorization failures
  */
 export class Storage {
-  private static instance: Client;
+  public static instance: Client;
   public constructor() {
     if (!Storage.instance) {
       try {

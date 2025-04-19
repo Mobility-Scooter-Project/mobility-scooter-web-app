@@ -8,3 +8,8 @@ export const SHARED_DATA = {
     LAST_NAME: "Doe",
     TESTING_UNIT_ID: process.env.TESTING_UNIT_ID!,
 };
+
+export const SHARED_LOGIN = {
+    email: SHARED_DATA.EMAIL,
+    password: SHARED_DATA.PASSWORD,
+}
