@@ -9,7 +9,7 @@ spec:
   generators:
   - git:
       repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-      revision: develop
+      revision: bryan/cooldown-2
       directories:
       - path: apps/*
         recurse: true
@@ -20,7 +20,7 @@ spec:
       project: "default"
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-        targetRevision: develop
+        targetRevision: bryan/cooldown-2
         path: '{{.path.path}}/.kube'
       destination:
         server: https://kubernetes.default.svc
