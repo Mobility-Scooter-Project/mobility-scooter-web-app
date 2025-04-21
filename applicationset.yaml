@@ -9,7 +9,7 @@ spec:
   generators:
   - git:
       repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-      revision: 12-argocd-setup
+      revision: develop
       directories:
       - path: apps/*
         recurse: true
@@ -20,7 +20,7 @@ spec:
       project: "default"
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-        targetRevision: 12-argocd-setup
+        targetRevision: develop
         path: '{{.path.path}}/.kube'
       destination:
         server: https://kubernetes.default.svc
