@@ -25,6 +25,11 @@ spec:
         repoURL: 'https://github.com/myorg/myrepo.git'
         targetRevision: '{{.head_sha}}'
         path: k8s/web
+        helm:
+          releaseName: 'mswa-web-{{.branch_slug}}-{{.number}}'
+          values: |
+            image:
+              tag: {{.head_sha}}
       project: "default"
       destination:
         server: https://kubernetes.default.svc
