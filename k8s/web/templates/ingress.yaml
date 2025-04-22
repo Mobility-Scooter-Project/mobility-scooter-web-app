@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: 
-  namespace: headlamp
+  name: {{ .Release.Name }}-ingress
+  namespace: {{ .Release.Namespace }}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ .Values.subdomain }}.cis240470.projects.jetstream-cloud.org
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
