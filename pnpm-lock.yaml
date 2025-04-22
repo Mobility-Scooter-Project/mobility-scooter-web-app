@@ -136,13 +136,13 @@ importers:
         specifier: ^2.0.10
         version: 2.0.11
       ts-jest:
-        specifier: ^29.3.1
+        specifier: ^29.2.6
         version: 29.3.1(@babel/core@7.26.10)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.10))(esbuild@0.25.2)(jest@29.7.0(@types/node@20.17.30)(babel-plugin-macros@3.1.0))(typescript@5.8.3)
       tsx:
         specifier: ^4.7.1
         version: 4.19.3
       typescript:
-        specifier: ^5.8.3
+        specifier: ^5.8.2
         version: 5.8.3
 
   apps/video-worker:
