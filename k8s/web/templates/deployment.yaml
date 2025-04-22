@@ -22,3 +22,6 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.containerPort }}
+      envFrom:
+        - configMapRef:
+            name: {{ .Release.Name }}-config
