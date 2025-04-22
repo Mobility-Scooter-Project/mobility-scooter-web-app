@@ -17,15 +17,15 @@ spec:
           secretName: argocd-github
           key: token
       requeueAfterSeconds: 1800
-    template:
-      metadata:
-        name: 'mswa-web-{{.branch}}-{{.number}}'
-      spec:
-        source:
-          repoURL: 'https://github.com/myorg/myrepo.git'
-          targetRevision: '{{.head_sha}}'
-          path: k8s/web
-        project: "default"
-        destination:
-          server: https://kubernetes.default.svc
-          namespace: default
+  template:
+    metadata:
+      name: 'mswa-web-{{.branch}}-{{.number}}'
+    spec:
+      source:
+        repoURL: 'https://github.com/myorg/myrepo.git'
+        targetRevision: '{{.head_sha}}'
+        path: k8s/web
+      project: "default"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
