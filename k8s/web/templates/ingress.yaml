@@ -24,4 +24,4 @@ spec:
   tls:
     - hosts:
         - {{.Values.ingress.subdomain }}.cis240470.projects.jetstream-cloud.org
-      secretName: headlamp-cert
+      secretName: {{ .Release.Name }}-tls
