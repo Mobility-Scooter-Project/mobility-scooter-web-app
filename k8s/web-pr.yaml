@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: mswa-pr-web
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - pullRequest:
+      github:
+        # The GitHub organization or user.
+        owner: Mobility-Scooter-Project
+        # The Github repository
+        repo: mobility-scooter-web-app
+        tokenRef:
+          secretName: argocd-github
+          key: token
+      requeueAfterSeconds: 1800
+    template:
+      metadata:
+        name: 'mswa-web-{{.branch}}-{{.number}}'
+      spec:
+        source:
+          repoURL: 'https://github.com/myorg/myrepo.git'
+          targetRevision: '{{.head_sha}}'
+          path: k8s/web
+        project: "default"
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: default
