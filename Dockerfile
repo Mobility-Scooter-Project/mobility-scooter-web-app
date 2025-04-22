@@ -11,7 +11,7 @@ RUN pnpm build
 
 FROM build AS web
 WORKDIR /usr/src/mswa/apps/web
-EXPOSE 5173
+EXPOSE 3000
 CMD [ "pnpm", "start" ]
 
 FROM build AS api

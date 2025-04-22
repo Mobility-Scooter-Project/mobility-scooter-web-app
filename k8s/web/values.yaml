@@ -6,4 +6,4 @@ image:
 ingress:
   subdomain: mswa-web
 
-containerPort: 5173
+containerPort: 3000
