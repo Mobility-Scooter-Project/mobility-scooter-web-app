@@ -11,6 +11,9 @@ spec:
       github:
         owner: mobility-scooter-project
         repo: mobility-scooter-web-app
+        tokenRef:
+          secretName: argocd-github
+          secretKey: token
   template:
     metadata:
       name: 'mswa-{{.branch | normalize}}-{{.number}}'
