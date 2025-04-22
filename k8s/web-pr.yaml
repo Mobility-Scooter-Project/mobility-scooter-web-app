@@ -14,6 +14,10 @@ spec:
   template:
     metadata:
       name: 'mswa-{{.branch | normalize}}-{{.number}}'
+      annotations:
+        argocd-image-updater.argoproj.io/write-back-method: argocd
+        argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}}
+        argocd-image-updater.argoproj.io/update-strategy: latest
     spec:
       project: "default"
       source:
@@ -25,7 +29,7 @@ spec:
             - values.yaml
           parameters:
             - name: image.tag
-              value: '{{.branch | normalize}}' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
+              value: 'web' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'

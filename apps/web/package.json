@@ -6,8 +6,7 @@
     "build": "react-router build",
     "dev": "react-router dev --host",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
-    "docker:build": "docker buildx build . -t mswa-web:latest"
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@mjackson/form-data-parser": "^0.7.0",
