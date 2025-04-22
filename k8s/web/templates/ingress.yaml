@@ -11,7 +11,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: {{ .Values.ingress.subdomain }}cis240470.projects.jetstream-cloud.org
+    - host: {{ .Values.ingress.subdomain }}.cis240470.projects.jetstream-cloud.org
       http:
         paths:
           - path: /
