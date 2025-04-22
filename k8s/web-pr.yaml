@@ -19,7 +19,13 @@ spec:
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
         targetRevision: '{{.head_sha}}'
-        path: 'apps/web/.kube/'
+        path: k8s/web
+        helm:
+          valueFiles:
+            - values.yaml
+          parameters:
+            - name: image.tag
+              value: '{{.branch}}' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
