@@ -12,7 +12,6 @@ spec:
       revision: bryan/web-file-encryption
       directories:
         - path: .kube/*
-          recurse: true
   template:
     metadata:
       name: 'mswa-{{.path.basename}}'
