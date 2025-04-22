@@ -3,4 +3,7 @@ image:
   repository: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web
   tag: "latest"
 
+ingress:
+  subdomain: mswa-web
+
 containerPort: 5173

@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 
+  namespace: headlamp
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.subdomain }}.cis240470.projects.jetstream-cloud.org
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: {{ .Values.subdomain }}cis240470.projects.jetstream-cloud.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-service
+                port:
+                  number: {{ .Values.containerPort }}
+  tls:
+    - hosts:
+        - {{.Values.subdomain }}.cis240470.projects.jetstream-cloud.org
+      secretName: headlamp-cert

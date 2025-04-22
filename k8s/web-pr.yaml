@@ -30,6 +30,8 @@ spec:
           parameters:
             - name: image.tag
               value: 'web' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
+            - name: ingress.subdomain
+              value: 'mswa-web-{{.branch | normalize}}-{{.number}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
