@@ -8,6 +8,7 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
   - pullRequest:
+      cloneProtocol: https
       github:
         # The GitHub organization or user.
         owner: Mobility-Scooter-Project
