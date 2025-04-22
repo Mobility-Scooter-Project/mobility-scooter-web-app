@@ -19,7 +19,7 @@ spec:
       requeueAfterSeconds: 1800
   template:
     metadata:
-      name: 'mswa-web-{{.branch}}-{{.number}}'
+      name: 'mswa-web-{{.branch_slug }}-{{.number}}'
     spec:
       source:
         repoURL: 'https://github.com/myorg/myrepo.git'
