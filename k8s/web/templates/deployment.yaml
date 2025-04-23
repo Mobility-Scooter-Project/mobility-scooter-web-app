@@ -22,6 +22,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.containerPort }}
+              name: http-web-svc
           livenessProbe:
             httpGet:
               path: /
