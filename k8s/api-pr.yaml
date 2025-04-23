@@ -33,6 +33,8 @@ spec:
           parameters:
             - name: image.tag
               value: '{{.branch | normalize}}'
+            - name: redis.architecture
+              value: standalone
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
