@@ -25,3 +25,10 @@ spec:
               name: http-api-svc
           livenessProbe:
             httpGet:
+              path: /
+              port: {{ .Values.containerPort }}
+            initialDelaySeconds: 3
+            periodSeconds: 30
+      envFrom:
+        - configMapRef:
+            name: {{ .Release.Name }}-config
