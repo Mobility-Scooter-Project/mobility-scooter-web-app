@@ -31,8 +31,6 @@ spec:
           valueFiles:
             - values.yaml
           parameters:
-            - name: image.tag
-              value: 'web' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
             - name: ingress.subdomain
               value: 'mswa-web-{{.branch_slug}}'
       destination:
