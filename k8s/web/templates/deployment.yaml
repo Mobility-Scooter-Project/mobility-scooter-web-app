@@ -20,15 +20,15 @@ spec:
         - name: {{ .Release.Name }}
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
           imagePullPolicy: Always
-          ports:
-            - containerPort: {{ .Values.containerPort }}
-              name: http-web-svc
-          livenessProbe:
-            httpGet:
-              path: /healthcheck
-              port: {{ .Values.containerPort }}
-            initialDelaySeconds: 3
-            periodSeconds: 30
+      ports:
+        - containerPort: {{ .Values.containerPort }}
+          name: http-web-svc
+      livenessProbe:
+        httpGet:
+          path: /healthcheck
+          port: {{ .Values.containerPort }}
+        initialDelaySeconds: 3
+        periodSeconds: 30
       envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config
