@@ -28,7 +28,7 @@ spec:
             - values.yaml
           parameters:
             - name: image.tag
-              value: '{{.head_sha}}' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
+              value: 'sha-{{.head_sha}}' # ArgoCD Image Updater will update this, ensuring we aren't waiting on CI/CD
             - name: ingress.subdomain
               value: 'mswa-web-{{.branch_slug}}'
       destination:
