@@ -17,4 +17,4 @@ data:
   STORAGE_ACCESS_KEY: {{ .Values.configmap.data.STORAGE_ACCESS_KEY | quote }}
   STORAGE_SECRET_KEY: {{ .Values.configmap.data.STORAGE_SECRET_KEY | quote }}
   VAULT_ADDR: {{ .Values.configmap.data.VAULT_ADDR | quote }}
-  VAULT_TOKEN: {{ .Values.configmap.data.VAULT_TOKEN | quote
+  VAULT_TOKEN: {{ .Values.configmap.data.VAULT_TOKEN | quote }}
