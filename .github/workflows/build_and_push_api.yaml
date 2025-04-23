@@ -7,15 +7,15 @@ on:
       - main
     paths:
       - apps/api/**
-      - .github/workflows/build_and_push_api.yaml
+      - .github/workflows/build_and_push_web.yaml
   pull_request:
     paths:
       - apps/api/**
-      - .github/workflows/build_and_push_api.yaml
+      - .github/workflows/build_and_push_web.yaml
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: api # Changed to just the base image name
+  IMAGE_NAME: api
 
 jobs:
   build-and-push-image:
@@ -43,6 +43,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
+            type=raw, value=${{ github.head_ref }}
             type=ref,event=tag,prefix=v
             type=semver,pattern={{version}}
             type=sha
