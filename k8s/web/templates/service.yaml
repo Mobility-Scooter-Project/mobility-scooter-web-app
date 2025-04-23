@@ -9,6 +9,7 @@ spec:
     type: ClusterIP
     ports:
         - name: https
-          port: {{ .Values.containerPort }}
+          port: 80
+          targetPort: {{ .Values.containerPort }}
     selector:
         app: {{ .Release.Name }}
