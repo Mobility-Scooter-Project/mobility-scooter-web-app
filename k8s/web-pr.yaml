@@ -31,6 +31,8 @@ spec:
           valueFiles:
             - values.yaml
           parameters:
+            - name: image.tag
+              value: '{{.branch | normalize}}'
             - name: ingress.subdomain
               value: 'mswa-web-{{.branch_slug}}'
       destination:
