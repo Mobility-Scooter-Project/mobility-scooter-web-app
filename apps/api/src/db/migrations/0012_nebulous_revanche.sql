@@ -1,0 +1,1 @@
+ALTER TABLE "videos"."tasks" RENAME COLUMN "task" TO "tasks";
