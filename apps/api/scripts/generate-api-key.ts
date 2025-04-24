@@ -32,6 +32,7 @@ try {
 
   // write to .env file
   fs.appendFileSync(".env", `TESTING_API_KEY=${key}\n`);
+  fs.appendFileSync("../video-worker/.env", `\nTESTING_API_KEY=${key}\n`);
 
   console.log(`Successfully wrote API key to .env file for device ${hostname}`);
 } catch (e) {

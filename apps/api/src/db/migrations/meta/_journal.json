@@ -71,6 +71,20 @@
       "when": 1741904032473,
       "tag": "0009_update_video_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745362250909,
+      "tag": "0010_square_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1745453866107,
+      "tag": "0011_confused_starhawk",
+      "breakpoints": true
     }
   ]
 }
