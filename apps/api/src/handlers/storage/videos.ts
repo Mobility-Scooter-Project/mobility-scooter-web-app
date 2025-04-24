@@ -7,6 +7,11 @@ import { storageService } from "@src/services/storage";
 import {
   presignedUrlResponseSchema,
   presignedUrlSchema,
+  transcriptSchema,
+  videoMetadataSchema,
+  taskSchema,
+  keypointSchema,
+  videoIdSchema,
 } from "@src/validators/storage";
 import { Hono } from "hono";
 import { describeRoute } from "hono-openapi";
@@ -123,6 +128,244 @@ app.post(
         transcriptPutUrl,
         filename,
         transcriptName,
+      },
+      error: null,
+    });
+  }
+)
+
+app.post("/store-video",   
+  describeRoute({
+    summary: "Store video",
+    description:
+      "Store video",
+    tags: ["video-worker"],
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: resolver(videoMetadataSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Video stored successfully",
+        content: {
+          "application/json": {
+            schema: resolver(videoMetadataSchema),
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  zValidator("json", videoMetadataSchema),
+  async (c) => {
+    const { patientId, path, date } = c.req.valid("json");
+    const db = c.get("db");
+
+    await storageService.storeVideoMetadata(
+      db,
+      patientId,
+      path,
+      date,
+    );
+    
+    return c.json({
+      data: {
+        path,
+      },
+      error: null,
+    });
+  },
+)
+
+app.post("/store-transcript",   
+  describeRoute({
+    summary: "Store video transcript",
+    description:
+      "Store video transcript",
+    tags: ["video-worker"],
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: resolver(transcriptSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Video stored successfully",
+        content: {
+          "application/json": {
+            schema: resolver(transcriptSchema),
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  zValidator("json", transcriptSchema),
+  async (c) => {
+    const { videoId, transcriptPath } = c.req.valid("json");
+    const db = c.get("db");
+
+    await storageService.storeTranscript(
+      db,
+      videoId,
+      transcriptPath,
+    );
+
+    return c.json({
+      data: {
+        transcriptPath,
+      },
+      error: null,
+    });
+
+  }
+)
+
+app.post("/store-task", 
+  describeRoute({
+    summary: "Store video task",
+    description:
+      "Store video transcript",
+    tags: ["video-worker"],
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: resolver(taskSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Task stored successfully",
+        content: {
+          "application/json": {
+            schema: resolver(taskSchema),
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  zValidator("json", taskSchema ),
+  async (c) => {
+    const { videoId, tasks } = c.req.valid("json");
+    const db = c.get("db");
+
+    await storageService.storeTask(
+      db,
+      videoId,
+      tasks,
+    );
+
+    return c.json({
+      data: {
+        tasks,
+      },
+      error: null,
+    });
+  }
+)  
+
+app.post("/store-keypoints", 
+  describeRoute({
+    summary: "Store video keypoints",
+    description:
+      "Store video keypoints",
+    tags: ["video-worker"],
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: resolver(keypointSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Keypoints stored successfully",
+        content: {
+          "application/json": {
+            schema: resolver(keypointSchema),
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  zValidator("json", keypointSchema ),
+  async (c) => {
+    const { videoId, timestamp, angle, keypoints } = c.req.valid("json");
+    const db = c.get("db");
+
+    await storageService.storeKeypoint(
+      db,
+      videoId,
+      timestamp,
+      angle,
+      keypoints,
+    );
+
+    return c.json({
+      data: {
+        timestamp,
+      },
+      error: null,
+    });
+  }
+)
+
+app.post("/find-video-id",
+  describeRoute({
+    summary: "Find video ID by video path",
+    description:
+      "Find video ID by video path",
+    tags: ["video-worker"],
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: resolver(videoIdSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Video ID found successfully",
+        content: {
+          "application/json": {
+            schema: resolver(videoIdSchema),
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  zValidator("json", videoIdSchema ),
+  async (c) => {
+    const { videoPath } = c.req.valid("json");
+    const db = c.get("db");
+
+    const videoId = await storageService.findVideoId(
+      db,
+      videoPath,
+    );
+
+    return c.json({
+      data: {
+        videoId,
       },
       error: null,
     });

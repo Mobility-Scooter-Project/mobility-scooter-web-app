@@ -2,6 +2,8 @@ import { ENVIRONMENT } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { storage } from "@src/integrations/storage";
 import { HTTPException } from "hono/http-exception";
+import type { DB } from "@middleware/db";
+import { videoRepository  } from "@src/repositories/video";
 
 /**
  * Generates a pre-signed put url and creates a bucket to upload and store a video
@@ -123,7 +125,80 @@ const generatePresignedGetUrl = async (
   }
 }
 
+const storeVideoMetadata = async (
+  db: DB,
+  patientId: string,
+  path: string,
+  date: Date,
+) => {
+
+  const eventId = await videoRepository.storeVideoEvent(db, "pending")
+  
+  await videoRepository.storeVideoMetadata(db, {
+    patientId,
+    eventId,
+    path,
+    date
+  });
+}
+
+const storeTranscript = async (db: DB, videoId: string, transcriptPath: string) => {
+  return videoRepository.storeTranscript(db, videoId, transcriptPath);
+}
+
+const storeTask = async (
+  db: DB, 
+  videoId: string, 
+  tasks: {
+    task: string;
+    start: string;
+    end: string;
+  }[]) => {
+
+  return videoRepository.storeTask(db, videoId, tasks);
+}
+
+const storeKeypoint = async (
+  db: DB, 
+  videoId: string, 
+  timestamp: string,
+  angle: number, 
+  keypoints: {
+    [name: string]: [number, number];
+  } 
+) => {
+
+  return videoRepository.storeKeypoint(db, {
+    videoId: videoId,
+    timestamp,
+    angle,
+    keypoints,
+  });
+}
+
+const findVideoId = async (
+  db: DB,
+  videoPath: string,
+) => {
+  const video = await videoRepository.findVideoByPath(db, videoPath);
+
+  if (!video) {
+    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
+      res: new Response(
+        JSON.stringify({ data: null, error: "Invalid video path" }),
+      ),
+    });
+  }
+
+  return video.id;
+}
+ 
 export const storageService = {
   generatePresignedPutUrl,
   generatePresignedGetUrl,
+  storeVideoMetadata,
+  storeTranscript,
+  storeTask,
+  storeKeypoint,
+  findVideoId,
 };
