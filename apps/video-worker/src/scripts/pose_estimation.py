@@ -140,12 +140,13 @@ def pose_estimation(model, video_url, filename):
     # total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     # progress = (current_frame / total_frames) * 100
 
-    print(f"Extracting keypoints and calculating angle for {filename}... {timestamp:.2f}% complete\r")
+    print(f"\rExtracting keypoints and calculating angle for {filename}... {timestamp} complete", end="")
 
     # Perform operations for the frame
     ret, frame = cap.read()
     if not ret:
       break 
+
     results = model(frame, verbose=False)
     result = results[0]
     

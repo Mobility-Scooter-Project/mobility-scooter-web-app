@@ -175,7 +175,9 @@ def audio_detection(model, video_url, transcript_url, filename):
   Calls functions to generate a transcript and determine if the video has any tasks.
 
   Args:
+    model (Whisper): The loaded Whisper asr model.
     video_url (str): Url of the video file.
+    transcript_url (str): Url to store the transcript.
     filename (str): Name of the video file.
   """
   print(f"\nGenerating transcript for {filename}...")
