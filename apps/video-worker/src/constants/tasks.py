@@ -1,4 +1,3 @@
-# More controlled tasks list
 TASK_LIST = [
     "Going forward at a comfortable slow speed",   
     "Going forward at a comfortable fast speed",       
@@ -24,17 +23,21 @@ KEY_WORDS = [
     "Go ahead",
     "I want you to",
     "We are gonna",
+    "We're gonna"
     "I'm gonna have you",
     "You have to",
     "Right back",
     "Head back",
     "Right now",
     "Start",
+    "You are gonna",
+    "You're gonna",
 ]
 
 FILLER_PHRASES = [
     "go ahead", "i want you to", "we are gonna", "we're gonna", 
-    "i'm gonna have you", "you have to", "right back", "head back", 
-    "right now", "okay", "alright", "all righty", "just", 
-    "real quick", "alrighty", "alright", "all right", "wow", "yeah"
+    "i'm gonna have you", "i'm gonna", "you have to", "right back", "head back", 
+    "right now", "you are gonna", "start", "you're gonna","okay", "alright", 
+    "all righty", "just", "real quick", "alrighty", "alright", "all right", 
+    "wow", "yeah", 
 ]

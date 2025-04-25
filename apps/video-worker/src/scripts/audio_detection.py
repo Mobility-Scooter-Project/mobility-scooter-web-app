@@ -210,7 +210,9 @@ def audio_detection(model, video_url, transcript_url, filename):
       "X-User": USER_TOKEN,
     },
   )
-  
+
   print(f"Detecting tasks from transcript...")
   get_tasks_times(transcript.name, filename, video_id)
+  
+  os.remove(transcript.name)  # Clean up the temporary file
   
