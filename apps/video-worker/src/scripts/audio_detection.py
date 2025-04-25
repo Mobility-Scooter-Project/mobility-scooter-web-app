@@ -1,10 +1,17 @@
+import os
 import tempfile
 import webvtt
 import requests
 import time
+import re
+from dotenv import load_dotenv
 from datetime import timedelta
 from rapidfuzz import fuzz
-from constants.tasks import TASK_LIST
+from constants.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
+
+load_dotenv()
+API_KEY = os.getenv('TESTING_API_KEY')
+USER_TOKEN = os.getenv('USER_TOKEN')
 
 def format_time(td):
   """
@@ -67,67 +74,102 @@ def get_transcript(video_url, model):
   
   """
   try:
-    start_time = time.time()
-    result = model.transcribe(video_url, word_timestamps=True, fp16=True)  
+    time_start = time.time()
+    result = model.transcribe(video_url, word_timestamps=True, fp16=False)  
     vtt_content = format_vtt(result["segments"], "segms")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
       tmp.write(vtt_content.encode("utf-8"))  
       
-    print(f"Transcript generated successfully after {time.time() - start_time:.2f}s!\n")
+    print(f"Transcript generated successfully after {time.time() - time_start:.2f}s!\n")
     return tmp
   except Exception as e:
     print(f"Failed to generate trancript: {e}\n")
 
-def get_task_time(task, i, captions, tasks_time):
-  """
-  Determines the start and end time of each detected task
+def clean_task_description(text):
+    text = text.lower()
+    # Remove filler phrases
+    for phrase in FILLER_PHRASES:
+        text = re.sub(rf"\b{re.escape(phrase)}\b", "", text)
 
-  Args:
-    task (str): Name of the task.
-    i (int): Index used to iterate through the captions. 
-    captions (WEBVTT): Object representing the transcript content.
-    tasks_time (dict): Dictionary of the detected tasks and their start and end time.
+    # Remove extra whitespace and punctuation
+    text = re.sub(r"[^\w\s]", "", text)  # Remove punctuation
+    text = re.sub(r"\s+", " ", text)     # Normalize spaces
+    return text.strip()
 
-  Returns:
-    The index used to iterate through the captions.  
-  """
-  for j, caption in enumerate(captions, start=i):
-    if "start" in captions[j].text.lower():
-      start_time = captions[j].start
+def fuzzy_task_match(text):
+  """Match a caption to the most likely task."""
+  best_task = None
+  best_score = 0
+  for task in TASK_LIST:
+    score = fuzz.partial_ratio(text.lower(), task.lower())
+    if score > best_score:
+      best_score = score
+      best_task = task
 
-    if "stop" in captions[j].text.lower() and start_time:
-      end_time = captions[j].end
-      tasks_time[task] = [start_time, end_time]
-      return j
-    
-def get_tasks(transcript, filename):
-  """
-  Detects if the video has any tasks.
+  return best_task if best_score > 70 else None
 
-  Args:
-    transcript (VTT): Transcript generated from the video. 
-    filename (str): Name of the video file.
-  """
-  tasks_time = {}
-  captions = webvtt.read(transcript)
-  i = 0
+def get_tasks_times(transcript_path, filename, video_id):
+  captions = webvtt.read(transcript_path)
+  tasks_time = []
+  current_task = None
+  current_start = None
 
-  while i < len(captions):
-    for task in TASK_LIST:
-      score = fuzz.partial_ratio(captions[i].text.lower(), task.lower())
-      if score > 75:
-        i = get_task_time(task, i, captions, tasks_time)
-    else:
-       i += 1
+  for i, caption in enumerate(captions):
+    text = caption.text.lower()
 
-  if len(tasks_time) == 0:
+    # Check if there's either a keyword or a matched task in the current caption
+    keyword_trigger = any(kw.lower() in text for kw in KEY_WORDS)
+    matched_task = fuzzy_task_match(caption.text)
+
+    if keyword_trigger or matched_task:
+      if current_task and current_start:
+        # End previous task
+        tasks_time.append({
+            "task": current_task,
+            "start": current_start,
+            "end": caption.start
+        })
+
+      # Start new task
+      current_task = matched_task or text
+      current_start = caption.start
+
+  # Handle last task if still open
+  if current_task and current_start:
+    tasks_time.append({
+      "task": current_task,
+      "start": current_start,
+      "end": captions[-1].end
+    })
+
+  cleaned_tasks = []
+  for t in tasks_time:
+    cleaned = clean_task_description(t['task'])
+    cleaned_tasks.append({
+        "task": cleaned,
+        "start": t['start'],
+        "end": t['end']
+    })
+
+  if len(cleaned_tasks) == 0:
     print(f"No tasks detected from {filename}\n")
+  else:
+    print(cleaned_tasks)
 
-  for task in tasks_time:
-    start_time, end_time = tasks_time[task]
-    print(f'Task: "{task}" starts at {start_time} and ends at {end_time}\n')
-    
+  requests.post(
+    "http://localhost:3000/api/v1/storage/videos/store-task", 
+    json={
+      "videoId": video_id,
+      "tasks": cleaned_tasks,
+    },
+    headers={
+      "Authorization": "Bearer " + API_KEY,
+      "Content-Type": "application/json",
+      "X-User": USER_TOKEN,
+    },
+  )
+
 def audio_detection(model, video_url, transcript_url, filename):
   """
   Calls functions to generate a transcript and determine if the video has any tasks.
@@ -139,10 +181,36 @@ def audio_detection(model, video_url, transcript_url, filename):
   print(f"\nGenerating transcript for {filename}...")
   transcript = get_transcript(video_url, model) 
 
+  response = requests.post(
+    "http://localhost:3000/api/v1/storage/videos/find-video-id", 
+    json={
+      "videoPath": filename,
+    },
+    headers={
+      "Authorization": "Bearer " + API_KEY,
+      "Content-Type": "application/json",
+      "X-User": USER_TOKEN,
+    },
+  ) 
+
+  video_id = response.json()["data"]["videoId"]
+
   with open(transcript.name, "rb") as f:
     requests.put(transcript_url, data=f)  
-  # TODO: Store the transcript metadata
 
+  requests.post(
+    "http://localhost:3000/api/v1/storage/videos/store-transcript", 
+    json={
+      "videoId": video_id,
+      "transcriptPath": transcript_url,
+    },
+    headers={
+      "Authorization": "Bearer " + API_KEY,
+      "Content-Type": "application/json",
+      "X-User": USER_TOKEN,
+    },
+  )
+  
   print(f"Detecting tasks from transcript...")
-  get_tasks(transcript.name, filename)
+  get_tasks_times(transcript.name, filename, video_id)
   
