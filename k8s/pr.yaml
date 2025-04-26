@@ -18,7 +18,7 @@ spec:
     metadata:
       name: 'mswa-web-{{.branch | normalize}}-{{.number}}'
       annotations:
-        argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/argocd-github
+        argocd-image-updater.argoproj.io/write-back-method: argocd
         argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}}, api=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:{{.branch | normalize}}
         argocd-image-updater.argoproj.io/update-strategy: latest
     spec:
@@ -30,11 +30,10 @@ spec:
         helm:
           valueFiles:
             - values.yaml
-          parameters:
             - name: web.image.tag
-              value: 'web'
+              value: '{{.branch | normalize}}'
             - name: api.image.tag
-              value: 'api'
+              value: '{{.branch | normalize}}'
 
       destination:
         server: https://kubernetes.default.svc
