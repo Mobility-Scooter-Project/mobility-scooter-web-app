@@ -1,14 +1,13 @@
-import { videoMetadata, videoTasks, videoEvents, videoTranscripts, videoKeyPoints } from "@src/db/schema/videos";
-import type { DB } from "@middleware/db";
+import { fileMetadata, tasks, events, keyPoints } from "@src/db/schema/storage";
+import { postgresDB, type DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
-import { eq, sql, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 
-type Video = typeof videoMetadata.$inferInsert;
+type Video = typeof fileMetadata.$inferInsert;
 type VideoStatus = "pending" | "processing" | "processed" | "failed" | "annotation approved" | "annotation created";
-type VideoTranscript = typeof videoTranscripts.$inferInsert;
-type VideoKeypoint = typeof videoKeyPoints.$inferInsert;
-type VideoTask = typeof videoTasks.$inferInsert;
+type keyPoint = typeof keyPoints.$inferInsert;
+type task = typeof tasks.$inferInsert;
 
 /**
  * Stores a video event in the database and returns the event ID.
@@ -25,13 +24,13 @@ const storeVideoEvent = async (db: DB, status: VideoStatus) => {
   try {
     const data = await db.transaction(async (tx) => {
       const data = await tx
-        .insert(videoEvents)
+        .insert(events)
         .values({
           status: status,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .returning({ eventId: videoEvents.id });
+        .returning({ eventId: events.id });
       return data[0];
     });
     return data.eventId;
@@ -47,7 +46,6 @@ const storeVideoEvent = async (db: DB, status: VideoStatus) => {
 /**
  * Stores video metadata in the database and creates a video event.
  *
- * @param db - Database connection
  * @param video - Video metadata to be stored
  * @returns String
  *  - ID of the video metadata
@@ -55,20 +53,24 @@ const storeVideoEvent = async (db: DB, status: VideoStatus) => {
  * @remarks
  * This function will store the video metadata in the database.
  */
-const storeVideoMetadata = async (db: DB, video: Video) => {
+const createVideoMetadata = async (video: Omit<Video, "statusEventId">) => {
   try {
-    const data = await db.transaction(async (tx) => {
-      const data = await tx 
-        .insert(videoMetadata)
+    const data = await postgresDB.transaction(async (tx) => {
+      const eventData = await tx.insert(events)
+        .values({
+          status: "pending",
+        }).returning({ eventId: events.id });
+
+      return await tx
+        .insert(fileMetadata)
         .values({
           ...video,
-        })
-        .returning({ id: videoMetadata.id })    
-
-      return data;
-    });
+          statusEventId: eventData[0].eventId,
+        }).returning({ id: fileMetadata.id });
+    })
 
     return data[0];
+
   } catch (e: unknown) {
     console.error(`Failed to store video metadata: ${e}`);
     throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
@@ -88,49 +90,16 @@ const storeVideoMetadata = async (db: DB, video: Video) => {
  * @remarks
  * This function will retrieve the video metadata from the database.
  */
-const findVideo = async (db: DB,  pathOrId: string, videoIdentifier: string) => {
+const findVideo = async (db: DB, pathOrId: string, videoIdentifier: string) => {
   if (pathOrId === "id") {
-    const data = await db.select().from(videoMetadata).where(eq(videoMetadata.id, videoIdentifier));
+    const data = await db.select().from(fileMetadata).where(eq(fileMetadata.id, videoIdentifier));
     return data[0];
   } else if (pathOrId === "path") {
-    const data = await db.select().from(videoMetadata).where(eq(videoMetadata.path, videoIdentifier));
+    const data = await db.select().from(fileMetadata).where(eq(fileMetadata.path, videoIdentifier));
     return data[0];
-  } 
+  }
 };
 
-/**
- * Stores a transcript in the database.
- *
- * @param db - Database connection
- * @param transcript - Transcript to be stored
- * @returns String
- *  - ID of the video transcript
- *
- * @remarks
- * This function will store the transcript in the database.
- */
-const storeTranscript = async (db: DB, transcript: VideoTranscript) => {
-  try {
-    const data = await db.transaction(async (tx) => {
-      const data = await tx 
-        .insert(videoTranscripts)
-        .values({
-          ...transcript,
-          createdAt: new Date(),
-        })
-        .returning({ id: videoTranscripts.id })    
-
-      return data;
-    });
-
-    return data[0];
-  } catch (e: unknown) {
-    console.error(`Failed to store video transcript: ${e}`);
-    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: "Failed to store video transcript",
-    });
-  }
-}
 
 /**
  * Stores a task in the database.
@@ -142,18 +111,18 @@ const storeTranscript = async (db: DB, transcript: VideoTranscript) => {
  *
  * @remarks
  * This function will store the task in the database.
- */ 
-const storeTask = async (db: DB, task: VideoTask) => {
+ */
+const storeTask = async (db: DB, task: task) => {
   try {
     const data = await db.transaction(async (tx) => {
-      const data = await tx 
-        .insert(videoTasks)
+      const data = await tx
+        .insert(tasks)
         .values({
           ...task,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .returning({ id: videoTasks.id })    
+        .returning({ id: tasks.id })
 
       return data;
     });
@@ -178,17 +147,17 @@ const storeTask = async (db: DB, task: VideoTask) => {
  * @remarks
  * This function will store keypoints in the database.
  */
-const storeKeypoint = async (db: DB, keypoint: VideoKeypoint) => {
+const storeKeypoint = async (db: DB, keypoint: keyPoint) => {
   try {
     const data = await db.transaction(async (tx) => {
-      const data = await tx 
-        .insert(videoKeyPoints)
+      const data = await tx
+        .insert(keyPoints)
         .values({
           ...keypoint,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .returning({ id: videoKeyPoints.id })    
+        .returning({ id: keyPoints.id })
 
       return data;
     });
@@ -218,15 +187,15 @@ const updateVideoEvent = async (db: DB, eventId: string, status: VideoStatus) =>
   try {
     const data = await db.transaction(async (tx) => {
       const data = await tx
-        .update(videoEvents)
+        .update(events)
         .set({
           status: status,
           updatedAt: new Date(),
         })
         .where(
-          eq(videoEvents.id, eventId),
+          eq(events.id, eventId),
         )
-        .returning({ id: videoEvents.id });
+        .returning({ id: events.id });
 
       return data[0];
     });
@@ -240,7 +209,7 @@ const updateVideoEvent = async (db: DB, eventId: string, status: VideoStatus) =>
 }
 
 export const videoRepository = {
-  storeVideoMetadata,
+  createVideoMetadata,
   storeVideoEvent,
   findVideo,
   storeTranscript,

@@ -4,13 +4,12 @@ import {
   timestamp,
   uuid,
   varchar,
-  text,
   json,
   real,
   integer,
 } from "drizzle-orm/pg-core";
 
-export const videos = pgSchema("videos");
+export const storage = pgSchema("storage");
 export const videoStatus = pgEnum("video_status", [
   "pending",
   "processing",
@@ -20,17 +19,21 @@ export const videoStatus = pgEnum("video_status", [
   "annotation created"
 ]);
 
-export const videoMetadata = videos.table("metadata", {
+export const fileMetadata = storage.table("metadata", {
   id: uuid().primaryKey().defaultRandom(),
   patientId: varchar({ length: 30 }).notNull(), // TODO: add foreign key constraint once we know more about the patients table
-  eventId: uuid()
-    .references(() => videoEvents.id)
+  statusEventId: uuid()
+    .references(() => events.id)
     .notNull(),
   path: varchar({ length: 255 }).notNull(),
-  date: timestamp(),
+  uploadedAt: timestamp().notNull(),
+  createdAt: timestamp().defaultNow(),
+  updatedAt: timestamp().defaultNow(),
+  deletedAt: timestamp(),
+
 });
 
-export const videoEvents = videos.table("events", {
+export const events = storage.table("events", {
   id: uuid().primaryKey().defaultRandom(),
   status: videoStatus().notNull().default("pending"),
   createdAt: timestamp().defaultNow(),
@@ -38,10 +41,10 @@ export const videoEvents = videos.table("events", {
   deletedAt: timestamp(),
 });
 
-export const videoTasks = videos.table("tasks", {
+export const tasks = storage.table("tasks", {
   id: uuid().primaryKey().defaultRandom(),
   videoId: uuid()
-    .references(() => videoMetadata.id)
+    .references(() => fileMetadata.id)
     .notNull(),
   taskId: integer("task_id").notNull().default(1), // number ID
   task: json("task").notNull(),
@@ -50,25 +53,15 @@ export const videoTasks = videos.table("tasks", {
   deletedAt: timestamp(),
 })
 
-export const videoKeyPoints = videos.table("keypoints", {
+export const keyPoints = storage.table("keypoints", {
   id: uuid().primaryKey().defaultRandom(),
   videoId: uuid()
-    .references(() => videoMetadata.id)
+    .references(() => fileMetadata.id)
     .notNull(),
   timestamp: varchar({ length: 30 }).notNull(),
   angle: real(),
   keypoints: json("keypoints").notNull(),
   createdAt: timestamp().defaultNow(),
   updatedAt: timestamp().defaultNow(),
-  deletedAt: timestamp(),
-})
-
-export const videoTranscripts = videos.table("transcripts", {
-  id: uuid().primaryKey().defaultRandom(),
-  videoId: uuid()
-    .references(() => videoMetadata.id)
-    .notNull(),
-  path: text().notNull(),
-  createdAt: timestamp().defaultNow(),
   deletedAt: timestamp(),
 })

@@ -18,14 +18,19 @@ import Stream from "stream";
 const app = new Hono<{ Variables: Variables }>()
   .put(
     "/:bucketName/:filePath",
+    describeRoute({
+      summary: "Upload a file to storage",
+      tags: ["storage"],
+      description: "Upload a file to the storage bucket",
+    }),
     validateApiKey,
     userMiddleware,
     dbMiddleware,
     async (c) => {
+      const uploadedAt = new Date();
       const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
       const objectBlob = await c.req.blob();
-      console.log("objectBlob", objectBlob);
 
       const userId = c.get("userId")!;
 
@@ -34,6 +39,7 @@ const app = new Hono<{ Variables: Variables }>()
         userId,
         bucketName,
         objectBlob,
+        uploadedAt,
       );
 
       return c.json({
@@ -69,7 +75,7 @@ const app = new Hono<{ Variables: Variables }>()
   .get(
     "/presigned-url",
     describeRoute({
-      summary: "Get a presigned URL for downing a video",
+      summary: "Get a presigned URL for downloading a video",
       tags: ["storage"],
       description:
         "Get a presigned URL for downloading a video to the storage bucket",

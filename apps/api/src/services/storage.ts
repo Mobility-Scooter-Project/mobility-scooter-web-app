@@ -23,6 +23,7 @@ import crypto from "node:crypto";
  * @param userId - The identifier of the user uploading the object.
  * @param bucketName - The name of the bucket where the object will be stored.
  * @param object - The Blob object to be uploaded.
+ * @param uploadedAt - The date when the object was uploaded.
  *
  * @returns A promise that resolves once the object has been uploaded and the queue message has been published.
  */
@@ -31,6 +32,7 @@ const putObjectStream = async (
   userId: string,
   bucketName: string,
   object: Blob,
+  uploadedAt: Date,
 ) => {
   // TODO: check if user has access to patientId
 
@@ -67,25 +69,39 @@ const putObjectStream = async (
   );
 
   const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
-  const video_data = await generatePresignedGetUrl(
+
+  const videoDataPromise = generatePresignedGetUrl(
     transcriptPath,
     bucketName,
     userId,
   );
 
-  const transcript_data = await generatePresignedGetUrl(
+  const transcriptDataPromise = generatePresignedGetUrl(
     filePath,
     bucketName,
     userId,
   );
 
+  const videoMetadataPromise = createVideoMetadata(
+    bucketName,
+    filePath,
+    uploadedAt,
+  );
+
+  const [videoData, transcriptData, videoMetadata] = await Promise.all([
+    videoDataPromise,
+    transcriptDataPromise,
+    videoMetadataPromise,
+  ]);
+
   await queue.publish(
     TOPICS.VIDEOS,
     {
       data: {
-        url: video_data.url,
+        id: videoMetadata,
+        url: videoData.url,
         filename: filePath,
-        transcriptPutUrl: transcript_data.url,
+        transcriptPutUrl: transcriptData.url,
       }
     });
 };
@@ -208,10 +224,9 @@ const validatePresignedUrl = async (
 /**
  * Stores video metadata in the database and creates a video event
  *
- * @param db - Database connection
  * @param patientId - ID associated with a patient
  * @param path - Path of the video file
- * @param date - Date of the video
+ * @param uploadedAt - Date of the video
  * @returns String
  *  - ID of the video metadata
  *
@@ -219,20 +234,16 @@ const validatePresignedUrl = async (
  * This function will create an event ID and store the video metadata in the database.
  * The event ID is used to track the status of the video.
  */
-const storeVideoMetadata = async (
-  db: DB,
+const createVideoMetadata = async (
   patientId: string,
   path: string,
-  date: Date,
+  uploadedAt: Date,
 ) => {
 
-  const eventId = await videoRepository.storeVideoEvent(db, "pending")
-
-  return videoRepository.storeVideoMetadata(db, {
+  return await videoRepository.createVideoMetadata({
     patientId,
-    eventId,
     path,
-    date
+    uploadedAt
   });
 }
 
@@ -376,4 +387,5 @@ export const storageService = {
   getObjectStream,
   putObjectStream,
   validatePresignedUrl,
+  createVideoMetadata,
 };
