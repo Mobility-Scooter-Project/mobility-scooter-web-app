@@ -17,6 +17,6 @@ X-User: {{login.response.body.data.token}}
 
 {
  "date": "{{$datetime iso8601}}",
- "filename": "test.mp4",
+ "filename": "{{$randomInt 0 1000}}.mp4",
  "patientId": "abc-123-456-789"
 }

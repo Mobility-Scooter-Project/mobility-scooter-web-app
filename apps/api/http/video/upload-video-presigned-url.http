@@ -6,7 +6,7 @@ Content-Type: application/json
 
 {
  "email": "test@example.com",
- "password": "test124"
+ "password": "testing124"
 }
 
 ### Get Video Presigned URL
@@ -18,7 +18,7 @@ X-User: {{login.response.body.data.token}}
 
 {
  "date": "{{$datetime iso8601}}",
- "filename": "{{$randomInt 0 1000}}.txt",
+ "filename": "{{$randomInt 0 1000}}.mp4",
  "patientId": "abc-123-456-789"
 }
 
