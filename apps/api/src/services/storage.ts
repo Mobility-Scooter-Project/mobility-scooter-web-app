@@ -125,6 +125,20 @@ const generatePresignedGetUrl = async (
   }
 }
 
+/**
+ * Stores video metadata in the database and creates a video event
+ *
+ * @param db - Database connection
+ * @param patientId - ID associated with a patient
+ * @param path - Path of the video file
+ * @param date - Date of the video
+ * @returns String
+ *  - ID of the video metadata
+ *
+ * @remarks
+ * This function will create an event ID and store the video metadata in the database.
+ * The event ID is used to track the status of the video.
+ */
 const storeVideoMetadata = async (
   db: DB,
   patientId: string,
@@ -134,7 +148,7 @@ const storeVideoMetadata = async (
 
   const eventId = await videoRepository.storeVideoEvent(db, "pending")
   
-  await videoRepository.storeVideoMetadata(db, {
+  return videoRepository.storeVideoMetadata(db, {
     patientId,
     eventId,
     path,
@@ -142,10 +156,42 @@ const storeVideoMetadata = async (
   });
 }
 
-const storeTranscript = async (db: DB, videoId: string, transcriptPath: string) => {
-  return videoRepository.storeTranscript(db, videoId, transcriptPath);
+/**
+ * Stores a transcript in the database
+ *
+ * @param db - Database connection
+ * @param videoId - ID of the video
+ * @param transcriptPath - Path of the transcript file
+ * @returns String
+ *  - ID of the transcript
+ *
+ * @remarks
+ * This function will store the transcript in the database.
+ */
+const storeTranscript = async (
+  db: DB, 
+  videoId: string, 
+  transcriptPath: string) => {
+  
+  return videoRepository.storeTranscript(db, {
+    videoId, 
+    path: transcriptPath,
+  });
 }
 
+/**
+ * Stores a task in the database
+ *
+ * @param db - Database connection
+ * @param videoId - ID of the video
+ * @param taskId - ID of the task in relations to other tasks in the video
+ * @param task - Task object containing task details
+ * @returns String
+ *  - ID of the task
+ *
+ * @remarks
+ * This function will store the task in the database.
+ */
 const storeTask = async (
   db: DB, 
   videoId: string,
@@ -163,6 +209,20 @@ const storeTask = async (
   });
 }
 
+/**
+ * Stores keypoints in the database
+ *
+ * @param db - Database connection
+ * @param videoId - ID of the video
+ * @param timestamp - Timestamp of a frame in the video
+ * @param angle - Angle of the trunk flexion
+ * @param keypoints - Keypoints object containing keypoint details
+ * @returns String
+ *  - ID of the keypoint
+ *
+ * @remarks
+ * This function will store keypoints in the database.
+ */
 const storeKeypoint = async (
   db: DB, 
   videoId: string, 
@@ -181,6 +241,17 @@ const storeKeypoint = async (
   });
 }
 
+/**
+ * Finds a video ID in the database by a video path
+ *
+ * @param db - Database connection
+ * @param videoPath - Path of the video file
+ * @returns String
+ *  - ID of the video
+ *
+ * @remarks
+ * This function will find a video ID in the database by its path.
+ */
 const findVideoId = async (
   db: DB,
   videoPath: string,
