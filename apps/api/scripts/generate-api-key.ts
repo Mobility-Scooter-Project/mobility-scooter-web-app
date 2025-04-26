@@ -6,6 +6,7 @@ import os from "node:os";
 import { DATABASE_URL } from "../src/config/constants";
 import { apiKeys } from "../src/db/schema/auth";
 import * as auth from "../src/db/schema/auth";
+import { exit } from "node:process";
 
 const hostname = os.hostname();
 
@@ -33,8 +34,11 @@ try {
   // write to .env file
   fs.appendFileSync(".env", `TESTING_API_KEY=${key}\n`);
   fs.appendFileSync("../video-worker/.env", `\nTESTING_API_KEY=${key}\n`);
+  fs.appendFileSync(".env", `\nTESTING_API_KEY=${key}`);
+  fs.appendFileSync("../web/.env", `\nAPI_KEY=${key}`);
 
   console.log(`Successfully wrote API key to .env file for device ${hostname}`);
+  exit(0);
 } catch (e) {
   console.error(e);
   throw new Error("Failed to generate API key");

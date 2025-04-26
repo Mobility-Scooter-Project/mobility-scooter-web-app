@@ -1,0 +1,37 @@
+### Login
+# @name login
+POST http://localhost:3000/api/v1/auth/emailpass
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+Content-Type: application/json
+
+{
+<<<<<<<< HEAD:apps/api/http/storage/upload-video-presigned-url.http
+ "email": "test@example.com",
+ "password": "testing124"
+========
+  "email": "test@example.com",
+  "password": "testing124"
+>>>>>>>> 263ff978e4cb7adfa70078953db6c07b6870e1d6:apps/api/http/storage/download-object.http
+}
+
+### Get Video Presigned URL
+# @name getPresignedUrl
+POST http://localhost:3000/api/v1/storage/presigned-url
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
+X-User: {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+<<<<<<<< HEAD:apps/api/http/storage/upload-video-presigned-url.http
+ "date": "{{$datetime iso8601}}",
+ "filename": "{{$randomInt 0 1000}}.mp4",
+ "patientId": "abc-123-456-789"
+========
+  "filePath": "videos/sample.mp4",
+  "patientId": "http-client"
+>>>>>>>> 263ff978e4cb7adfa70078953db6c07b6870e1d6:apps/api/http/storage/download-object.http
+}
+
+### Download Video
+# @name downloadVideo
+#GET {{getPresignedUrl.response.body.data.url}} -> view this link in your browser to avoid crashing VSCode

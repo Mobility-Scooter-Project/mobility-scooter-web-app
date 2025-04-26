@@ -1,25 +1,26 @@
 import { sessions } from "@db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
-import { HTTPException } from "hono/http-exception";
+import { HTTPError } from "@src/lib/errors";
+
 
 /**
- * Creates a new session for a user in the database.
- *
+ * Creates a new session for a user in the database
  * @param db - The database instance
  * @param userId - The ID of the user to create a session for
- * @returns The newly created session object
- * @throws {HTTPException} With status 501 if session creation fails
+ * @returns The created session record
+ * @throws {HTTPError} When the session creation fails with a 500 Internal Server Error
  */
 const createSession = async (db: DB, userId: string) => {
   try {
     const data = await db.insert(sessions).values({ userId }).returning();
     return data[0];
   } catch (e) {
-    console.error(`Failed to create session: ${e}`);
-    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
-      message: "Failed to create session",
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to create session",
+    );
   }
 };
 
