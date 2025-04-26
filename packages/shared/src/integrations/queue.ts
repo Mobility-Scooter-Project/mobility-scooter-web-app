@@ -1,4 +1,5 @@
 import { Connection } from "rabbitmq-client";
+import { QUEUE_URL } from "src/config/constants";
 
 /**
  * A singleton class that manages the connection to a message queue (RabbitMQ).
@@ -16,7 +17,7 @@ export class Queue {
     private static publisher: ReturnType<Connection["createPublisher"]>;
     private static errorObject: any;
 
-    public constructor(QUEUE_URL: string, ErrorObject: any) {
+    public constructor(ErrorObject: any) {
         {
             if (!Queue.instance) {
                 try {

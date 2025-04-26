@@ -1,0 +1,1 @@
+export const QUEUE_URL = process.env.QUEUE_URL || "missing QUEUE_URL";

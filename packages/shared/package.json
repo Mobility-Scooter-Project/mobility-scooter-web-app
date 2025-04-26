@@ -1,7 +1,8 @@
 {
-  "name": "@msw/shared",
+  "name": "@mswa/shared",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "private": true,
   "scripts": {
     "db:migrate": "sleep 1 && drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

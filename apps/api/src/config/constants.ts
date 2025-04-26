@@ -17,8 +17,6 @@ export const STORAGE_ACCESS_KEY =
 export const STORAGE_SECRET_KEY =
   process.env.STORAGE_SECRET_KEY || "missing STORAGE_SECRET_KEY";
 
-export const QUEUE_URL = process.env.QUEUE_URL || "missing QUEUE_URL";
-
 export const SMTP_HOST = process.env.SMTP_HOST || "missing SMTP_HOST";
 
 export const VAULT_ADDR = process.env.VAULT_ADDR || "missing VAULT_ADDR";
