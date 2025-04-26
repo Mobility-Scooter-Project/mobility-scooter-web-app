@@ -1,23 +1,21 @@
 import { HTTP_CODES } from "@src/config/http-codes";
 import { apiKeys } from "@src/db/schema/auth";
-import { db } from "@src/middleware/db";
+import { HTTPError } from "@src/lib/errors";
+import { postgresDB } from "@src/middleware/db";
 import { eq, sql } from "drizzle-orm";
-import { HTTPException } from "hono/http-exception";
 
 /**
- * Updates the "lastUsedAt" timestamp for an API key in the database.
- *
- * This function marks the API key as recently used by updating its
- * lastUsedAt field to the current date and time.
- *
- * @param apiKey - The plain text API key to update
- * @throws {HTTPException} With status 500 if the database update fails
+ * Updates the 'lastUsedAt' timestamp for a given API key in the database.
+ * 
+ * @param apiKey - The plain text API key to update the timestamp for
+ * @throws {HTTPError} If the database update operation fails with HTTP 500 status code
+ * @returns {Promise<void>}
  */
 const bumpLastUsed = async (apiKey: string) => {
   const lastUsedAt = new Date();
 
   try {
-    await db
+    await postgresDB
       .update(apiKeys)
       .set({ lastUsedAt })
       .where(
@@ -27,12 +25,11 @@ const bumpLastUsed = async (apiKey: string) => {
         ),
       );
   } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({ message: "Failed to update last used timestamp" }),
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to update last used timestamp",
+    );
   }
 };
 

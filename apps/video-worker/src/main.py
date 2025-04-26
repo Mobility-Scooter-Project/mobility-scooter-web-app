@@ -37,15 +37,23 @@ def process_video(body):
     body (bytes): Video data from the queue.
   """  
   video = json.loads(body.decode())
+  print(f"Data received from queue: {video}\n")
   audio_detection(asr_model, video['videoUrl'], video['filename'])
   pose_estimation(pe_model, video['videoUrl'], video['filename'])
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
-channel = connection.channel()
-channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
-channel.queue_declare(queue='videos', durable=True, passive=False)
-channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
+import time
 
-print("Video Worker started")
-channel.basic_consume(queue='videos', on_message_callback=callback, auto_ack=True)
-channel.start_consuming()
+while True:
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
+        channel = connection.channel()
+        channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
+        channel.queue_declare(queue='videos', durable=True, passive=False)
+        channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
+
+        print("Video Worker started")
+        channel.basic_consume(queue='videos', on_message_callback=callback, auto_ack=True)
+        channel.start_consuming()
+    except (pika.exceptions.AMQPConnectionError, pika.exceptions.AMQPChannelError) as error:
+        print(f"Connection error: {error}. Retrying in 5 seconds...")
+        time.sleep(5)

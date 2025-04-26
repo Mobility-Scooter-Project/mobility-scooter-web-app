@@ -1,127 +1,185 @@
-import { ENVIRONMENT } from "@src/config/constants";
-import { HTTP_CODES } from "@src/config/http-codes";
+import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
+import { TOPICS } from "@src/config/topic";
+import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
-import { HTTPException } from "hono/http-exception";
+import { vault } from "@src/integrations/vault";
+import crypto from "node:crypto";
 
-/**
- * Generates a pre-signed put url and creates a bucket to upload and store a video
- *
- * @param filename - Name of a video file
- * @param patientId - ID associated with a patient
- * @param userId - ID associated with a user
- * @param date - Date of a video
- * @returns String:
- *  - Pre-signed url used to upload a video to the object store
- *
- * @remarks
- * This function will check if a bucket exists with a patient's ID. 
- * If it does not exist, it will create a bucket before generating the pre-signed url.
- *
- * @throws {HTTPException} With status 500 if the storage cannot create a bucket or pre-signed url
- */
-const generatePresignedVideoPutUrl = async (
-  filename: string,
-  patientId: string,
+
+const putObjectStream = async (
+  filePath: string,
   userId: string,
-  date: Date,
+  bucketName: string,
+  object: Blob,
 ) => {
   // TODO: check if user has access to patientId
 
   // each patient gets their own bucket to attempt to isolate their data
-  try {
-    const bucket = await storage.bucketExists(patientId);
-    if (!bucket) {
-      await storage.makeBucket(patientId);
-      if (ENVIRONMENT === "production") {
-        await storage.setBucketEncryption(patientId); // defaults to {Rule:[{ApplyServerSideEncryptionByDefault:{SSEAlgorithm:"AES256"}}]}
-      }
+
+  const expires = 60 * 60 * 24;
+
+  await storage.getOrCreateBucket(bucketName);
+
+  const presignedUrlPromise = storage.presignedUrl(
+    "PUT",
+    bucketName,
+    filePath,
+    expires,
+    {
+      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
     }
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to create or retrieve bucket",
-        }),
-      ),
+  );
+
+  const encryptionKeyPromise = vault.createObjectEncryptionKey(
+    bucketName,
+    filePath,
+  );
+
+  const [encryptionKey, presignedUrl] = await Promise.all([
+    encryptionKeyPromise,
+    presignedUrlPromise,
+  ]);
+
+  await storage.uploadToPresignedUrl(
+    presignedUrl,
+    object,
+    encryptionKey,
+  );
+
+  // TODO: @tdang2180 - add your metadata upload here
+
+  const data = await generatePresignedGetUrl(
+    filePath,
+    bucketName,
+    userId,
+  );
+
+  await queue.publish(
+    TOPICS.VIDEOS,
+    {
+      videoUrl: data.url,
+      filename: filePath,
     });
-  }
-  try {
-    return await storage.presignedPutObject(
-      patientId,
-      `videos/${date}/${filename}`,
-      60 * 60 * 24,
-    );
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to generate presigned put URL",
-        }),
-      ),
-    });
-  }
 };
 
+
 /**
- * Generates a pre-signed get url to retrieve a video from the object store
- *
- * @param filename - Name of a video file
- * @param patientId - ID associated with a patient
- * @param userId - ID associated with a user
- * @param date - Date of a video
- * @returns String:
- *  - Pre-signed url used to retrieve a video from the object store
- *
+ * Generates a pre-signed URL for GET operations on stored files
+ * 
+ * @param filePath - The path to the file in storage
+ * @param bucketName - The name of the storage bucket
+ * @param userId - The ID of the user requesting access
+ * 
+ * @returns A Promise that resolves to an object containing the pre-signed URL
+ * @returns {Promise<{url: string}>} The pre-signed URL for accessing the file
+ * 
  * @remarks
- * This function will check if the provided video data exists in the object store. 
- * If it does exist, it will generate a pre-signed url.
- *
- * @throws {HTTPException} With status 500 if the storage cannot create a pre-signed url
- * @throws {HTTPException} With status 404 if the storage cannot find a video with the provided data
+ * The generated URL includes several custom headers with a signature for authentication:
+ * - X-MSWA-Method: Always "GET" for this function
+ * - X-MSWA-Expires: Expiration timestamp (24 hours from generation)
+ * - X-MSWA-FilePath: The provided file path
+ * - X-MSWA-Bucket: The provided bucket name
+ * - X-MSWA-UserId: The provided user ID
+ * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
  */
-const generatePresignedVideoGetUrl = async (
-  filename: string,
-  patientId: string,
+const generatePresignedGetUrl = async (
+  filePath: string,
+  bucketName: string,
   userId: string,
-  date: Date
 ) => {
-  try {
-    await storage.statObject(patientId, `videos/${date}/${filename}`);
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.NOT_FOUND, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Video not found with the provided data",
-        }),
-      ),
-    });
-  }
-  try {
-    return await storage.presignedGetObject(
-      patientId,
-      `videos/${date}/${filename}`,
-      60 * 60 * 24,
-    );
-  } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({
-          data: null,
-          error: "Failed to generate presigned get URL",
-        }),
-      ),
-    });
+
+  const date = new Date();
+  const expires = new Date(date.getTime() + 60 * 60 * 24 * 1000);
+  const method = "GET";
+
+  const params = new URLSearchParams({
+    "X-MSWA-Method": method,
+    "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
+    "X-MSWA-FilePath": filePath,
+    "X-MSWA-Bucket": bucketName,
+    "X-MSWA-UserId": userId,
+  })
+
+  // sign the URL
+  const signature = crypto
+    .createHmac("sha256", STORAGE_SECRET)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}\n${userId}`)
+    .digest("hex");
+
+  params.append("X-MSWA-Signature", signature);
+
+  const url = `${BASE_URL}/api/v1/storage/presigned-url?${params.toString()}`;
+  return { url };
+}
+
+
+/**
+ * Retrieves an object stream from storage with encryption.
+ * 
+ * @param bucketName - The name of the bucket to retrieve the object from
+ * @param filePath - The file path of the object within the bucket
+ * @returns A promise that resolves to an object containing the stream
+ * @throws {Error} If the bucket does not exist or if there's an issue retrieving the encryption key
+ */
+const getObjectStream = async (
+  bucketName: string,
+  filePath: string,
+) => {
+  const bucketExistsPromise = storage.bucketExists(bucketName);
+  const encryptionKeyPromise = vault.getObjectEncryptionKey(
+    bucketName,
+    filePath,
+  );
+
+  const [_, encryptionKey] = await Promise.all([
+    bucketExistsPromise,
+    encryptionKeyPromise,
+  ]);
+
+  const object = await storage.getObject(
+    bucketName,
+    filePath,
+    encryptionKey
+  )
+
+  return {
+    stream: object
   }
 }
 
+
+/**
+ * Validates a pre-signed URL for storage operations
+ * @param filePath - The path to the file in storage
+ * @param bucketName - The name of the storage bucket
+ * @param userId - The ID of the user making the request
+ * @param method - The HTTP method for the pre-signed URL
+ * @param expires - The expiration timestamp of the pre-signed URL
+ * @param signature - The signature of the pre-signed URL for validation
+ * @throws {Error} If the pre-signed URL validation fails
+ * @returns {Promise<void>}
+ */
+const validatePresignedUrl = async (
+  filePath: string,
+  bucketName: string,
+  userId: string,
+  method: string,
+  expires: string,
+  signature: string,
+) => {
+  await storage.validatePresignedUrl(
+    filePath,
+    bucketName,
+    userId,
+    method,
+    expires,
+    signature,
+  );
+}
+
 export const storageService = {
-  generatePresignedVideoPutUrl,
-  generatePresignedVideoGetUrl,
+  generatePresignedGetUrl,
+  getObjectStream,
+  putObjectStream,
+  validatePresignedUrl,
 };

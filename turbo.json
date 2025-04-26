@@ -1,0 +1,26 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**", "build/**"]
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"]
+    },
+    "compose:up": {
+      "persistent": true,
+      "cache": false
+    },
+    "dev": {
+      "with": ["compose:up"],
+      "persistent": true,
+      "cache": false
+    },
+    "test": {
+      "with": ["compose:up"],
+      "cache": false,
+      "persistent": false
+    }
+  },
+  "ui": "tui"
+}

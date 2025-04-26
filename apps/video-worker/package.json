@@ -1,0 +1,11 @@
+{
+    "name": "@mobility-scooter-web-app/video-worker",
+    "version": "1.0.0",
+    "description": "Video processing worker for the video processing service",
+    "scripts": {
+        "dev": "nodemon --exec 'poetry run python src/main.py' --ext py --watch src"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.9"
+    }
+}
