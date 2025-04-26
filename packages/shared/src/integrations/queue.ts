@@ -1,5 +1,7 @@
 import { Connection } from "rabbitmq-client";
-import { QUEUE_URL } from "src/config/constants";
+import { QUEUE_URL } from "../config/constants";
+
+type QueueConsumer = Parameters<Connection["createConsumer"]>;
 
 /**
  * A singleton class that manages the connection to a message queue (RabbitMQ).
@@ -16,6 +18,7 @@ export class Queue {
     private static instance: Connection;
     private static publisher: ReturnType<Connection["createPublisher"]>;
     private static errorObject: any;
+    private static isConnected = false;
 
     public constructor(ErrorObject: any) {
         {
@@ -23,11 +26,13 @@ export class Queue {
                 try {
                     setTimeout(() => {
                         Queue.instance = new Connection(QUEUE_URL);
-                        Queue.publisher = Queue.instance.createPublisher({ confirm: true });
+                        Queue.publisher = Queue.instance.createPublisher({ confirm: true });;
                         Queue.errorObject = ErrorObject;
                     }
                         , 6000);
+                    Queue.isConnected = true;
                 } catch (error) {
+                    Queue.isConnected = false;
                     console.error("Failed to connect to RabbitMQ:", error);
                 }
             }
@@ -47,5 +52,28 @@ export class Queue {
         } catch (error) {
             throw Queue.errorObject;
         }
+    }
+
+    /**
+     * Creates a consumer for the queue using the specified properties and callback.
+     *
+     * @param props - The properties required to configure the consumer.
+     * @param cb - The callback function that processes queue events.
+     * @returns A consumer instance linked to the Queue.
+     */
+    public createConsumer(props: QueueConsumer['0'], cb: QueueConsumer['1']) {
+        return Queue.instance.createConsumer(props, cb);
+    }
+
+    /**
+     * Retrieves the connection status of the Queue.
+     *
+     * @returns {boolean} True if the Queue is connected, false otherwise.
+     */
+    public getConnectionStatus() {
+        if (!Queue.instance) {
+            return false;
+        }
+        return Queue.isConnected;
     }
 }

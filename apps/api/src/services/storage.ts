@@ -1,6 +1,6 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { FILE_TYPES } from "@src/config/file-types";
-import { TOPICS } from "@src/config/topic";
+import { TOPICS } from "../../../../packages/shared/src/config/topics";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";

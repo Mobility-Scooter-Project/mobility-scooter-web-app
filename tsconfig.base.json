@@ -1,9 +1,15 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "allowJs": true,
+    "esModuleInterop": true,
     "composite": true,
     "strict": true,
-    "declaration": true,
-    "declarationMap": true,
+    "baseUrl": ".",
+    "outDir": "dist",
     "paths": {
       "@shared/*": ["packages/shared/src/*"]
     }

@@ -150,9 +150,15 @@ importers:
       '@mswa/shared':
         specifier: workspace:^
         version: link:../../packages/shared
+      esbuild:
+        specifier: ^0.25.1
+        version: 0.25.2
       rabbitmq-client:
         specifier: ^5.0.2
         version: 5.0.2
+      tsx:
+        specifier: ^4.7.1
+        version: 4.19.3
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14
@@ -165,7 +171,7 @@ importers:
         version: 29.7.0(@types/node@22.15.2)(babel-plugin-macros@3.1.0)
       ts-jest:
         specifier: ^29.2.6
-        version: 29.3.1(@babel/core@7.26.10)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.10))(jest@29.7.0(@types/node@22.15.2)(babel-plugin-macros@3.1.0))(typescript@5.8.3)
+        version: 29.3.1(@babel/core@7.26.10)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.10))(esbuild@0.25.2)(jest@29.7.0(@types/node@22.15.2)(babel-plugin-macros@3.1.0))(typescript@5.8.3)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -239,9 +245,15 @@ importers:
 
   packages/shared:
     dependencies:
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.5.0
       drizzle-kit:
         specifier: ^0.30.5
         version: 0.30.6
+      drizzle-orm:
+        specifier: ^0.40.0
+        version: 0.40.1(@opentelemetry/api@1.9.0)(@types/pg@8.11.11)(gel@2.0.2)(pg@8.14.1)
       rabbitmq-client:
         specifier: ^5.0.2
         version: 5.0.2
@@ -11243,7 +11255,7 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.26.10)
       esbuild: 0.25.2
 
-  ts-jest@29.3.1(@babel/core@7.26.10)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.10))(jest@29.7.0(@types/node@22.15.2)(babel-plugin-macros@3.1.0))(typescript@5.8.3):
+  ts-jest@29.3.1(@babel/core@7.26.10)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.10))(esbuild@0.25.2)(jest@29.7.0(@types/node@22.15.2)(babel-plugin-macros@3.1.0))(typescript@5.8.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
@@ -11262,6 +11274,7 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       babel-jest: 29.7.0(@babel/core@7.26.10)
+      esbuild: 0.25.2
 
   tsconfck@3.1.5(typescript@5.8.3):
     optionalDependencies:

@@ -6,6 +6,7 @@ from scripts.pose_estimation import pose_estimation
 
 import queue
 import json
+import torch
 
 video_queue = queue.Queue()
 
@@ -32,9 +33,15 @@ def worker():
   '''
   Worker function to process videos from the queue.
   '''
-  pe_model = YOLO("yolo11n-pose.pt", verbose=False)
-  asr_model = whisper.load_model("small").to("cuda")
-
+  if torch.cuda.is_available():
+    asr_model = whisper.load_model("small").to("cuda")
+    pe_model = YOLO("yolo11n-pose.pt", verbose=False).to("cuda")
+  else:
+    asr_model = whisper.load_model("small")
+    pe_model = YOLO("yolo11n-pose.pt", verbose=False)
+    print("CUDA not available, using CPU for processing.")
+  print("Worker started")
+  
   while True:
     body = video_queue.get()
     if body is None:

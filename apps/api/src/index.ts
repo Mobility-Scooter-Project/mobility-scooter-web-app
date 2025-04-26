@@ -9,6 +9,7 @@ import { PinoLogger, pinoLogger } from 'hono-pino'
 import { ENVIRONMENT } from "./config/constants";
 import { prometheus } from '@hono/prometheus'
 import { HTTPError } from "./lib/errors";
+import { queue } from "./integrations/queue";
 
 export type Variables = {
   db: DB;
@@ -86,6 +87,11 @@ app.get(
 );
 
 export type AppType = typeof app;
+
+while (!queue.getConnectionStatus()) {
+  console.log("Waiting for RabbitMQ connection...");
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+}
 
 serve(
   {

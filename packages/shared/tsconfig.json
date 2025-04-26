@@ -1,16 +1,21 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "strict": true,
-    "skipLibCheck": true,
     "outDir": "./build",
-    "esModuleInterop": true,
-    "allowJs": true,
     "baseUrl": ".",
-    "composite": true,
+    "paths": {
+      "@src/*": ["src/*"],
+      "@config/*": ["src/config/*"],
+      "@services/*": ["src/services/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@handlers/*": ["src/handlers/*"],
+      "@db/*": ["src/db/*"],
+      "@lib/*": ["src/lib/*"],
+      "@integrations/*": ["src/integrations/*"],
+      "@repositories/*": ["src/repositories/*"],
+      "@validators/*": ["src/validators/*"],
+      "@tests/*": ["tests/*"]
+    }
   },
   "exclude": ["node_modules"],
   "include": ["src/**/*"]

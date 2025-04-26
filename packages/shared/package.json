@@ -14,7 +14,9 @@
   },
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.5",
+    "drizzle-orm": "^0.40.0",
     "rabbitmq-client": "^5.0.2",
     "tsx": "^4.7.1"
   },

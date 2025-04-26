@@ -12,17 +12,17 @@ API_KEY = os.getenv('API_KEY')
 NUM_WORKERS = 2  # adjust depending on GPU memory
 
 # Set up RabbitMQ
+print("Connecting to RabbitMQ...")
 connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
 channel = connection.channel()
 channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
 channel.queue_declare(queue='videos', durable=True, passive=False)
 channel.queue_declare(queue='events', durable=True, passive=False)
-
 channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
 
 for _ in range(NUM_WORKERS):
   Thread(target=worker, daemon=True).start()
 
-print("Video Worker started")
+print("Worker threads started.")
 channel.basic_consume(queue='videos', on_message_callback=callback, auto_ack=True)
 channel.start_consuming()
