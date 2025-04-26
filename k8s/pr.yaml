@@ -31,9 +31,9 @@ spec:
           valueFiles:
             - values.yaml
           parameters:
-            - name: web.image.tag:
+            - name: web.image.tag
               value: 'web'
-            - name: api.image.tag:
+            - name: api.image.tag
               value: 'api'
 
       destination:
