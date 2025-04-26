@@ -15,7 +15,7 @@ load_dotenv()
 QUEUE_URL = os.getenv('QUEUE_URL')
 app = FastAPI()
 pe_model = YOLO("yolo11n-pose.pt", verbose=False)
-asr_model = whisper.load_model("small")
+asr_model = whisper.load_model("small").to("cuda")
 
 def callback(ch, method, properties, body):
   """
