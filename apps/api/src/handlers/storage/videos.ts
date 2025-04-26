@@ -11,7 +11,9 @@ import {
   videoMetadataSchema,
   taskSchema,
   keypointSchema,
-  videoIdSchema,
+  videoPathSchema,
+  videoIdResponseSchema,
+  videoEventSchema,
 } from "@src/validators/storage";
 import { Hono } from "hono";
 import { describeRoute } from "hono-openapi";
@@ -86,8 +88,10 @@ app.post(
       200: {
         description: "Video sent to queue successfully",
         content: {
-          "application/json": {
-            schema: resolver(presignedUrlResponseSchema),
+          "text/plain": {
+            schema: {
+              type: "string",
+            },
           },
         },
       },
@@ -100,7 +104,6 @@ app.post(
   async (c) => {
     const { filename, patientId, date } = c.req.valid("json");
     const userId = c.get("userId")!;
-    const db = c.get("db");
 
     const videoGetUrl = await storageService.generatePresignedGetUrl(
       filename,
@@ -122,15 +125,7 @@ app.post(
 
     pub.send("videos", {videoGetUrl, transcriptPutUrl, filename})
     
-    return c.json({
-      data: {
-        videoGetUrl, 
-        transcriptPutUrl,
-        filename,
-        transcriptName,
-      },
-      error: null,
-    });
+    return c.text("OK");
   }
 )
 
@@ -151,8 +146,10 @@ app.post("/store-video",
       200: {
         description: "Video stored successfully",
         content: {
-          "application/json": {
-            schema: resolver(videoMetadataSchema),
+          "text/plain": {
+            schema: {
+              type: "string",
+            },
           },
         },
       },
@@ -173,12 +170,7 @@ app.post("/store-video",
       date,
     );
     
-    return c.json({
-      data: {
-        path,
-      },
-      error: null,
-    });
+    return c.text("OK");
   },
 )
 
@@ -199,8 +191,10 @@ app.post("/store-transcript",
       200: {
         description: "Video stored successfully",
         content: {
-          "application/json": {
-            schema: resolver(transcriptSchema),
+          "text/plain": {
+            schema: {
+              type: "string",
+            },
           },
         },
       },
@@ -220,13 +214,7 @@ app.post("/store-transcript",
       transcriptPath,
     );
 
-    return c.json({
-      data: {
-        transcriptPath,
-      },
-      error: null,
-    });
-
+    return c.text("OK");
   }
 )
 
@@ -247,8 +235,10 @@ app.post("/store-task",
       200: {
         description: "Task stored successfully",
         content: {
-          "application/json": {
-            schema: resolver(taskSchema),
+          "text/plain": {
+            schema: {
+              type: "string",
+            },
           },
         },
       },
@@ -269,12 +259,7 @@ app.post("/store-task",
       task,
     );
 
-    return c.json({
-      data: {
-        task,
-      },
-      error: null,
-    });
+    return c.text("OK");
   }
 )  
 
@@ -295,8 +280,10 @@ app.post("/store-keypoints",
       200: {
         description: "Keypoints stored successfully",
         content: {
-          "application/json": {
-            schema: resolver(keypointSchema),
+          "text/plain": {
+            schema: {
+              type: "string",
+            },
           },
         },
       },
@@ -318,12 +305,7 @@ app.post("/store-keypoints",
       keypoints,
     );
 
-    return c.json({
-      data: {
-        timestamp,
-      },
-      error: null,
-    });
+    return c.text("OK");
   }
 )
 
@@ -336,7 +318,7 @@ app.post("/find-video-id",
     requestBody: {
       content: {
         "application/json": {
-          schema: resolver(videoIdSchema),
+          schema: resolver(videoPathSchema),
         },
       },
     },
@@ -345,7 +327,7 @@ app.post("/find-video-id",
         description: "Video ID found successfully",
         content: {
           "application/json": {
-            schema: resolver(videoIdSchema),
+            schema: resolver(videoIdResponseSchema),
           },
         },
       },
@@ -354,22 +336,73 @@ app.post("/find-video-id",
   userMiddleware,
   dbMiddleware,
   validateApiKey,
-  zValidator("json", videoIdSchema),
+  zValidator("json", videoPathSchema),
   async (c) => {
     const { videoPath } = c.req.valid("json");
     const db = c.get("db");
 
-    const videoId = await storageService.findVideoId(
+    const video = await storageService.findVideo(
       db,
+      "path",
       videoPath,
     );
 
     return c.json({
       data: {
-        videoId,
+        videoId: video.id,
       },
       error: null,
     });
+  }
+)
+
+app.post("/update-video-event",
+  describeRoute({
+    summary: "Find video ID by video path",
+    description:
+      "Find video ID by video path",
+    tags: ["video-worker"],
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: resolver(videoEventSchema),
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Video ID found successfully",
+        content: {
+          "text/plain": {
+            schema: {
+              type: "string",
+            },
+          },
+        },
+      },
+    },
+  }),
+  userMiddleware,
+  dbMiddleware,
+  validateApiKey,
+  zValidator("json", videoEventSchema),
+  async (c) => {
+    const { videoId, status } = c.req.valid("json");
+    const db = c.get("db");
+
+    const video = await storageService.findVideo(
+      db,
+      "id",
+      videoId,
+    );
+
+    await storageService.updateVideoEvent(
+      db,
+      video.eventId,
+      status,
+    );
+
+    return c.text("OK");
   }
 )
 

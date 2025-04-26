@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const videoStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "processed",
+  "failed",
+  "annotation approved",
+  "annotation created",
+]);
+
 export const presignedUrlSchema = z.object({
   filename: z.string(),
   date: z.coerce.date(),
@@ -43,6 +52,17 @@ export const keypointSchema = z.object({
   ),
 })
 
-export const videoIdSchema = z.object({
+export const videoPathSchema = z.object({
   videoPath: z.string(),
+})
+
+export const videoIdResponseSchema = z.object({
+  data: z.object({
+    videoId: z.string(),
+  }),
+})
+
+export const videoEventSchema = z.object({
+  status: videoStatusSchema,
+  videoId: z.string(),
 })

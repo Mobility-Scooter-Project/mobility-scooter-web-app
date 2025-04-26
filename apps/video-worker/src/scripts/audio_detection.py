@@ -192,7 +192,7 @@ def get_tasks_times(transcript_path, filename, video_id):
       },
     )
 
-def audio_detection(model, video_url, transcript_url, filename):
+def audio_detection(model, video_url, transcript_url, filename, video_id):
   """
   Calls functions to generate a transcript and determine if the video has any tasks.
 
@@ -201,23 +201,10 @@ def audio_detection(model, video_url, transcript_url, filename):
     video_url (str): Url of the video file.
     transcript_url (str): Url to store the transcript.
     filename (str): Name of the video file.
+    video_id (str): Video ID from the API.
   """
   print(f"\nGenerating transcript for {filename}...")
   transcript = get_transcript(video_url, model, filename) 
-
-  response = requests.post(
-    "http://localhost:3000/api/v1/storage/videos/find-video-id", 
-    json={
-      "videoPath": filename,
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  ) 
-
-  video_id = response.json()["data"]["videoId"]
 
   with open(transcript.name, "rb") as f:
     requests.put(transcript_url, data=f)  

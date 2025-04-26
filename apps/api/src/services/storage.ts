@@ -5,6 +5,8 @@ import { HTTPException } from "hono/http-exception";
 import type { DB } from "@middleware/db";
 import { videoRepository  } from "@src/repositories/video";
 
+type VideoStatus = "pending" | "processing" | "processed" | "failed" | "annotation approved" | "annotation created";
+
 /**
  * Generates a pre-signed put url and creates a bucket to upload and store a video
  *
@@ -252,11 +254,12 @@ const storeKeypoint = async (
  * @remarks
  * This function will find a video ID in the database by its path.
  */
-const findVideoId = async (
+const findVideo = async (
   db: DB,
-  videoPath: string,
+  pathOrId: string,
+  videoIdentifier: string,
 ) => {
-  const video = await videoRepository.findVideoByPath(db, videoPath);
+  const video = await videoRepository.findVideo(db, pathOrId, videoIdentifier);
 
   if (!video) {
     throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
@@ -266,9 +269,30 @@ const findVideoId = async (
     });
   }
 
-  return video.id;
+  return video;
 }
- 
+
+/**
+ * Updates the status of a video event in the database
+ *
+ * @param db - Database connection
+ * @param eventId - ID of the video event
+ * @param status - Status of the video event
+ * @returns String
+ *  - ID of the updated video event
+ *
+ * @remarks
+ * This function will update the status of a video event in the database.
+ */
+const updateVideoEvent = async (
+  db: DB,
+  eventId: string,
+  status: VideoStatus,
+) => {
+  
+  return videoRepository.updateVideoEvent(db, eventId, status);
+}
+
 export const storageService = {
   generatePresignedPutUrl,
   generatePresignedGetUrl,
@@ -276,5 +300,6 @@ export const storageService = {
   storeTranscript,
   storeTask,
   storeKeypoint,
-  findVideoId,
+  findVideo,
+  updateVideoEvent
 };

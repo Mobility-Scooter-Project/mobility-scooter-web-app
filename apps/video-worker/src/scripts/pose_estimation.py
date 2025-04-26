@@ -35,7 +35,7 @@ def calculate_angle(p1, p2):
   except Exception as e:
     print(f"Calculating Angle Error: {e}")
 
-def pose_estimation(model, video_url, filename):
+def pose_estimation(model, video_url, filename, video_id):
   """
   Locates and stores the upper body key points using a pose estimation model
 
@@ -43,24 +43,11 @@ def pose_estimation(model, video_url, filename):
     model (YOLO): The loaded YOLO pose estimation model.
     video_url (str): Url of the video file.
     filename (str): Name of the video file.
+    video_id (str): The ID of the video.
   """
   if "front" not in filename:
     print(f"Pose estimation failed on {filename}. Please ensure the video is recorded from a front-facing point of view.\n")
     return
-
-  response = requests.post(
-    "http://localhost:3000/api/v1/storage/videos/find-video-id", 
-    json={
-      "videoPath": filename,
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  ) 
-  
-  video_id = response.json()["data"]["videoId"]
 
   upper_body_keypoints = [5, 6, 11, 12]  # Left Shoulder, Right Shoulder, Left Hip, Right Hip
 

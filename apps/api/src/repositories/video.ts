@@ -88,9 +88,14 @@ const storeVideoMetadata = async (db: DB, video: Video) => {
  * @remarks
  * This function will retrieve the video metadata from the database.
  */
-const findVideoByPath = async (db: DB, path: string) => {
-  const data = await db.select().from(videoMetadata).where(eq(videoMetadata.path, path));
-  return data[0];
+const findVideo = async (db: DB,  pathOrId: string, videoIdentifier: string) => {
+  if (pathOrId === "id") {
+    const data = await db.select().from(videoMetadata).where(eq(videoMetadata.id, videoIdentifier));
+    return data[0];
+  } else if (pathOrId === "path") {
+    const data = await db.select().from(videoMetadata).where(eq(videoMetadata.path, videoIdentifier));
+    return data[0];
+  } 
 };
 
 /**
@@ -197,11 +202,49 @@ const storeKeypoint = async (db: DB, keypoint: VideoKeypoint) => {
   }
 }
 
+/**
+ * Updates the status of a video event in the database.
+ *
+ * @param db - Database connection
+ * @param eventId - ID of the video event to be updated
+ * @param status - New status of the video event
+ * @returns String
+ *  - ID of the updated video event
+ *
+ * @remarks
+ * This function will update the status of the video event in the database.
+ */
+const updateVideoEvent = async (db: DB, eventId: string, status: VideoStatus) => {
+  try {
+    const data = await db.transaction(async (tx) => {
+      const data = await tx
+        .update(videoEvents)
+        .set({
+          status: status,
+          updatedAt: new Date(),
+        })
+        .where(
+          eq(videoEvents.id, eventId),
+        )
+        .returning({ id: videoEvents.id });
+
+      return data[0];
+    });
+    return data.id;
+  } catch (e: unknown) {
+    console.error(`Failed to update video event: ${e}`);
+    throw new HTTPException(HTTP_CODES.NOT_IMPLEMENTED, {
+      message: "Failed to update video event",
+    });
+  }
+}
+
 export const videoRepository = {
   storeVideoMetadata,
   storeVideoEvent,
-  findVideoByPath,
+  findVideo,
   storeTranscript,
   storeTask,
   storeKeypoint,
+  updateVideoEvent
 }

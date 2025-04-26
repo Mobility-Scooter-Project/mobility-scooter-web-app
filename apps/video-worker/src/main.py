@@ -2,6 +2,7 @@ import os
 import json
 import pika
 import queue
+import requests
 from threading import Thread
 from dotenv import load_dotenv
 from pika.exchange_type import ExchangeType
@@ -15,6 +16,8 @@ from scripts.pose_estimation import pose_estimation
 
 load_dotenv()
 QUEUE_URL = os.getenv('QUEUE_URL')
+API_KEY = os.getenv('TESTING_API_KEY')
+USER_TOKEN = os.getenv('USER_TOKEN')
 app = FastAPI()
 
 video_queue = queue.Queue()
@@ -62,8 +65,37 @@ def process_video(body, pe_model, asr_model):
     asr_model (Whisper): The loaded Whisper ASR model.
   """  
   video = json.loads(body.decode())
-  audio_detection(asr_model, video['videoGetUrl'], video['transcriptPutUrl'], video['filename'])
-  pose_estimation(pe_model, video['videoGetUrl'], video['filename'])
+  
+  response = requests.post(
+    "http://localhost:3000/api/v1/storage/videos/find-video-id", 
+    json={
+      "videoPath": video['filename'],
+    },
+    headers={
+      "Authorization": "Bearer " + API_KEY,
+      "Content-Type": "application/json",
+      "X-User": USER_TOKEN,
+    },
+  ) 
+
+  video_id = response.json()["data"]["videoId"]
+
+  audio_detection(asr_model, video['videoGetUrl'], video['transcriptPutUrl'], video['filename'], video_id)
+  pose_estimation(pe_model, video['videoGetUrl'], video['filename'], video_id)
+
+
+  requests.post(
+    "http://localhost:3000/api/v1/storage/videos/update-video-event", 
+    json={
+      "videoId": video_id,
+      "status": "processed",
+    },
+    headers={
+      "Authorization": "Bearer " + API_KEY,
+      "Content-Type": "application/json",
+      "X-User": USER_TOKEN,
+    },
+  ) 
 
 # Set up RabbitMQ
 connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
