@@ -1,4 +1,5 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
+import { FILE_TYPES } from "@src/config/file-types";
 import { TOPICS } from "@src/config/topic";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
@@ -24,6 +25,7 @@ import crypto from "node:crypto";
  * @param bucketName - The name of the bucket where the object will be stored.
  * @param object - The Blob object to be uploaded.
  * @param uploadedAt - The date when the object was uploaded.
+ * @param fileType - The type of the file being uploaded (e.g., video, transcript).
  *
  * @returns A promise that resolves once the object has been uploaded and the queue message has been published.
  */
@@ -33,6 +35,7 @@ const putObjectStream = async (
   bucketName: string,
   object: Blob,
   uploadedAt: Date,
+  fileType?: FILE_TYPES.VIDEO,
 ) => {
   // TODO: check if user has access to patientId
 
@@ -68,42 +71,43 @@ const putObjectStream = async (
     encryptionKey,
   );
 
-  const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+  if (fileType == FILE_TYPES.VIDEO) {
+    const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+    const videoDataPromise = generatePresignedGetUrl(
+      transcriptPath,
+      bucketName,
+      userId,
+    );
 
-  const videoDataPromise = generatePresignedGetUrl(
-    transcriptPath,
-    bucketName,
-    userId,
-  );
+    const transcriptDataPromise = generatePresignedGetUrl(
+      filePath,
+      bucketName,
+      userId,
+    );
 
-  const transcriptDataPromise = generatePresignedGetUrl(
-    filePath,
-    bucketName,
-    userId,
-  );
+    const videoMetadataPromise = createVideoMetadata(
+      bucketName,
+      filePath,
+      uploadedAt,
+    );
 
-  const videoMetadataPromise = createVideoMetadata(
-    bucketName,
-    filePath,
-    uploadedAt,
-  );
+    const [videoData, transcriptData, videoMetadata] = await Promise.all([
+      videoDataPromise,
+      transcriptDataPromise,
+      videoMetadataPromise,
+    ]);
 
-  const [videoData, transcriptData, videoMetadata] = await Promise.all([
-    videoDataPromise,
-    transcriptDataPromise,
-    videoMetadataPromise,
-  ]);
-
-  await queue.publish(
-    TOPICS.VIDEOS,
-    {
-      data: {
-        id: videoMetadata,
-        url: videoData.url,
-        filename: filePath,
-        transcriptPutUrl: transcriptData.url,
-      }
-    });
+    await queue.publish(
+      TOPICS.VIDEOS,
+      {
+        data: {
+          id: videoMetadata,
+          url: videoData.url,
+          filename: filePath,
+          transcriptPutUrl: transcriptData.url,
+        }
+      });
+  }
 };
 
 

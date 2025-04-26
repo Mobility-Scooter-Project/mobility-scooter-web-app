@@ -61,7 +61,7 @@ def format_vtt(segments, mode):
 
   return vtt_output
 
-def get_transcript(video_url, model, filename):
+def generate_transcript(video_url, model, filename):
   """
   Generates a transcript of the video.
   
@@ -188,7 +188,6 @@ def get_tasks_times(transcript_path, filename, video_id):
       headers={
         "Authorization": "Bearer " + API_KEY,
         "Content-Type": "application/json",
-        "X-User": USER_TOKEN,
       },
     )
 
@@ -204,23 +203,10 @@ def audio_detection(model, video_url, transcript_url, filename, video_id):
     video_id (str): Video ID from the API.
   """
   print(f"\nGenerating transcript for {filename}...")
-  transcript = get_transcript(video_url, model, filename) 
+  transcript = generate_transcript(video_url, model, filename) 
 
   with open(transcript.name, "rb") as f:
     requests.put(transcript_url, data=f)  
-
-  requests.post(
-    "http://localhost:3000/api/v1/storage/videos/store-transcript", 
-    json={
-      "videoId": video_id,
-      "transcriptPath": transcript_url,
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  )
 
   print(f"Detecting tasks from {filename}'s transcript...")
   get_tasks_times(transcript.name, filename, video_id)
