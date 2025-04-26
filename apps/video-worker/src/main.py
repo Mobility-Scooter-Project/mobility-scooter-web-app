@@ -13,7 +13,18 @@ NUM_WORKERS = 2  # adjust depending on GPU memory
 
 # Set up RabbitMQ
 print("Connecting to RabbitMQ...")
-connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
+
+while True:
+    connectSucceeded = False
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
+        connectSucceeded = True
+    except:
+        pass
+    if connectSucceeded:
+        print("Connected to RabbitMQ.")
+        break
+      
 channel = connection.channel()
 channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
 channel.queue_declare(queue='videos', durable=True, passive=False)

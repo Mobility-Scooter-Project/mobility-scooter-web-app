@@ -39,6 +39,8 @@ import crypto from "node:crypto";
  */
 export class Storage {
   public static instance: Client;
+  private static isConnected = false;
+
   public constructor() {
     if (!Storage.instance) {
       try {
@@ -55,10 +57,23 @@ export class Storage {
             rejectUnauthorized: false,
           });
         }
+
+        Storage.isConnected = true;
+        console.log("Connected to Storage");
       } catch (error) {
+        Storage.isConnected = false;
         console.error("Failed to connect to MinIO:", error);
       }
     }
+  }
+
+  /**
+   * Retrieves the current connection status of the Storage module.
+   *
+   * @returns {boolean} `true` if the Storage is connected; otherwise, `false`.
+   */
+  public static getConnectionStatus() {
+    return Storage.isConnected;
   }
 
   /**

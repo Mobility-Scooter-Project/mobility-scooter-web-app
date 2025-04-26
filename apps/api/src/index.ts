@@ -10,6 +10,8 @@ import { ENVIRONMENT } from "./config/constants";
 import { prometheus } from '@hono/prometheus'
 import { HTTPError } from "./lib/errors";
 import { queue } from "./integrations/queue";
+import { kv } from "./integrations/kv";
+import { Storage } from "./integrations/storage";
 
 export type Variables = {
   db: DB;
@@ -88,9 +90,15 @@ app.get(
 
 export type AppType = typeof app;
 
-while (!queue.getConnectionStatus()) {
-  console.log("Waiting for RabbitMQ connection...");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+let hasConnected = false;
+while (!hasConnected) {
+  hasConnected = queue.getConnectionStatus() && Storage.getConnectionStatus();
+  if (!hasConnected) {
+    console.log("Waiting for integration connections...");
+  } else {
+    break;
+  }
+  await new Promise((resolve) => setTimeout(resolve, 7000));
 }
 
 serve(
