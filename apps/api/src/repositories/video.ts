@@ -6,14 +6,8 @@ import { HTTPException } from "hono/http-exception";
 
 type Video = typeof videoMetadata.$inferInsert;
 type VideoStatus = "pending" | "processing" | "processed" | "failed" | "annotation approved" | "annotation created";
-type VideoTask = {
-  task: string;
-  start: string;
-  end: string;
-}[];
-
 type VideoKeypoint = typeof videoKeyPoints.$inferInsert;
-
+type VideoTask = typeof videoTasks.$inferInsert;
 
 const storeVideoEvent = async (db: DB, status: VideoStatus) => {
   try {
@@ -89,14 +83,15 @@ const storeTranscript = async (db: DB, videoId: string, transcriptPath: string) 
   }
 }
 
-const storeTask = async (db: DB, videoId: string, tasks: VideoTask) => {
+const storeTask = async (db: DB, task: VideoTask) => {
   try {
     const data = await db.transaction(async (tx) => {
       const data = await tx 
         .insert(videoTasks)
         .values({
-          videoId: videoId,
-          tasks: tasks,
+          ...task,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
         .returning({ id: videoTasks.id })    
 

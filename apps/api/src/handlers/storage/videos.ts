@@ -257,20 +257,21 @@ app.post("/store-task",
   userMiddleware,
   dbMiddleware,
   validateApiKey,
-  zValidator("json", taskSchema ),
+  zValidator("json", taskSchema),
   async (c) => {
-    const { videoId, tasks } = c.req.valid("json");
+    const { videoId, taskId, task } = c.req.valid("json");
     const db = c.get("db");
 
     await storageService.storeTask(
       db,
       videoId,
-      tasks,
+      taskId,
+      task,
     );
 
     return c.json({
       data: {
-        tasks,
+        task,
       },
       error: null,
     });
@@ -304,7 +305,7 @@ app.post("/store-keypoints",
   userMiddleware,
   dbMiddleware,
   validateApiKey,
-  zValidator("json", keypointSchema ),
+  zValidator("json", keypointSchema),
   async (c) => {
     const { videoId, timestamp, angle, keypoints } = c.req.valid("json");
     const db = c.get("db");
@@ -353,7 +354,7 @@ app.post("/find-video-id",
   userMiddleware,
   dbMiddleware,
   validateApiKey,
-  zValidator("json", videoIdSchema ),
+  zValidator("json", videoIdSchema),
   async (c) => {
     const { videoPath } = c.req.valid("json");
     const db = c.get("db");

@@ -25,13 +25,13 @@ export const transcriptSchema = z.object({
 
 export const taskSchema = z.object({
   videoId: z.string(),
-  tasks: z.array(
-    z.object({
-      task: z.string(),
-      start: z.string(),
-      end: z.string(),
-    })
-  )
+  taskId: z.number(),
+  task: z.object({
+    task: z.string(),
+    start: z.string(),
+    end: z.string(),
+  })
+  
 })
 
 export const keypointSchema = z.object({

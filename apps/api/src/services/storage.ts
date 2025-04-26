@@ -148,14 +148,19 @@ const storeTranscript = async (db: DB, videoId: string, transcriptPath: string) 
 
 const storeTask = async (
   db: DB, 
-  videoId: string, 
-  tasks: {
+  videoId: string,
+  taskId: number, 
+  task: {
     task: string;
     start: string;
     end: string;
-  }[]) => {
+  }) => {
 
-  return videoRepository.storeTask(db, videoId, tasks);
+  return videoRepository.storeTask(db, {
+    videoId, 
+    taskId, 
+    task,
+  });
 }
 
 const storeKeypoint = async (
@@ -169,7 +174,7 @@ const storeKeypoint = async (
 ) => {
 
   return videoRepository.storeKeypoint(db, {
-    videoId: videoId,
+    videoId,
     timestamp,
     angle,
     keypoints,

@@ -7,6 +7,7 @@ import {
   text,
   json,
   real,
+  integer,
 } from "drizzle-orm/pg-core";
 
 export const videos = pgSchema("videos");
@@ -42,7 +43,11 @@ export const videoTasks = videos.table("tasks", {
   videoId: uuid()
     .references(() => videoMetadata.id)
     .notNull(),
-  tasks: json("tasks").notNull(),
+  taskId: integer("task_id").notNull().default(1), // number ID
+  task: json("task").notNull(),
+  createdAt: timestamp().defaultNow(),
+  updatedAt: timestamp().defaultNow(),
+  deletedAt: timestamp(),
 })
 
 export const videoKeyPoints = videos.table("keypoints", {
