@@ -5,7 +5,10 @@ on:
     branches:
       - develop
       - main
-      - 12-argocd-setup
+    paths:
+      - apps/web/**
+      - .github/workflows/build_and_push_web.yaml
+  pull_request:
     paths:
       - apps/web/**
       - .github/workflows/build_and_push_web.yaml
@@ -40,6 +43,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
+            type=raw, value=${{ github.head_ref }}
             type=ref,event=tag,prefix=v
             type=semver,pattern={{version}}
             type=sha
@@ -49,7 +53,8 @@ jobs:
         id: push
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
-          context: ./apps/web
+          context: .
+          target: web
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

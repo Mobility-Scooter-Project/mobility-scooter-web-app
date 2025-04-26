@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["emailpass", "healthcheck", "mswa", "TOTP"]
+  "cSpell.words": ["emailpass", "healthcheck", "mswa", "TOTP"],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

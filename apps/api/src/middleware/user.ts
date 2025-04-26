@@ -1,43 +1,64 @@
 import { JWT_SECRET } from "@config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { HTTPError } from "@src/lib/errors";
 import type { Context, Next } from "hono";
-import { HTTPException } from "hono/http-exception";
 import { verify } from "hono/jwt";
 
+
+
 /**
- * Middleware function for user authentication.
- * Verifies the user JWT token and sets userId and sessionId in the context.
- *
- * @param c - The Hono context object
- * @param next - The next middleware function to be called
- * @throws {HTTPException} 400 - If no user data is provided in the request
- * @throws {HTTPException} 401 - If user authentication fails
+ * Middleware function to authenticate and process user information from JWT token.
+ * 
+ * @param c - The Context object containing request and variable information
+ * @param next - The Next function to be called after middleware processing
+ * @throws {HTTPError} 
+ *  - HTTP 400 if no user header is provided
+ *  - HTTP 401 if JWT verification fails
+ *  - HTTP 401 if userId or sessionId is missing from verified token
+ * 
+ * @remarks
+ * This middleware:
+ * 1. Extracts user JWT from X-User header
+ * 2. Verifies the JWT and extracts userId and sessionId
+ * 3. Sets userId and sessionId in the context
+ * 4. Adds user information to logger
  */
 export const userMiddleware = async (c: Context, next: Next) => {
   const user = c.req.header("X-User");
+  const { logger } = c.var;
 
   if (!user) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: "Missing X-User header in request",
-    });
+    throw new HTTPError(
+      HTTP_CODES.BAD_REQUEST,
+      "No user data provided",
+    )
   }
+
+  let userId: string;
+  let sessionId: string;
+
   try {
-    const { userId, sessionId } = await verify(user, JWT_SECRET);
-
-    if (!userId || !sessionId) {
-      throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-        message: "Failed to authenticate user",
-      });
-    }
-
-    c.set("userId", userId);
-    c.set("sessionId", sessionId);
-
-    await next();
+    const data = await verify(user, JWT_SECRET);
+    userId = data.userId as string;
+    sessionId = data.sessionId as string;
   } catch (e) {
-    console.error(e);
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      message: "Unauthorized",
-    });
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      e,
+      "Failed to authenticate user",
+    );
   }
+
+  if (!userId || !sessionId) {
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      "Invalid user data",
+    );
+  }
+
+  c.set("userId", userId);
+  c.set("sessionId", sessionId);
+  logger.assign({ userId, sessionId });
+
+  await next();
 };

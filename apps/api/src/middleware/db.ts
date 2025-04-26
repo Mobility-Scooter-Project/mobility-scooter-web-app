@@ -3,16 +3,12 @@ import { HTTP_CODES } from "@src/config/http-codes";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { Context, Next } from "hono";
-import { HTTPException } from "hono/http-exception";
-import pg from "pg";
 import * as auth from "../db/schema/auth";
 import * as tenants from "../db/schema/tenants";
 import * as videos from "../db/schema/videos";
-const { Pool } = pg;
+import { HTTPError } from "@src/lib/errors";
+import { pool } from "@src/integrations/db";
 
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-});
 
 /**
  * Middleware for handling database connections and user context in the application.
@@ -47,12 +43,11 @@ export const dbMiddleware = async (c: Context, next: Next) => {
       await db.execute(sql`SET ROLE anonymous_user`);
     }
   } catch (e) {
-    console.error(`Failed to set user context: ${e}`);
-    throw new HTTPException(HTTP_CODES.INTERNAL_SERVER_ERROR, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Failed to set user context" }),
-      ),
-    });
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to set user context",
+    );
   }
 
   c.set("db", db);
@@ -61,9 +56,9 @@ export const dbMiddleware = async (c: Context, next: Next) => {
 };
 
 // For Postgres Role
-export const db = drizzle(DATABASE_URL, {
+export const postgresDB = drizzle(DATABASE_URL, {
   casing: "snake_case",
   schema: { ...auth, ...videos, ...tenants },
 });
 
-export type DB = typeof db;
+export type DB = typeof postgresDB;
