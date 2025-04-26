@@ -86,7 +86,7 @@ def get_transcript(video_url, model):
   except Exception as e:
     print(f"Failed to generate trancript: {e}\n")
 
-def clean_task_description(text):
+def filter_task_description(text):
     text = text.lower()
     # Remove filler phrases
     for phrase in FILLER_PHRASES:
@@ -143,32 +143,29 @@ def get_tasks_times(transcript_path, filename, video_id):
       "end": captions[-1].end
     })
 
-  cleaned_tasks = []
-  for t in tasks_time:
-    cleaned = clean_task_description(t['task'])
-    cleaned_tasks.append({
-        "task": cleaned,
-        "start": t['start'],
-        "end": t['end']
-    })
-
-  if len(cleaned_tasks) == 0:
+  if len(tasks_time) == 0:
     print(f"No tasks detected from {filename}\n")
-  else:
-    print(cleaned_tasks)
+    return
 
-  requests.post(
-    "http://localhost:3000/api/v1/storage/videos/store-task", 
-    json={
-      "videoId": video_id,
-      "tasks": cleaned_tasks,
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  )
+  for taskId, t in enumerate(tasks_time):
+    filtered_task = filter_task_description(t['task'])
+    requests.post(
+      "http://localhost:3000/api/v1/storage/videos/store-task", 
+      json={
+        "videoId": video_id,
+        "taskId": taskId + 1,
+        "task": {
+          "task": filtered_task,
+          "start": t['start'],
+          "end": t['end'],
+        }
+      },
+      headers={
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json",
+        "X-User": USER_TOKEN,
+      },
+    )
 
 def audio_detection(model, video_url, transcript_url, filename):
   """
