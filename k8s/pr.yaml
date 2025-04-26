@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: mswa-pr-web
+  name: mswa-pr
   namespace: argocd
 spec:
   goTemplate: true
@@ -19,22 +19,23 @@ spec:
       name: 'mswa-web-{{.branch | normalize}}-{{.number}}'
       annotations:
         argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/argocd-github
-        argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}}
+        argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}}, api=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:{{.branch | normalize}}
         argocd-image-updater.argoproj.io/update-strategy: latest
     spec:
       project: "default"
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
         targetRevision: '{{.head_sha}}'
-        path: k8s/web
+        path: k8s/app
         helm:
           valueFiles:
             - values.yaml
           parameters:
-            - name: image.tag
-              value: '{{.branch | normalize}}'
-            - name: ingress.subdomain
-              value: 'mswa-web-{{.branch_slug}}'
+            - name: web.image.tag:
+              value: 'web'
+            - name: api.image.tag:
+              value: 'api'
+
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'

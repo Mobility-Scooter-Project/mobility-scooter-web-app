@@ -1,0 +1,9 @@
+web:
+  image:
+    tag: "latest"
+  replicas: 2
+
+api:
+  image:
+    tag: "latest"
+  replicas: 2
