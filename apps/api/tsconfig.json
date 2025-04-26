@@ -1,4 +1,10 @@
 {
+  "extends": "../../tsconfig.base.json",
+  "references": [
+    {
+      "path": "../../packages/shared"
+    }
+  ],
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -24,9 +30,10 @@
       "@integrations/*": ["src/integrations/*"],
       "@repositories/*": ["src/repositories/*"],
       "@validators/*": ["src/validators/*"],
-      "@tests/*": ["tests/*"]
+      "@tests/*": ["tests/*"],
+      "@shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "exclude": ["node_modules"],
-  "include": ["src/**/*", "../../packages/shared/integrations/**/*.ts"]
+  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*", "tests/**/*"]
 }

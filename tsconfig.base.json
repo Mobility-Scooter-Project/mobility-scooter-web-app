@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "paths": {
+      "@shared/*": ["packages/shared/src/*"]
+    }
+  }
+}
