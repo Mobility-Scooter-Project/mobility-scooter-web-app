@@ -61,17 +61,17 @@ def format_vtt(segments, mode):
 
   return vtt_output
 
-def get_transcript(video_url, model):
+def get_transcript(video_url, model, filename):
   """
   Generates a transcript of the video.
   
   Args:
     video_url (str): Url of the video file.
     model (Whisper): The loaded Whisper model.
-  
+    filename (str): Name of the video file.
+
   Returns:
     file: Temporary trancript file.
-  
   """
   try:
     time_start = time.time()
@@ -81,12 +81,21 @@ def get_transcript(video_url, model):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
       tmp.write(vtt_content.encode("utf-8"))  
       
-    print(f"Transcript generated successfully after {time.time() - time_start:.2f}s!\n")
+    print(f"Transcript generated successfully for {filename} after {time.time() - time_start:.2f}s!\n")
     return tmp
   except Exception as e:
     print(f"Failed to generate trancript: {e}\n")
 
 def filter_task_description(text):
+    '''
+    Filters the task description to remove filler phrases and punctuation.
+
+    Args:
+      text (str): Task description.
+    
+    Returns:
+      str: Filtered task description.
+    '''
     text = text.lower()
     # Remove filler phrases
     for phrase in FILLER_PHRASES:
@@ -98,7 +107,15 @@ def filter_task_description(text):
     return text.strip()
 
 def fuzzy_task_match(text):
-  """Match a caption to the most likely task."""
+  """
+  Match a caption to the most likely task.
+  
+  Args:
+    text (str): Caption text.
+
+  Returns:
+    str: The matched task or None if no match is found.
+  """
   best_task = None
   best_score = 0
   for task in TASK_LIST:
@@ -110,6 +127,14 @@ def fuzzy_task_match(text):
   return best_task if best_score > 70 else None
 
 def get_tasks_times(transcript_path, filename, video_id):
+  '''
+  Gets and stores the task, and start and end times from the transcript.
+
+  Args:
+    transcript_path (str): Path to the transcript file.
+    filename (str): Name of the video file.
+    video_id (str): Video ID from the API.
+  '''
   captions = webvtt.read(transcript_path)
   tasks_time = []
   current_task = None
@@ -178,7 +203,7 @@ def audio_detection(model, video_url, transcript_url, filename):
     filename (str): Name of the video file.
   """
   print(f"\nGenerating transcript for {filename}...")
-  transcript = get_transcript(video_url, model) 
+  transcript = get_transcript(video_url, model, filename) 
 
   response = requests.post(
     "http://localhost:3000/api/v1/storage/videos/find-video-id", 
@@ -210,7 +235,7 @@ def audio_detection(model, video_url, transcript_url, filename):
     },
   )
 
-  print(f"Detecting tasks from transcript...")
+  print(f"Detecting tasks from {filename}'s transcript...")
   get_tasks_times(transcript.name, filename, video_id)
   
   os.remove(transcript.name)  # Clean up the temporary file

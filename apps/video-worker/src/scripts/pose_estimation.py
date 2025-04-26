@@ -37,7 +37,7 @@ def calculate_angle(p1, p2):
 
 def pose_estimation(model, video_url, filename):
   """
-  Locate the upper body key points using a pose estimation model
+  Locates and stores the upper body key points using a pose estimation model
 
   Args:
     model (YOLO): The loaded YOLO pose estimation model.
@@ -59,7 +59,7 @@ def pose_estimation(model, video_url, filename):
       "X-User": USER_TOKEN,
     },
   ) 
-
+  
   video_id = response.json()["data"]["videoId"]
 
   upper_body_keypoints = [5, 6, 11, 12]  # Left Shoulder, Right Shoulder, Left Hip, Right Hip
@@ -134,11 +134,6 @@ def pose_estimation(model, video_url, filename):
           "X-User": USER_TOKEN,
         },
       )
-
-    # Track progress
-    # current_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
-    # total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    # progress = (current_frame / total_frames) * 100
 
     print(f"\rExtracting keypoints and calculating angle for {filename}... {timestamp} complete", end="")
 
