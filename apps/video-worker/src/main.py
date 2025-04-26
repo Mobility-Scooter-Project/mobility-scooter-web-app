@@ -64,38 +64,16 @@ def process_video(body, pe_model, asr_model):
     pe_model (YOLO): The loaded YOLO pose estimation model.
     asr_model (Whisper): The loaded Whisper ASR model.
   """  
-  video = json.loads(body.decode())
+  message = json.loads(body.decode())
   
-  response = requests.post(
-    "http://localhost:3000/api/v1/storage/videos/find-video-id", 
-    json={
-      "videoPath": video['filename'],
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  ) 
+  id = message["data"]["id"]
+  filename = message["data"]["filename"]
+  get_url = message["data"]["url"]
+  transcript_put_url = message["data"]["transcriptPutUrl"]
 
-  video_id = response.json()["data"]["videoId"]
-
-  audio_detection(asr_model, video['videoGetUrl'], video['transcriptPutUrl'], video['filename'], video_id)
-  pose_estimation(pe_model, video['videoGetUrl'], video['filename'], video_id)
-
-
-  requests.post(
-    "http://localhost:3000/api/v1/storage/videos/update-video-event", 
-    json={
-      "videoId": video_id,
-      "status": "processed",
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  ) 
+  audio_detection(model=asr_model, video_url=get_url, filename=filename, video_id=id, transcript_put_url=transcript_put_url)
+  pose_estimation(model=pe_model, video_url=get_url, filename=filename, video_id=id)
+ 
 
 # Set up RabbitMQ
 connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))

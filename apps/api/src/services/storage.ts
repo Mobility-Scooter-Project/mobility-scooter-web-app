@@ -3,9 +3,29 @@ import { TOPICS } from "@src/config/topic";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
+import { DB } from "@src/middleware/db";
+import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
 
 
+/**
+ * Uploads an object to a storage bucket using a presigned URL and encryption.
+ *
+ * This function performs the following steps:
+ * 1. Retrieves or creates the specified storage bucket.
+ * 2. Generates a presigned URL for uploading the object to the bucket.
+ * 3. Creates an encryption key for the object using the vault service.
+ * 4. Uploads the object to the presigned URL with the generated encryption key.
+ * 5. Generates a presigned URL for retrieving the object.
+ * 6. Publishes a message to the queue with the object's URL and filename.
+ *
+ * @param filePath - The destination path for the object in the bucket.
+ * @param userId - The identifier of the user uploading the object.
+ * @param bucketName - The name of the bucket where the object will be stored.
+ * @param object - The Blob object to be uploaded.
+ *
+ * @returns A promise that resolves once the object has been uploaded and the queue message has been published.
+ */
 const putObjectStream = async (
   filePath: string,
   userId: string,
@@ -46,9 +66,14 @@ const putObjectStream = async (
     encryptionKey,
   );
 
-  // TODO: @tdang2180 - add your metadata upload here
+  const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+  const video_data = await generatePresignedGetUrl(
+    transcriptPath,
+    bucketName,
+    userId,
+  );
 
-  const data = await generatePresignedGetUrl(
+  const transcript_data = await generatePresignedGetUrl(
     filePath,
     bucketName,
     userId,
@@ -57,8 +82,11 @@ const putObjectStream = async (
   await queue.publish(
     TOPICS.VIDEOS,
     {
-      videoUrl: data.url,
-      filename: filePath,
+      data: {
+        url: video_data.url,
+        filename: filePath,
+        transcriptPutUrl: transcript_data.url,
+      }
     });
 };
 
@@ -199,7 +227,7 @@ const storeVideoMetadata = async (
 ) => {
 
   const eventId = await videoRepository.storeVideoEvent(db, "pending")
-  
+
   return videoRepository.storeVideoMetadata(db, {
     patientId,
     eventId,
@@ -221,12 +249,12 @@ const storeVideoMetadata = async (
  * This function will store the transcript in the database.
  */
 const storeTranscript = async (
-  db: DB, 
-  videoId: string, 
+  db: DB,
+  videoId: string,
   transcriptPath: string) => {
-  
+
   return videoRepository.storeTranscript(db, {
-    videoId, 
+    videoId,
     path: transcriptPath,
   });
 }
@@ -245,9 +273,9 @@ const storeTranscript = async (
  * This function will store the task in the database.
  */
 const storeTask = async (
-  db: DB, 
+  db: DB,
   videoId: string,
-  taskId: number, 
+  taskId: number,
   task: {
     task: string;
     start: string;
@@ -255,8 +283,8 @@ const storeTask = async (
   }) => {
 
   return videoRepository.storeTask(db, {
-    videoId, 
-    taskId, 
+    videoId,
+    taskId,
     task,
   });
 }
@@ -276,13 +304,13 @@ const storeTask = async (
  * This function will store keypoints in the database.
  */
 const storeKeypoint = async (
-  db: DB, 
-  videoId: string, 
+  db: DB,
+  videoId: string,
   timestamp: string,
-  angle: number, 
+  angle: number,
   keypoints: {
     [name: string]: [number, number];
-  } 
+  }
 ) => {
 
   return videoRepository.storeKeypoint(db, {
@@ -339,7 +367,7 @@ const updateVideoEvent = async (
   eventId: string,
   status: VideoStatus,
 ) => {
-  
+
   return videoRepository.updateVideoEvent(db, eventId, status);
 }
 

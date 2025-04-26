@@ -1,7 +1,7 @@
 import type { DB } from "@middleware/db";
 import { postgresDB } from "@middleware/db";
-import { refreshTokenRepository } from "@repositories/refresh-token";
-import { userRepository } from "@repositories/user";
+import { refreshTokenRepository } from "@src/repositories/auth/refresh-token";
+import { userRepository } from "@src/repositories/auth/user";
 import { BASE_URL, ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { sendEmail } from "@src/integrations/smtp";

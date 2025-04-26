@@ -71,7 +71,7 @@ def get_transcript(video_url, model, filename):
     filename (str): Name of the video file.
 
   Returns:
-    file: Temporary trancript file.
+    file: Temporary transcript file.
   """
   try:
     time_start = time.time()
@@ -84,7 +84,7 @@ def get_transcript(video_url, model, filename):
     print(f"Transcript generated successfully for {filename} after {time.time() - time_start:.2f}s!\n")
     return tmp
   except Exception as e:
-    print(f"Failed to generate trancript: {e}\n")
+    print(f"Failed to generate transcript: {e}\n")
 
 def filter_task_description(text):
     '''
