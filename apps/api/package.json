@@ -1,5 +1,5 @@
 {
-  "name": "@mobility-scooter-web-app/api",
+  "name": "@mswa/api",
   "type": "module",
   "private": "true",
   "scripts": {

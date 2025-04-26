@@ -1,5 +1,5 @@
 {
-    "name": "@mobility-scooter-web-app/video-worker",
+    "name": "@mswa/video-worker",
     "version": "1.0.0",
     "description": "Video processing worker for the video processing service",
     "scripts": {

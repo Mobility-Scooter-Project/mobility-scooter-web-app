@@ -156,7 +156,7 @@ importers:
       '@mjackson/form-data-parser':
         specifier: ^0.7.0
         version: 0.7.0
-      '@mobility-scooter-web-app/api':
+      '@mswa/api':
         specifier: workspace:^
         version: link:../api
       '@react-router/node':
