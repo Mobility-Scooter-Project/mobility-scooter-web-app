@@ -30,6 +30,7 @@ spec:
         helm:
           valueFiles:
             - values.yaml
+          parameters:
             - name: web.image.tag
               value: '{{.branch | normalize}}'
             - name: api.image.tag
