@@ -4,7 +4,14 @@
     "build": "turbo run build",
     "dev": "turbo watch dev",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "db:migrate": "turbo run db:migrate",
+    "db:studio": "turbo run db:studio",
+    "db:drop": "turbo run db:drop",
+    "db:seed": "turbo run db:seed",
+    "db:up": "turbo run db:up",
+    "populate-api-key": "turbo run populate-api-key",
+    "compose:up": "turbo run compose:up"
   },
   "devDependencies": {
     "turbo": "latest"

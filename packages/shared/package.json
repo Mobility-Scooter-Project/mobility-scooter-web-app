@@ -3,11 +3,19 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:migrate": "sleep 1 && drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:drop": "drizzle-kit drop",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:up": "docker compose up db",
+    "populate-api-key": "tsx scripts/populate-api-key.ts",
+    "compose:up": "docker compose up"
   },
   "license": "ISC",
   "dependencies": {
-    "rabbitmq-client": "^5.0.2"
+    "drizzle-kit": "^0.30.5",
+    "rabbitmq-client": "^5.0.2",
+    "tsx": "^4.7.1"
   },
   "exports": {
     ".": "./src/**/*.ts"

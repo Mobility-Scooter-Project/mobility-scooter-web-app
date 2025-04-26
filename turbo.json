@@ -16,6 +16,25 @@
       "persistent": true,
       "cache": false
     },
+    "db:up": {
+      "dependsOn": ["^db:up"]
+    },
+    "db:migrate": {
+      "with": ["db:up"],
+      "dependsOn": ["^db:migrate"]
+    },
+    "db:seed": {
+      "dependsOn": ["^db:seed"]
+    },
+    "db:studio": {
+      "dependsOn": ["^db:studio"]
+    },
+    "db:drop": {
+      "dependsOn": ["^db:drop"]
+    },
+    "populate-api-key": {
+      "dependsOn": ["^populate-api-key"]
+    },
     "test": {
       "with": ["compose:up"],
       "cache": false,

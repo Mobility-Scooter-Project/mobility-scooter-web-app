@@ -1,4 +1,4 @@
-import { refreshTokens } from "@db/schema/auth";
+import { refreshTokens } from "@shared/db/schema/auth";
 import { signJWT } from "@lib/jwt";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";

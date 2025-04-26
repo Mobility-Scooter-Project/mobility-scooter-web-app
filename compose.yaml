@@ -1,6 +1,6 @@
 services:
   db:
-    build: ./docker/postgres
+    build: ./packages/docker/postgres
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
@@ -30,7 +30,7 @@ services:
     network_mode: "host"
     volumes:
       - vault:/vault/file
-      - ./docker/vault/init.sh:/init.sh
+      - ./packages/docker/vault/init.sh:/init.sh
     command: sh /init.sh
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"

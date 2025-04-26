@@ -3,9 +3,9 @@ import { HTTP_CODES } from "@src/config/http-codes";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { Context, Next } from "hono";
-import * as auth from "../db/schema/auth";
-import * as tenants from "../db/schema/tenants";
-import * as videos from "../db/schema/storage";
+import * as auth from "../../../../packages/shared/src/db/schema/auth";
+import * as tenants from "../../../../packages/shared/src/db/schema/tenants";
+import * as videos from "../../../../packages/shared/src/db/schema/storage";
 import { HTTPError } from "@src/lib/errors";
 import { pool } from "@src/integrations/db";
 

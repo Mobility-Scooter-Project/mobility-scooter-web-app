@@ -7,13 +7,6 @@
     "start": "node dist/index.js",
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --packages=external",
     "lint": "eslint --fix .",
-    "compose:up": "docker compose up",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:drop": "drizzle-kit drop",
-    "db:seed": "tsx scripts/seed.ts",
-    "generate-api-key": "tsx scripts/generate-api-key.ts",
     "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'"
   },
   "dependencies": {
