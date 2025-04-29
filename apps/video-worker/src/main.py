@@ -4,6 +4,7 @@ from threading import Thread
 from dotenv import load_dotenv
 from pika.exchange_type import ExchangeType
 from worker import worker, callback
+from utils.logger import logger
 
 load_dotenv()
 QUEUE_URL = os.getenv('QUEUE_URL')
@@ -12,7 +13,7 @@ API_KEY = os.getenv('API_KEY')
 NUM_WORKERS = 2  # adjust depending on GPU memory
 
 # Set up RabbitMQ
-print("Connecting to RabbitMQ...")
+logger.debug("Connecting to RabbitMQ...")
 
 while True:
     connectSucceeded = False
@@ -22,7 +23,7 @@ while True:
     except:
         pass
     if connectSucceeded:
-        print("Connected to RabbitMQ.")
+        logger.debug("Connected to RabbitMQ.")
         break
       
 channel = connection.channel()

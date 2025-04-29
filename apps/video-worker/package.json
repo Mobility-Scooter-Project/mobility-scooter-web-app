@@ -7,5 +7,8 @@
     },
     "devDependencies": {
         "nodemon": "^3.1.9"
+    },
+    "dependencies": {
+        "pino-pretty": "^13.0.0"
     }
 }
