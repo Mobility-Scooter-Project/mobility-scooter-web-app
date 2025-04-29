@@ -6,11 +6,9 @@ import auth from "@src/handlers/auth";
 import { Hono } from "hono";
 import { openAPISpecs } from "hono-openapi";
 import { PinoLogger, pinoLogger } from 'hono-pino'
-import { ENVIRONMENT } from "./config/constants";
 import { prometheus } from '@hono/prometheus'
 import { HTTPError } from "./lib/errors";
 import { queue } from "./integrations/queue";
-import { kv } from "./integrations/kv";
 import { Storage } from "./integrations/storage";
 
 export type Variables = {
@@ -25,14 +23,6 @@ const { printMetrics, registerMetrics } = prometheus()
 export const app = new Hono<{ Variables: Variables }>()
   .use(pinoLogger({
     pino: {
-      level: ENVIRONMENT === "test" ? "silent" : "info",
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: ENVIRONMENT === "development",
-          sync: ENVIRONMENT === "test",
-        }
-      }
     }
   }))
   .use('*', registerMetrics)

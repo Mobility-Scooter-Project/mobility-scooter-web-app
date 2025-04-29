@@ -7,7 +7,7 @@ import re
 from dotenv import load_dotenv
 from datetime import timedelta
 from rapidfuzz import fuzz
-from constants.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
+from config.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
@@ -206,7 +206,7 @@ def audio_detection(model, video_url, transcript_url, filename, video_id):
   transcript = generate_transcript(video_url, model, filename) 
 
   with open(transcript.name, "rb") as f:
-    requests.put(transcript_url, data=f)  
+    requests.put(transcript_url, data=f, verify=False)  
 
   print(f"Detecting tasks from {filename}'s transcript...")
   get_tasks_times(transcript.name, filename, video_id)

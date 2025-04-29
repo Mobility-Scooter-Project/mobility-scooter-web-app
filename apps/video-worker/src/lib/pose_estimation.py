@@ -4,7 +4,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import timedelta
 import cupy as cp
-from scripts.audio_detection import format_time
+from lib.audio_detection import format_time
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')

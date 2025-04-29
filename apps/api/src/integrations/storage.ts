@@ -1,5 +1,5 @@
+import { ENVIRONMENT } from "@shared/config/constants";
 import {
-  ENVIRONMENT,
   STORAGE_ACCESS_KEY,
   STORAGE_PORT,
   STORAGE_SECRET,

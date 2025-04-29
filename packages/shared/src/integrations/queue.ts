@@ -1,4 +1,4 @@
-import { Connection } from "rabbitmq-client";
+import { Connection, MessageBody } from "rabbitmq-client";
 import { QUEUE_URL } from "../config/constants";
 
 type QueueConsumer = Parameters<Connection["createConsumer"]>;
@@ -43,13 +43,13 @@ export class Queue {
     /**
      * Publishes a message to a RabbitMQ topic.
      * @param topic - The routing key/topic to publish the message to
-     * @param message - The message payload to publish
+     * @param body - The message payload to publish
      * @throws {HTTPError} When the message fails to publish to RabbitMQ
      * @returns {Promise<void>}
      */
-    public async publish(topic: string, message: any) {
+    public async publish(topic: string, body: MessageBody) {
         try {
-            await Queue.publisher.send(topic, message);
+            await Queue.publisher.send(topic, body);
         } catch (error) {
             throw Queue.errorObject;
         }

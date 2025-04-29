@@ -1,10 +1,9 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { FILE_TYPES } from "@src/config/file-types";
-import { TOPICS } from "../../../../packages/shared/src/config/topics";
+import { TOPICS } from "../../../../packages/shared/src/config/queue";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
-import { DB } from "@src/middleware/db";
 import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
 
@@ -35,7 +34,7 @@ const putObjectStream = async (
   bucketName: string,
   object: Blob,
   uploadedAt: Date,
-  fileType?: FILE_TYPES.VIDEO,
+  fileType = FILE_TYPES.VIDEO,
 ) => {
   // TODO: check if user has access to patientId
 
@@ -74,15 +73,30 @@ const putObjectStream = async (
   if (fileType == FILE_TYPES.VIDEO) {
     const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
     const videoDataPromise = generatePresignedGetUrl(
-      transcriptPath,
+      filePath,
       bucketName,
       userId,
     );
 
-    const transcriptDataPromise = generatePresignedGetUrl(
-      filePath,
+    const encryptionKeyMd5 = crypto.hash(
+      "md5",
+      Buffer.from(encryptionKey, "hex"),
+    );
+    const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
+      "base64",
+    );
+
+    const encryptionKeyMd5Base64 = Buffer.from(
+      encryptionKeyMd5,
+      "hex",
+    ).toString("base64");
+
+    const transcriptPutUrlPromise = storage.presignedUrl(
+      "PUT",
       bucketName,
-      userId,
+      transcriptPath,
+      expires,
+
     );
 
     const videoMetadataPromise = createVideoMetadata(
@@ -91,9 +105,9 @@ const putObjectStream = async (
       uploadedAt,
     );
 
-    const [videoData, transcriptData, videoMetadata] = await Promise.all([
+    const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
       videoDataPromise,
-      transcriptDataPromise,
+      transcriptPutUrlPromise,
       videoMetadataPromise,
     ]);
 
@@ -101,10 +115,10 @@ const putObjectStream = async (
       TOPICS.VIDEOS,
       {
         data: {
-          id: videoMetadata,
+          id: videoMetadata.id,
           url: videoData.url,
           filename: filePath,
-          transcriptPutUrl: transcriptData.url,
+          transcriptPutUrl,
         }
       });
   }

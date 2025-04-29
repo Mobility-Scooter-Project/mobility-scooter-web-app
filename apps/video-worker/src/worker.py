@@ -1,8 +1,8 @@
 from ultralytics import YOLO
 import whisper
 
-from scripts.audio_detection import audio_detection
-from scripts.pose_estimation import pose_estimation
+from lib.audio_detection import audio_detection
+from lib.pose_estimation import pose_estimation
 
 import queue
 import json
@@ -20,13 +20,14 @@ def process_video(body, pe_model, asr_model):
     asr_model (Whisper): The loaded Whisper ASR model.
   """  
   message = json.loads(body.decode())
+  print(f"Processing {message}")
   
   id = message["data"]["id"]
   filename = message["data"]["filename"]
   get_url = message["data"]["url"]
   transcript_put_url = message["data"]["transcriptPutUrl"]
 
-  audio_detection(model=asr_model, video_url=get_url, filename=filename, video_id=id, transcript_put_url=transcript_put_url)
+  audio_detection(model=asr_model, video_url=get_url, filename=filename, video_id=id, transcript_url=transcript_put_url)
   pose_estimation(model=pe_model, video_url=get_url, filename=filename, video_id=id)
 
 def worker():
@@ -47,6 +48,7 @@ def worker():
     if body is None:
         break  # Stop signal
     try:
+      print("Processing video...")
       process_video(body, pe_model, asr_model)
     except Exception as e:
       print(f"Error processing video: {e}")
@@ -64,4 +66,5 @@ def callback(ch, method, properties, body):
     properties: Message properties (e.g., headers, content type).
     body (bytes): The message containing video data in JSON format.
   """
+  print("Received message from RabbitMQ")
   video_queue.put(body)

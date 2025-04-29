@@ -153,6 +153,12 @@ importers:
       esbuild:
         specifier: ^0.25.1
         version: 0.25.2
+      pino:
+        specifier: ^9.6.0
+        version: 9.6.0
+      pino-pretty:
+        specifier: ^13.0.0
+        version: 13.0.0
       rabbitmq-client:
         specifier: ^5.0.2
         version: 5.0.2
@@ -254,6 +260,12 @@ importers:
       drizzle-orm:
         specifier: ^0.40.0
         version: 0.40.1(@opentelemetry/api@1.9.0)(@types/pg@8.11.11)(gel@2.0.2)(pg@8.14.1)
+      pino:
+        specifier: ^9.6.0
+        version: 9.6.0
+      pino-pretty:
+        specifier: ^13.0.0
+        version: 13.0.0
       rabbitmq-client:
         specifier: ^5.0.2
         version: 5.0.2

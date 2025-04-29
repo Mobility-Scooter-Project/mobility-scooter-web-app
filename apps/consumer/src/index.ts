@@ -1,11 +1,18 @@
-import { TOPICS } from "@shared/config/topics";
+import { EXCHANGES, TOPICS } from "@shared/config/queue";
 import { queue } from "@integrations/queue";
 import { eventHandlers } from "./handlers/events";
 
 while (!queue.getConnectionStatus()) {
     console.log("Waiting for RabbitMQ connection...");
-    await new Promise((resolve) => setTimeout(resolve, 6000));
+    await new Promise((resolve) => setTimeout(resolve, 7000));
 }
 console.log("RabbitMQ connection established.");
 
-const eventSubscriber = queue.createConsumer({ queue: TOPICS.EVENTS, queueOptions: { durable: true } }, eventHandlers.consumeEvent);
+const eventSubscriber = queue.createConsumer(
+    {
+        queue: TOPICS.EVENTS,
+        queueOptions: { durable: true },
+        exchanges: [{ exchange: EXCHANGES.STORAGE, type: "direct" }],
+    },
+    eventHandlers.consumeEvent
+);
