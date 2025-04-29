@@ -3,10 +3,12 @@ import whisper
 
 from lib.audio_detection import audio_detection
 from lib.pose_estimation import pose_estimation
+from utils.logger import logger
 
 import queue
 import json
 import torch
+import time
 
 video_queue = queue.Queue()
 
@@ -20,7 +22,7 @@ def process_video(body, pe_model, asr_model):
     asr_model (Whisper): The loaded Whisper ASR model.
   """  
   message = json.loads(body.decode())
-  print(f"Processing {message}")
+  logger.info(f"Processing video with ID: {message['data']['id']}")
   
   id = message["data"]["id"]
   filename = message["data"]["filename"]
@@ -40,18 +42,17 @@ def worker():
   else:
     asr_model = whisper.load_model("small")
     pe_model = YOLO("yolo11n-pose.pt", verbose=False)
-    print("CUDA not available, using CPU for processing.")
-  print("Worker started")
+    logger.debug("No GPU available, using CPU for processing.")
+  logger.debug("Worker started.")
   
   while True:
     body = video_queue.get()
     if body is None:
         break  # Stop signal
     try:
-      print("Processing video...")
       process_video(body, pe_model, asr_model)
     except Exception as e:
-      print(f"Error processing video: {e}")
+      logger.error(f"Error processing video: {e}")
     finally:
       video_queue.task_done()
       
@@ -66,5 +67,5 @@ def callback(ch, method, properties, body):
     properties: Message properties (e.g., headers, content type).
     body (bytes): The message containing video data in JSON format.
   """
-  print("Received message from RabbitMQ")
+  time.sleep(10)
   video_queue.put(body)

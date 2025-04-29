@@ -7,6 +7,7 @@ import re
 from dotenv import load_dotenv
 from datetime import timedelta
 from rapidfuzz import fuzz
+from utils.logger import logger
 from config.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
 
 load_dotenv()
@@ -81,10 +82,10 @@ def generate_transcript(video_url, model, filename):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
       tmp.write(vtt_content.encode("utf-8"))  
       
-    print(f"Transcript generated successfully for {filename} after {time.time() - time_start:.2f}s!\n")
+    logger.info(f"Transcript generated successfully for {filename} after {time.time() - time_start:.2f}s!\n")
     return tmp
   except Exception as e:
-    print(f"Failed to generate transcript: {e}\n")
+    logger.error(f"Error generating transcript for {filename}: {e}")
 
 def filter_task_description(text):
     '''
@@ -169,7 +170,7 @@ def get_tasks_times(transcript_path, filename, video_id):
     })
 
   if len(tasks_time) == 0:
-    print(f"No tasks detected from {filename}\n")
+    logger.info(f"No tasks detected in {filename}.")
     return
 
   for taskId, t in enumerate(tasks_time):
@@ -202,7 +203,7 @@ def audio_detection(model, video_url, transcript_url, filename, video_id):
     filename (str): Name of the video file.
     video_id (str): Video ID from the API.
   """
-  print(f"\nGenerating transcript for {filename}...")
+  logger.info(f"Generating transcript for {filename}...")
   transcript = generate_transcript(video_url, model, filename) 
 
   with open(transcript.name, "rb") as f:

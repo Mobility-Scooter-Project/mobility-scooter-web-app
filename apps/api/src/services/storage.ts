@@ -49,9 +49,6 @@ const putObjectStream = async (
     bucketName,
     filePath,
     expires,
-    {
-      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-    }
   );
 
   const encryptionKeyPromise = vault.createObjectEncryptionKey(
@@ -77,19 +74,6 @@ const putObjectStream = async (
       bucketName,
       userId,
     );
-
-    const encryptionKeyMd5 = crypto.hash(
-      "md5",
-      Buffer.from(encryptionKey, "hex"),
-    );
-    const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-      "base64",
-    );
-
-    const encryptionKeyMd5Base64 = Buffer.from(
-      encryptionKeyMd5,
-      "hex",
-    ).toString("base64");
 
     const transcriptPutUrlPromise = storage.presignedUrl(
       "PUT",

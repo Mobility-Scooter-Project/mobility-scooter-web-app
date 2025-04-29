@@ -214,7 +214,7 @@ export class Storage {
         "hex",
       ).toString("base64");
 
-      await fetch(url, {
+      const response = await fetch(url, {
         method: "PUT",
         body: object,
         headers: {
@@ -224,6 +224,13 @@ export class Storage {
             encryptionKeyMd5Base64,
         },
       });
+
+      if (!response.ok) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to upload to pre-signed URL",
+        );
+      }
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,

@@ -35,6 +35,5 @@ channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
 for _ in range(NUM_WORKERS):
   Thread(target=worker, daemon=True).start()
 
-print("Worker threads started.")
 channel.basic_consume(queue='videos', on_message_callback=callback, auto_ack=True)
 channel.start_consuming()
