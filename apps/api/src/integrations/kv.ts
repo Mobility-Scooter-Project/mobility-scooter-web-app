@@ -26,7 +26,6 @@ export class KV {
                 this.instance = new Redis({
                     lazyConnect: true,
                 });
-                console.log("Connected to KV");
             } catch (error) {
                 console.error("Failed to connect to KV:", error);
             }

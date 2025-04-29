@@ -1,12 +1,14 @@
 import { EXCHANGES, TOPICS } from "@shared/config/queue";
 import { queue } from "@integrations/queue";
 import { eventHandlers } from "./handlers/events";
+import logger from "@shared/utils/logger";
 
 while (!queue.getConnectionStatus()) {
-    console.log("Waiting for RabbitMQ connection...");
+    logger.debug("Waiting for RabbitMQ connection...");
     await new Promise((resolve) => setTimeout(resolve, 7000));
 }
-console.log("RabbitMQ connection established.");
+
+logger.debug("RabbitMQ connection established");
 
 const eventSubscriber = queue.createConsumer(
     {
@@ -16,3 +18,5 @@ const eventSubscriber = queue.createConsumer(
     },
     eventHandlers.consumeEvent
 );
+
+logger.info("Consumer started");

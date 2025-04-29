@@ -42,10 +42,8 @@ export class Vault {
           },
         });
         Vault.isConnected = true;
-        console.log("Connected to Vault");
       } catch (error) {
         Vault.isConnected = false;
-        console.error("Failed to connect to Vault:", error);
       }
     }
   }

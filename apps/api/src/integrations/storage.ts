@@ -59,10 +59,8 @@ export class Storage {
         }
 
         Storage.isConnected = true;
-        console.log("Connected to Storage");
       } catch (error) {
         Storage.isConnected = false;
-        console.error("Failed to connect to MinIO:", error);
       }
     }
   }

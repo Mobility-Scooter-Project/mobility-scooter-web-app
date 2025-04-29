@@ -28,7 +28,6 @@
   "include": [
     "src/**/*",
     "tests/**/*",
-    "../../packages/shared/src/*",
-    "../../packages/shared/src/config/topic.ts"
+    "../../packages/shared/src/**/*",
   ]
 }

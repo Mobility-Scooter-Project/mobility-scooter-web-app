@@ -1,8 +1,8 @@
-import { ENVIRONMENT } from "@src/config/constants";
 import pino from "pino";
+import { ENVIRONMENT } from "../config/constants";
 
-export const logger = pino({
-    level: ENVIRONMENT === "test" ? "silent" : "info",
+const logger = pino({
+    level: ENVIRONMENT === "test" ? "silent" : ENVIRONMENT === "production" ? "info" : "debug",
     transport: {
         target: 'pino-pretty',
         options: {
@@ -12,3 +12,5 @@ export const logger = pino({
     }
 
 })
+
+export default logger;

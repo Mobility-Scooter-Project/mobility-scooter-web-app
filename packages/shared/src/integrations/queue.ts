@@ -29,7 +29,6 @@ export class Queue {
                         Queue.publisher = Queue.instance.createPublisher({ confirm: true });;
                         Queue.errorObject = ErrorObject;
                         Queue.isConnected = true;
-                        console.log("Connected to RabbitMQ");
                     }
                         , 6000);
                 } catch (error) {
