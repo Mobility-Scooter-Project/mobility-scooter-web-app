@@ -10,6 +10,7 @@ import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import { Client } from "minio";
 import crypto from "node:crypto";
+import Stream from "node:stream";
 
 /**
  * A singleton class that manages interactions with a storage service (MinIO).
@@ -198,7 +199,8 @@ export class Storage {
    */
   public async uploadToPresignedUrl(
     url: string,
-    object: Blob,
+    object: ReadableStream<any>,
+    objectSize: number,
     encryptionKey: string,
   ) {
     try {
@@ -222,16 +224,22 @@ export class Storage {
           "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
           "X-Amz-Server-Side-Encryption-Customer-Key-MD5":
             encryptionKeyMd5Base64,
+          "Content-Length": objectSize.toString(),
         },
+        // @ts-ignore
+        duplex: "half",
       });
 
       if (!response.ok) {
         throw new HTTPError(
           HTTP_CODES.INTERNAL_SERVER_ERROR,
+          await response.text(),
           "Failed to upload to pre-signed URL",
         );
       }
+
     } catch (error) {
+      console.error("Error uploading to pre-signed URL:", error);
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         error,
@@ -245,7 +253,6 @@ export class Storage {
    * 
    * @param filePath - The path to the file in the storage bucket
    * @param bucketName - The name of the storage bucket
-   * @param userId - The ID of the user requesting access
    * @param method - The HTTP method for the presigned URL
    * @param expires - The expiration timestamp in seconds since epoch
    * @param signature - The signature to validate against
@@ -259,7 +266,6 @@ export class Storage {
   public async validatePresignedUrl(
     filePath: string,
     bucketName: string,
-    userId: string,
     method: string,
     expires: string,
     signature: string,
@@ -269,8 +275,9 @@ export class Storage {
 
     const expectedSignature = crypto
       .createHmac("sha256", STORAGE_SECRET)
-      .update(`${method}\n${expires}\n${filePath}\n${bucketName}\n${userId}`)
+      .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
       .digest("hex");
+
     if (signature !== expectedSignature) {
       throw new HTTPError(
         HTTP_CODES.UNAUTHORIZED,
@@ -286,6 +293,22 @@ export class Storage {
     }
 
     await storage.bucketExists(bucketName);
+  }
+
+  public async objectExists(
+    bucketName: string,
+    objectName: string,
+  ): Promise<boolean> {
+    try {
+      const stat = await Storage.instance.statObject(bucketName, objectName);
+      return !!stat;
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to check object existence",
+      );
+    }
   }
 }
 

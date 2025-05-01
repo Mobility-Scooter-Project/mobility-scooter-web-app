@@ -170,7 +170,7 @@ def get_tasks_times(transcript_path, filename, video_id):
     })
 
   if len(tasks_time) == 0:
-    logger.info(f"No tasks detected in {filename}.")
+    logger.debug(f"No tasks detected in {filename}.")
     return
 
   for taskId, t in enumerate(tasks_time):

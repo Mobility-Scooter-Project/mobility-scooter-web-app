@@ -67,5 +67,4 @@ def callback(ch, method, properties, body):
     properties: Message properties (e.g., headers, content type).
     body (bytes): The message containing video data in JSON format.
   """
-  time.sleep(10)
   video_queue.put(body)

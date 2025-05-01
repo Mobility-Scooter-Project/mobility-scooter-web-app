@@ -31,6 +31,8 @@ const app = new Hono<{ Variables: Variables }>()
       const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
       const objectBlob = await c.req.blob();
+      c.header("Accept-Ranges", "bytes");
+      c.header("Content-Type", "video/mp4");
 
       const userId = c.get("userId")!;
 
@@ -95,7 +97,6 @@ const app = new Hono<{ Variables: Variables }>()
     async (c) => {
       const filePath = c.req.valid("query")["X-MSWA-FilePath"];
       const bucketName = c.req.valid("query")["X-MSWA-Bucket"];
-      const presignedUserId = c.req.valid("query")["X-MSWA-UserId"];
       const method = c.req.valid("query")["X-MSWA-Method"];
       const expires = c.req.valid("query")["X-MSWA-Expires"];
       const signature = c.req.valid("query")["X-MSWA-Signature"];
@@ -103,7 +104,6 @@ const app = new Hono<{ Variables: Variables }>()
       await storageService.validatePresignedUrl(
         filePath,
         bucketName,
-        presignedUserId,
         method,
         expires,
         signature,

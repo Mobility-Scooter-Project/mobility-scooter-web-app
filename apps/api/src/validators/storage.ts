@@ -23,7 +23,7 @@ export const presignedUrlResponseSchema = z.object({
 });
 
 export const videoMetadataSchema = z.object({
-  patientId: z.string(),  
+  patientId: z.string(),
   path: z.string(),
   date: z.coerce.date(),
 })
@@ -41,7 +41,7 @@ export const taskSchema = z.object({
     start: z.string(),
     end: z.string(),
   })
-  
+
 })
 
 export const keypointSchema = z.object({
@@ -70,7 +70,6 @@ export const videoEventSchema = z.object({
 export const presignedQuerySchema = z.object({
   "X-MSWA-FilePath": z.string(),
   "X-MSWA-Bucket": z.string(),
-  "X-MSWA-UserId": z.string(),
   "X-MSWA-Method": z.string(),
   "X-MSWA-Expires": z.string(),
   "X-MSWA-Signature": z.string()

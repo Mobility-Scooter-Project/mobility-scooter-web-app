@@ -6,7 +6,7 @@ import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
 import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
-
+import Stream from "node:stream";
 
 /**
  * Uploads an object to a storage bucket using a presigned URL and encryption.
@@ -61,9 +61,13 @@ const putObjectStream = async (
     presignedUrlPromise,
   ]);
 
+  const fileSize = object.size;
+  const stream = object.stream();
+
   await storage.uploadToPresignedUrl(
     presignedUrl,
-    object,
+    stream,
+    fileSize,
     encryptionKey,
   );
 
@@ -95,6 +99,13 @@ const putObjectStream = async (
       videoMetadataPromise,
     ]);
 
+    const uploadCompleted = await storage.objectExists(
+      bucketName,
+      filePath,
+    );
+
+    console.log("Upload completed", uploadCompleted);
+
     await queue.publish(
       TOPICS.VIDEOS,
       {
@@ -125,7 +136,6 @@ const putObjectStream = async (
  * - X-MSWA-Expires: Expiration timestamp (24 hours from generation)
  * - X-MSWA-FilePath: The provided file path
  * - X-MSWA-Bucket: The provided bucket name
- * - X-MSWA-UserId: The provided user ID
  * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
  */
 const generatePresignedGetUrl = async (
@@ -143,13 +153,12 @@ const generatePresignedGetUrl = async (
     "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
     "X-MSWA-FilePath": filePath,
     "X-MSWA-Bucket": bucketName,
-    "X-MSWA-UserId": userId,
   })
 
   // sign the URL
   const signature = crypto
     .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}\n${userId}`)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}`)
     .digest("hex");
 
   params.append("X-MSWA-Signature", signature);
@@ -198,7 +207,6 @@ const getObjectStream = async (
  * Validates a pre-signed URL for storage operations
  * @param filePath - The path to the file in storage
  * @param bucketName - The name of the storage bucket
- * @param userId - The ID of the user making the request
  * @param method - The HTTP method for the pre-signed URL
  * @param expires - The expiration timestamp of the pre-signed URL
  * @param signature - The signature of the pre-signed URL for validation
@@ -208,7 +216,6 @@ const getObjectStream = async (
 const validatePresignedUrl = async (
   filePath: string,
   bucketName: string,
-  userId: string,
   method: string,
   expires: string,
   signature: string,
@@ -216,7 +223,6 @@ const validatePresignedUrl = async (
   await storage.validatePresignedUrl(
     filePath,
     bucketName,
-    userId,
     method,
     expires,
     signature,
