@@ -9,8 +9,8 @@ import {
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import { Client } from "minio";
-import { RequestOption } from "minio/dist/main/internal/client";
 import crypto from "node:crypto";
+import logger from "@shared/utils/logger"
 import Stream from "node:stream";
 
 /**
@@ -198,56 +198,49 @@ export class Storage {
    * @param encryptionKey - The encryption key in hexadecimal format for server-side encryption
    * @throws {HTTPError} When the upload fails with HTTP 500 Internal Server Error
    */
-  public async uploadToPresignedUrl(
-    url: string,
-    object: ReadableStream<any>,
-    objectSize: number,
+  public async uploadStream(
+    objectStream: ReadableStream<any>,
+    bucketName: string,
+    objectName: string,
     encryptionKey: string,
   ) {
+    const encryptionKeyMd5 = crypto.hash(
+      "md5",
+      Buffer.from(encryptionKey, "hex"),
+    );
+    const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
+      "base64",
+    );
+    const encryptionKeyMd5Base64 = Buffer.from(
+      encryptionKeyMd5,
+      "hex",
+    ).toString("base64");
+
+    const headers = {
+      "x-amz-server-side-encryption-customer-algorithm": "AES256",
+      "x-amz-server-side-encryption-customer-key": encryptionKeyBase64,
+      "x-amz-server-side-encryption-customer-key-MD5": encryptionKeyMd5Base64,
+    }
+
+
     try {
-      const encryptionKeyMd5 = crypto.hash(
-        "md5",
-        Buffer.from(encryptionKey, "hex"),
+      const response = await Storage.instance.putObject(
+        bucketName,
+        objectName,
+        Stream.Readable.from(objectStream),
       );
-      const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-        "base64",
-      );
-      const encryptionKeyMd5Base64 = Buffer.from(
-        encryptionKeyMd5,
-        "hex",
-      ).toString("base64");
-
-      const response = await fetch(url, {
-        method: "PUT",
-        body: object,
-        headers: {
-          "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-          "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
-          "X-Amz-Server-Side-Encryption-Customer-Key-MD5":
-            encryptionKeyMd5Base64,
-          "Content-Length": objectSize.toString(),
-        },
-        // @ts-ignore
-        duplex: "half",
-      });
-
-      if (!response.ok) {
-        throw new HTTPError(
-          HTTP_CODES.INTERNAL_SERVER_ERROR,
-          await response.text(),
-          "Failed to upload to pre-signed URL",
-        );
-      }
-
+      return response;
     } catch (error) {
-      console.error("Error uploading to pre-signed URL:", error);
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         error,
-        "Failed to upload to pre-signed URL",
+        "Failed to upload object",
       );
-    }
   }
+
+
+
+}
 
   /**
    * Validates a presigned URL by checking its signature, expiration, and bucket existence
@@ -265,79 +258,65 @@ export class Storage {
    * @returns {Promise<void>} Resolves if validation is successful
    */
   public async validatePresignedUrl(
-    filePath: string,
-    bucketName: string,
-    method: string,
-    expires: string,
-    signature: string,
-  ) {
-    const date = new Date();
-    const expiresDate = new Date(parseInt(expires) * 1000);
+  filePath: string,
+  bucketName: string,
+  method: string,
+  expires: string,
+  signature: string,
+) {
+  const date = new Date();
+  const expiresDate = new Date(parseInt(expires) * 1000);
 
-    const expectedSignature = crypto
-      .createHmac("sha256", STORAGE_SECRET)
-      .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
-      .digest("hex");
+  const expectedSignature = crypto
+    .createHmac("sha256", STORAGE_SECRET)
+    .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
+    .digest("hex");
 
-    if (signature !== expectedSignature) {
-      throw new HTTPError(
-        HTTP_CODES.UNAUTHORIZED,
-        "Invalid signature",
-      );
-    }
-
-    if (expiresDate < date) {
-      throw new HTTPError(
-        HTTP_CODES.UNAUTHORIZED,
-        "URL has expired",
-      );
-    }
-
-    await storage.bucketExists(bucketName);
+  if (signature !== expectedSignature) {
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      "Invalid signature",
+    );
   }
+
+  if (expiresDate < date) {
+    throw new HTTPError(
+      HTTP_CODES.UNAUTHORIZED,
+      "URL has expired",
+    );
+  }
+
+  await storage.bucketExists(bucketName);
+}
 
   public async objectExists(
-    bucketName: string,
-    objectName: string,
-    encryptionKey: string,
-  ): Promise<boolean> {
-    try {
-      const encryptionKeyMd5 = crypto.hash(
-        "md5",
-        Buffer.from(encryptionKey, "hex"),
-      );
+  bucketName: string,
+  objectName: string,
+  encryptionKey: string,
+) {
+  try {
+    const encryptionKeyMd5 = crypto.hash(
+      "md5",
+      Buffer.from(encryptionKey, "hex"),
+    );
 
-      const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-        "base64",
-      );
+    const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
+      "base64",
+    );
 
-      const encryptionKeyMd5Base64 = Buffer.from(
-        encryptionKeyMd5,
-        "hex",
-      ).toString("base64");
+    const encryptionKeyMd5Base64 = Buffer.from(
+      encryptionKeyMd5,
+      "hex",
+    ).toString("base64");
 
-      const options: RequestOption = {
-        method: "HEAD",
-        bucketName,
-        objectName,
-        headers: {
-          "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-          "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
-          "X-Amz-Server-Side-Encryption-Customer-Key-MD5":
-            encryptionKeyMd5Base64,
-        }
-      }
-      const req = await Storage.instance.makeRequestAsync(options)
-      console.log(req);
-      return false;
-    } catch (error) {
-      throw new HTTPError(
-        HTTP_CODES.INTERNAL_SERVER_ERROR,
-        error,
-        "Failed to check object existence",
-      );
-    }
+  } catch (error) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      error,
+      "Failed to check object existence",
+    );
   }
+}
 }
 
 export const storage = new Storage();

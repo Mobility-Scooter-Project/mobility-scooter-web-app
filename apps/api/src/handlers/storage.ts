@@ -30,7 +30,7 @@ const app = new Hono<{ Variables: Variables }>()
       const uploadedAt = new Date();
       const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
-      const objectBlob = await c.req.blob();
+      const uploadStream = c.req.raw.body!;
       c.header("Accept-Ranges", "bytes");
       c.header("Content-Type", "video/mp4");
 
@@ -40,7 +40,7 @@ const app = new Hono<{ Variables: Variables }>()
         filePath,
         userId,
         bucketName,
-        objectBlob,
+        uploadStream,
         uploadedAt,
       );
 

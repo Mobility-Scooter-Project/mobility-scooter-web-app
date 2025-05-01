@@ -28,10 +28,12 @@ export class Queue {
                     try {
                         Queue.instance = new Connection(QUEUE_URL);
                         Queue.instance.on("error", (error) => {
-                            Queue.errorObject = error;
                             resolve(false);
                         });
-                        resolve(true);
+                        Queue.instance.on("connection", () => {
+                            Queue.publisher = Queue.instance.createPublisher();
+                            resolve(true);
+                        });
                     } catch (error) {
                         resolve(false);
                     }

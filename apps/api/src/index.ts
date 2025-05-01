@@ -25,9 +25,9 @@ export type Variables = {
 const { printMetrics, registerMetrics } = prometheus()
 
 export const app = new Hono<{ Variables: Variables }>()
-  /*.use(pinoLogger({
+  .use(pinoLogger({
     pino: logger,
-  }))*/
+  }))
   .use('*', registerMetrics)
   .get("/metrics", printMetrics)
   .get("/healthcheck", (c) => {
@@ -96,6 +96,7 @@ while (!hasConnected) {
 
   if (!hasConnected) {
     logger.debug("Waiting to connect to integrations...");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   } else {
     break;
   }

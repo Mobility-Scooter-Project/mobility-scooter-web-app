@@ -6,7 +6,7 @@ import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
 import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
-import Stream from "node:stream";
+import { Stream } from "nodemailer/lib/xoauth2";
 
 /**
  * Uploads an object to a storage bucket using a presigned URL and encryption.
@@ -32,7 +32,7 @@ const putObjectStream = async (
   filePath: string,
   userId: string,
   bucketName: string,
-  object: Blob,
+  uploadStream: ReadableStream<any>,
   uploadedAt: Date,
   fileType = FILE_TYPES.VIDEO,
 ) => {
@@ -44,80 +44,57 @@ const putObjectStream = async (
 
   await storage.getOrCreateBucket(bucketName);
 
-  const presignedUrlPromise = storage.presignedUrl(
-    "PUT",
-    bucketName,
-    filePath,
-    expires,
-  );
-
-  const encryptionKeyPromise = vault.createObjectEncryptionKey(
+  const encryptionKey = await vault.createObjectEncryptionKey(
     bucketName,
     filePath,
   );
 
-  const [encryptionKey, presignedUrl] = await Promise.all([
-    encryptionKeyPromise,
-    presignedUrlPromise,
-  ]);
-
-  const fileSize = object.size;
-  const stream = object.stream();
-
-  await storage.uploadToPresignedUrl(
-    presignedUrl,
-    stream,
-    fileSize,
+  await storage.uploadStream(
+    uploadStream,
+    bucketName,
+    filePath,
     encryptionKey,
   );
-
-  if (fileType == FILE_TYPES.VIDEO) {
-    const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
-    const videoDataPromise = generatePresignedGetUrl(
-      filePath,
-      bucketName,
-      userId,
-    );
-
-    const transcriptPutUrlPromise = storage.presignedUrl(
-      "PUT",
-      bucketName,
-      transcriptPath,
-      expires,
-
-    );
-
-    const videoMetadataPromise = createVideoMetadata(
-      bucketName,
-      filePath,
-      uploadedAt,
-    );
-
-    const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
-      videoDataPromise,
-      transcriptPutUrlPromise,
-      videoMetadataPromise,
-    ]);
-
-    const uploadCompleted = await storage.objectExists(
-      bucketName,
-      filePath,
-      encryptionKey,
-    );
-
-    console.log("Upload completed", uploadCompleted);
-
-    await queue.publish(
-      TOPICS.VIDEOS,
-      {
-        data: {
-          id: videoMetadata.id,
-          url: videoData.url,
-          filename: filePath,
-          transcriptPutUrl,
-        }
-      });
-  }
+  /*
+    if (fileType == FILE_TYPES.VIDEO) {
+      const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+      const videoDataPromise = generatePresignedGetUrl(
+        filePath,
+        bucketName,
+        userId,
+      );
+  
+      const transcriptPutUrlPromise = storage.presignedUrl(
+        "PUT",
+        bucketName,
+        transcriptPath,
+        expires,
+  
+      );
+  
+      const videoMetadataPromise = createVideoMetadata(
+        bucketName,
+        filePath,
+        uploadedAt,
+      );
+  
+      const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
+        videoDataPromise,
+        transcriptPutUrlPromise,
+        videoMetadataPromise,
+      ]);
+  
+      await queue.publish(
+        TOPICS.VIDEOS,
+        {
+          data: {
+            id: videoMetadata.id,
+            url: videoData.url,
+            filename: filePath,
+            transcriptPutUrl,
+          }
+        })
+    }*/
 };
 
 

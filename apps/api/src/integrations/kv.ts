@@ -29,7 +29,9 @@ export class KV {
                     this.instance.on("error", (error) => {
                         resolve(false);
                     });
-                    resolve(true);
+                    this.instance.on("connection", () => {
+                        resolve(true);
+                    });
                 } catch (error) {
                     resolve(false);
                 }
