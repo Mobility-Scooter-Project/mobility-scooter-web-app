@@ -8,10 +8,11 @@ import {
 } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import { Client } from "minio";
 import crypto from "node:crypto";
 import logger from "@shared/utils/logger"
 import Stream from "node:stream";
+import { CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
  * A singleton class that manages interactions with a storage service (MinIO).
@@ -40,25 +41,19 @@ import Stream from "node:stream";
  * - HTTP 401 for authentication/authorization failures
  */
 export class Storage {
-  public static instance: Client;
+  public static instance: S3Client;
   private static isConnected = false;
 
   public constructor() {
     if (!Storage.instance) {
       try {
-        Storage.instance = new Client({
-          endPoint: STORAGE_URL,
-          port: Number(STORAGE_PORT),
-          useSSL: true,
-          accessKey: STORAGE_ACCESS_KEY,
-          secretKey: STORAGE_SECRET_KEY,
+        Storage.instance = new S3Client({
+          endpoint: STORAGE_URL,
+          credentials: {
+            accessKeyId: STORAGE_ACCESS_KEY,
+            secretAccessKey: STORAGE_SECRET_KEY,
+          }
         });
-
-        if (ENVIRONMENT !== "production") {
-          Storage.instance.setRequestOptions({
-            rejectUnauthorized: false,
-          });
-        }
 
         Storage.isConnected = true;
       } catch (error) {
@@ -82,14 +77,42 @@ export class Storage {
    */
   public async bucketExists(bucketName: string) {
     let bucketExists = false;
+
     try {
-      bucketExists = await Storage.instance.bucketExists(bucketName);
+      const command = new HeadBucketCommand({
+        Bucket: bucketName,
+      })
+
+      const res = await Storage.instance.send(command);
+      if (res.$metadata.httpStatusCode === 200) {
+        bucketExists = true;
+      }
     } catch (error) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, error, "Failed to check bucket existence");
     }
 
-    if (!bucketExists) {
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Bucket not found");
+    return bucketExists;
+  }
+
+  public async makeBucket(bucketName: string) {
+    await this.bucketExists(bucketName);
+    try {
+      const createBucketCommand = new CreateBucketCommand({
+        Bucket: bucketName,
+      });
+      const res = await Storage.instance.send(createBucketCommand);
+      if (res.$metadata.httpStatusCode !== 200) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to create bucket",
+        );
+      }
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to create bucket",
+      );
     }
   }
 
@@ -101,9 +124,9 @@ export class Storage {
    */
   public async getOrCreateBucket(bucketName: string) {
     try {
-      const bucketExists = await Storage.instance.bucketExists(bucketName);
+      const bucketExists = await this.bucketExists(bucketName);
       if (!bucketExists) {
-        await Storage.instance.makeBucket(bucketName, "us-east-1");
+        await this.makeBucket(bucketName);
       }
     } catch (error) {
       throw new HTTPError(
@@ -139,11 +162,21 @@ export class Storage {
     ).toString("base64");
 
     try {
-      return await Storage.instance.getObject(bucketName, objectName, {
+      const getObjectCommand = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: objectName,
         SSECustomerAlgorithm: "AES256",
         SSECustomerKey: base64EncryptionKey,
         SSECustomerKeyMD5: base64EncryptionKeyMd5,
       });
+      const res = await Storage.instance.send(getObjectCommand);
+      if (res.$metadata.httpStatusCode !== 200) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to get object",
+        );
+      }
+      return res.Body;
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -166,22 +199,37 @@ export class Storage {
    * @throws {HTTPException} When URL generation fails with HTTP 500 error
    */
   public async presignedUrl(
-    method: string,
+    method: "GET" | "PUT",
     bucketName: string,
     objectName: string,
     expires: number,
-    reqParams?: Parameters<Client["presignedUrl"]>[4],
+    reqParams?: {
+      SSECustomerAlgorithm?: string;
+      SSECustomerKey?: string;
+      SSECustomerKeyMD5?: string;
+    },
     requestDate?: Date,
   ) {
     try {
-      return await Storage.instance.presignedUrl(
-        method,
-        bucketName,
-        objectName,
-        expires,
-        reqParams,
-        requestDate,
-      );
+      let command;
+      let baseRequest = {
+        Bucket: bucketName,
+        Key: objectName,
+        SSECustomerAlgorithm: reqParams?.SSECustomerAlgorithm,
+        SSECustomerKey: reqParams?.SSECustomerKey,
+        SSECustomerKeyMD5: reqParams?.SSECustomerKeyMD5,
+      };
+
+      switch (method) {
+        case "GET":
+          command = new GetObjectCommand(baseRequest);
+          break;
+        case "PUT":
+          command = new PutObjectCommand(baseRequest);
+          break;
+      }
+
+      return await getSignedUrl(Storage.instance, command, { expiresIn: expires, signingDate: requestDate });
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -216,31 +264,33 @@ export class Storage {
       "hex",
     ).toString("base64");
 
-    const headers = {
-      "x-amz-server-side-encryption-customer-algorithm": "AES256",
-      "x-amz-server-side-encryption-customer-key": encryptionKeyBase64,
-      "x-amz-server-side-encryption-customer-key-MD5": encryptionKeyMd5Base64,
-    }
-
 
     try {
-      const response = await Storage.instance.putObject(
-        bucketName,
-        objectName,
-        Stream.Readable.from(objectStream),
-      );
-      return response;
+      const uploadCommand = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: objectName,
+        Body: objectStream,
+        SSECustomerAlgorithm: "AES256",
+        SSECustomerKey: encryptionKeyBase64,
+        SSECustomerKeyMD5: encryptionKeyMd5Base64,
+      })
+
+      const res = await Storage.instance.send(uploadCommand);
+      if (res.$metadata.httpStatusCode !== 200) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to upload object",
+        );
+      }
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         error,
         "Failed to upload object",
       );
+    }
+
   }
-
-
-
-}
 
   /**
    * Validates a presigned URL by checking its signature, expiration, and bucket existence
@@ -258,65 +308,65 @@ export class Storage {
    * @returns {Promise<void>} Resolves if validation is successful
    */
   public async validatePresignedUrl(
-  filePath: string,
-  bucketName: string,
-  method: string,
-  expires: string,
-  signature: string,
-) {
-  const date = new Date();
-  const expiresDate = new Date(parseInt(expires) * 1000);
+    filePath: string,
+    bucketName: string,
+    method: string,
+    expires: string,
+    signature: string,
+  ) {
+    const date = new Date();
+    const expiresDate = new Date(parseInt(expires) * 1000);
 
-  const expectedSignature = crypto
-    .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
-    .digest("hex");
+    const expectedSignature = crypto
+      .createHmac("sha256", STORAGE_SECRET)
+      .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
+      .digest("hex");
 
-  if (signature !== expectedSignature) {
-    throw new HTTPError(
-      HTTP_CODES.UNAUTHORIZED,
-      "Invalid signature",
-    );
+    if (signature !== expectedSignature) {
+      throw new HTTPError(
+        HTTP_CODES.UNAUTHORIZED,
+        "Invalid signature",
+      );
+    }
+
+    if (expiresDate < date) {
+      throw new HTTPError(
+        HTTP_CODES.UNAUTHORIZED,
+        "URL has expired",
+      );
+    }
+
+    await storage.bucketExists(bucketName);
   }
-
-  if (expiresDate < date) {
-    throw new HTTPError(
-      HTTP_CODES.UNAUTHORIZED,
-      "URL has expired",
-    );
-  }
-
-  await storage.bucketExists(bucketName);
-}
 
   public async objectExists(
-  bucketName: string,
-  objectName: string,
-  encryptionKey: string,
-) {
-  try {
-    const encryptionKeyMd5 = crypto.hash(
-      "md5",
-      Buffer.from(encryptionKey, "hex"),
-    );
+    bucketName: string,
+    objectName: string,
+    encryptionKey: string,
+  ) {
+    try {
+      const encryptionKeyMd5 = crypto.hash(
+        "md5",
+        Buffer.from(encryptionKey, "hex"),
+      );
 
-    const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-      "base64",
-    );
+      const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
+        "base64",
+      );
 
-    const encryptionKeyMd5Base64 = Buffer.from(
-      encryptionKeyMd5,
-      "hex",
-    ).toString("base64");
+      const encryptionKeyMd5Base64 = Buffer.from(
+        encryptionKeyMd5,
+        "hex",
+      ).toString("base64");
 
-  } catch (error) {
-    throw new HTTPError(
-      HTTP_CODES.INTERNAL_SERVER_ERROR,
-      error,
-      "Failed to check object existence",
-    );
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to check object existence",
+      );
+    }
   }
-}
 }
 
 export const storage = new Storage();

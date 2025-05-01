@@ -10,6 +10,8 @@
     "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.800.0",
+    "@aws-sdk/s3-request-presigner": "^3.800.0",
     "@hono/node-server": "^1.13.8",
     "@hono/prometheus": "^1.0.1",
     "@hono/zod-validator": "^0.4.3",
