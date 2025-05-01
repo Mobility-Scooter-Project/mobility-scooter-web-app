@@ -102,6 +102,7 @@ const putObjectStream = async (
     const uploadCompleted = await storage.objectExists(
       bucketName,
       filePath,
+      encryptionKey,
     );
 
     console.log("Upload completed", uploadCompleted);

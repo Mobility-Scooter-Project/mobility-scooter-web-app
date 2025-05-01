@@ -3,9 +3,13 @@ import { queue } from "@integrations/queue";
 import { eventHandlers } from "./handlers/events";
 import logger from "@shared/utils/logger";
 
+
+const startTime = Date.now();
+logger.info("Starting RabbitMQ consumer...");
+
 while (!queue.getConnectionStatus()) {
     logger.debug("Waiting for RabbitMQ connection...");
-    await new Promise((resolve) => setTimeout(resolve, 7000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
 logger.debug("RabbitMQ connection established");
@@ -19,4 +23,5 @@ const eventSubscriber = queue.createConsumer(
     eventHandlers.consumeEvent
 );
 
-logger.info("Consumer started");
+const endTime = Date.now();
+logger.debug(`RabbitMQ consumer started in ${endTime - startTime}ms`);

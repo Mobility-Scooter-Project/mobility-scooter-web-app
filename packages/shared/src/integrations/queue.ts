@@ -18,23 +18,24 @@ export class Queue {
     private static instance: Connection;
     private static publisher: ReturnType<Connection["createPublisher"]>;
     private static errorObject: any;
-    private static isConnected = false;
+    private static connectionPromise: Promise<boolean>;
 
     public constructor(ErrorObject: any) {
         {
             if (!Queue.instance) {
-                try {
-                    setTimeout(() => {
+                Queue.errorObject = ErrorObject;
+                Queue.connectionPromise = new Promise((resolve) => {
+                    try {
                         Queue.instance = new Connection(QUEUE_URL);
-                        Queue.publisher = Queue.instance.createPublisher({ confirm: true });;
-                        Queue.errorObject = ErrorObject;
-                        Queue.isConnected = true;
+                        Queue.instance.on("error", (error) => {
+                            Queue.errorObject = error;
+                            resolve(false);
+                        });
+                        resolve(true);
+                    } catch (error) {
+                        resolve(false);
                     }
-                        , 6000);
-                } catch (error) {
-                    Queue.isConnected = false;
-                    console.error("Failed to connect to RabbitMQ:", error);
-                }
+                })
             }
         }
     }
@@ -70,10 +71,10 @@ export class Queue {
      *
      * @returns {boolean} True if the Queue is connected, false otherwise.
      */
-    public getConnectionStatus() {
-        if (!Queue.instance) {
+    public async getConnectionStatus() {
+        if (!Queue.connectionPromise) {
             return false;
         }
-        return Queue.isConnected;
+        return await Queue.connectionPromise;
     }
 }

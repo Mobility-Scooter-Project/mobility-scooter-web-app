@@ -14,6 +14,7 @@ import { Redis } from "ioredis";
  */
 export class KV {
     private static instance: Redis;
+    private static connectionPromise: Promise<boolean>;
 
     private constructor() { }
     /**
@@ -22,15 +23,30 @@ export class KV {
      */
     public static getInstance(): Redis {
         if (!this.instance) {
-            try {
-                this.instance = new Redis({
-                    lazyConnect: true,
-                });
-            } catch (error) {
-                console.error("Failed to connect to KV:", error);
-            }
+            this.connectionPromise = new Promise((resolve) => {
+                try {
+                    this.instance = new Redis(KV_URL);
+                    this.instance.on("error", (error) => {
+                        resolve(false);
+                    });
+                    resolve(true);
+                } catch (error) {
+                    resolve(false);
+                }
+            });
         }
         return this.instance;
+    }
+
+    /**
+     * Checks the connection status of the Redis instance.
+     * @returns {Promise<boolean>} A promise that resolves to true if connected, false otherwise.
+     */
+    public static async getConnectionStatus(): Promise<boolean> {
+        if (!this.instance) {
+            return false;
+        }
+        return await this.connectionPromise;
     }
 }
 

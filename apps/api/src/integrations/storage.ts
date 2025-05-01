@@ -9,6 +9,7 @@ import {
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import { Client } from "minio";
+import { RequestOption } from "minio/dist/main/internal/client";
 import crypto from "node:crypto";
 import Stream from "node:stream";
 
@@ -298,10 +299,37 @@ export class Storage {
   public async objectExists(
     bucketName: string,
     objectName: string,
+    encryptionKey: string,
   ): Promise<boolean> {
     try {
-      const stat = await Storage.instance.statObject(bucketName, objectName);
-      return !!stat;
+      const encryptionKeyMd5 = crypto.hash(
+        "md5",
+        Buffer.from(encryptionKey, "hex"),
+      );
+
+      const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
+        "base64",
+      );
+
+      const encryptionKeyMd5Base64 = Buffer.from(
+        encryptionKeyMd5,
+        "hex",
+      ).toString("base64");
+
+      const options: RequestOption = {
+        method: "HEAD",
+        bucketName,
+        objectName,
+        headers: {
+          "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
+          "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
+          "X-Amz-Server-Side-Encryption-Customer-Key-MD5":
+            encryptionKeyMd5Base64,
+        }
+      }
+      const req = await Storage.instance.makeRequestAsync(options)
+      console.log(req);
+      return false;
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,

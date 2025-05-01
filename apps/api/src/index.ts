@@ -12,6 +12,9 @@ import { queue } from "./integrations/queue";
 import { Storage } from "./integrations/storage";
 import logger from "@shared/utils/logger"
 
+const startTime = Date.now();
+logger.info("Starting API server...");
+
 export type Variables = {
   db: DB;
   userId?: string;
@@ -22,9 +25,9 @@ export type Variables = {
 const { printMetrics, registerMetrics } = prometheus()
 
 export const app = new Hono<{ Variables: Variables }>()
-  .use(pinoLogger({
+  /*.use(pinoLogger({
     pino: logger,
-  }))
+  }))*/
   .use('*', registerMetrics)
   .get("/metrics", printMetrics)
   .get("/healthcheck", (c) => {
@@ -81,16 +84,26 @@ export type AppType = typeof app;
 
 let hasConnected = false;
 while (!hasConnected) {
-  hasConnected = queue.getConnectionStatus() && Storage.getConnectionStatus();
+  const queueStatusPromise = queue.getConnectionStatus();
+  const storageStatusPromise = Storage.getConnectionStatus();
+  const kvStatusPromise = Storage.getConnectionStatus();
+
+  const hasConnected = (await Promise.all([
+    queueStatusPromise,
+    storageStatusPromise,
+    kvStatusPromise,
+  ])).every((status) => status === true);
+
   if (!hasConnected) {
     logger.debug("Waiting to connect to integrations...");
   } else {
     break;
   }
-  await new Promise((resolve) => setTimeout(resolve, 7000));
 }
 
-logger.debug("Connected to RabbitMQ and Storage");
+logger.debug("Connected to all integrations");
+const endTime = Date.now();
+logger.info(`API server started in ${endTime - startTime}ms`);
 
 serve(
   {
