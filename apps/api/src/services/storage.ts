@@ -49,7 +49,7 @@ const putObjectStream = async (
     filePath,
   );
 
-  await storage.uploadStream(
+  await storage.multipartUpload(
     uploadStream,
     bucketName,
     filePath,

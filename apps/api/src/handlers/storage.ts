@@ -112,20 +112,16 @@ const app = new Hono<{ Variables: Variables }>()
       const data = await storageService.getObjectStream(bucketName, filePath);
 
       // Assuming data is a ReadableStream<Uint8Array> or similar
-      if (!data) {
+      if (!data || !data.stream) {
         return c.notFound();
       }
 
       c.header("Content-Type", "video/mp4");
       c.header("Accept-Ranges", "bytes");
 
-      const nodeReadable = data.stream as Stream.Readable;
-      // Convert Node.js Readable to Web ReadableStream
-      const webReadableStream = Stream.Readable.toWeb(nodeReadable);
-
       return stream(c, async (stream) => {
         // Pipe the Web ReadableStream
-        await stream.pipe(webReadableStream as ReadableStream<any>);
+        await stream.pipe(data.stream!);
       });
     },
   );

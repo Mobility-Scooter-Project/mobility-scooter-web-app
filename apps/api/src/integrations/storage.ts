@@ -1,4 +1,3 @@
-import { ENVIRONMENT } from "@shared/config/constants";
 import {
   STORAGE_ACCESS_KEY,
   STORAGE_PORT,
@@ -9,10 +8,9 @@ import {
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import crypto from "node:crypto";
-import logger from "@shared/utils/logger"
-import Stream from "node:stream";
-import { CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { AbortMultipartUploadCommand, CompletedPart, CompleteMultipartUploadCommand, CreateBucketCommand, CreateMultipartUploadCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client, UploadPartCommand, } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import logger from "@shared/utils/logger";
 
 /**
  * A singleton class that manages interactions with a storage service (MinIO).
@@ -43,7 +41,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 export class Storage {
   public static instance: S3Client;
   private static connectionPromise: Promise<boolean>;
-  private static connectionAttempts = 0;
 
   public constructor() {
     if (!Storage.instance) {
@@ -51,7 +48,7 @@ export class Storage {
         try {
           Storage.instance = new S3Client({
             endpoint: {
-              protocol: "https",
+              protocol: "https:",
               hostname: STORAGE_URL,
               port: Number(STORAGE_PORT),
               path: "/",
@@ -180,13 +177,8 @@ export class Storage {
         SSECustomerKeyMD5: base64EncryptionKeyMd5,
       });
       const res = await Storage.instance.send(getObjectCommand);
-      if (res.$metadata.httpStatusCode !== 200) {
-        throw new HTTPError(
-          HTTP_CODES.INTERNAL_SERVER_ERROR,
-          "Failed to get object",
-        );
-      }
-      return res.Body;
+
+      return res.Body?.transformToWebStream();
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -256,7 +248,7 @@ export class Storage {
    * @param encryptionKey - The encryption key in hexadecimal format for server-side encryption
    * @throws {HTTPError} When the upload fails with HTTP 500 Internal Server Error
    */
-  public async uploadStream(
+  public async multipartUpload(
     objectStream: ReadableStream<any>,
     bucketName: string,
     objectName: string,
@@ -274,32 +266,134 @@ export class Storage {
       "hex",
     ).toString("base64");
 
-
-    try {
-      const uploadCommand = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: objectName,
-        Body: objectStream,
-        SSECustomerAlgorithm: "AES256",
-        SSECustomerKey: encryptionKeyBase64,
-        SSECustomerKeyMD5: encryptionKeyMd5Base64,
-      })
-
-      const res = await Storage.instance.send(uploadCommand);
-      if (res.$metadata.httpStatusCode !== 200) {
-        throw new HTTPError(
-          HTTP_CODES.INTERNAL_SERVER_ERROR,
-          "Failed to upload object",
-        );
-      }
-    } catch (error) {
-      throw new HTTPError(
-        HTTP_CODES.INTERNAL_SERVER_ERROR,
-        error,
-        "Failed to upload object",
-      );
+    const commonHeaders = {
+      Bucket: bucketName,
+      Key: objectName,
+      SSECustomerAlgorithm: "AES256",
+      SSECustomerKey: encryptionKeyBase64,
+      SSECustomerKeyMD5: encryptionKeyMd5Base64,
     }
 
+    let UploadId = "";
+    let PartNumber = 1;
+    const Parts: CompletedPart[] = [];
+    const partSize = 5 * 1024 * 1024; // 5MB
+    let uploadBuffer = new Uint8Array(0);
+
+    const createMultipartUploadCommand = new CreateMultipartUploadCommand({
+      ...commonHeaders,
+    });
+
+    const writableStream = new WritableStream({
+      start: async (controller) => {
+        try {
+          const res = await Storage.instance.send(createMultipartUploadCommand);
+          UploadId = res.UploadId!;
+          logger.info(`Multipart upload initiated with ID: ${UploadId}`);
+        } catch (error) {
+          controller.error(`Failed to create multipart upload: ${error}`);
+        }
+      },
+      write: async (chunk: Uint8Array, controller) => {
+        if (chunk.length === 0) {
+          return;
+        }
+
+        const newBuffer = new Uint8Array(uploadBuffer.length + chunk.length);
+        newBuffer.set(uploadBuffer, 0);
+        newBuffer.set(chunk, uploadBuffer.length);
+        uploadBuffer = newBuffer;
+
+        try {
+          while (uploadBuffer.length >= partSize) {
+            const uploadPartCommand = new UploadPartCommand({
+              ...commonHeaders,
+              PartNumber: PartNumber,
+              UploadId: UploadId,
+              Body: uploadBuffer.slice(0, partSize),
+            });
+
+            const res = await Storage.instance.send(uploadPartCommand);
+
+            Parts.push({
+              ...res,
+              PartNumber: PartNumber,
+            });
+
+            logger.debug(`Uploaded part ${PartNumber} successfully.`);
+            PartNumber++;
+            uploadBuffer = uploadBuffer.slice(partSize);
+          }
+        } catch (error) {
+          controller.error(`Failed to upload part: ${error}`);
+        }
+      },
+      close: async () => {
+        logger.debug(`All parts uploaded. Uploading last part...`);
+        if (uploadBuffer.length > 0) {
+          try {
+            const uploadPartCommand = new UploadPartCommand({
+              ...commonHeaders,
+              PartNumber,
+              UploadId: UploadId,
+              Body: uploadBuffer,
+            });
+
+            const res = await Storage.instance.send(uploadPartCommand);
+
+            Parts.push({
+              ...res,
+              PartNumber: PartNumber,
+            });
+          } catch (error) {
+            throw new HTTPError(
+              HTTP_CODES.INTERNAL_SERVER_ERROR,
+              error,
+              "Failed to upload last part",
+            );
+          }
+        }
+
+        logger.debug(`All parts uploaded successfully. Completing multipart upload...`);
+
+        try {
+          const completeMultipartUploadCommand = new CompleteMultipartUploadCommand({
+            ...commonHeaders,
+            UploadId: UploadId,
+            MultipartUpload: {
+              Parts: Parts,
+            },
+          });
+          await Storage.instance.send(completeMultipartUploadCommand);
+        } catch (error) {
+          throw new HTTPError(
+            HTTP_CODES.INTERNAL_SERVER_ERROR,
+            error,
+            "Failed to complete multipart upload",
+          );
+        }
+
+        logger.info(`Multipart upload completed successfully.`);
+      },
+      abort: async () => {
+        logger.error(`Multipart upload aborted.`);
+        try {
+          const abortMultipartUploadCommand = new AbortMultipartUploadCommand({
+            ...commonHeaders,
+            UploadId: UploadId,
+          });
+          await Storage.instance.send(abortMultipartUploadCommand);
+        } catch (error) {
+          throw new HTTPError(
+            HTTP_CODES.INTERNAL_SERVER_ERROR,
+            error,
+            "Failed to abort multipart upload",
+          );
+        }
+      }
+    })
+
+    objectStream.pipeTo(writableStream);
   }
 
   /**
@@ -349,34 +443,6 @@ export class Storage {
     await storage.bucketExists(bucketName);
   }
 
-  public async objectExists(
-    bucketName: string,
-    objectName: string,
-    encryptionKey: string,
-  ) {
-    try {
-      const encryptionKeyMd5 = crypto.hash(
-        "md5",
-        Buffer.from(encryptionKey, "hex"),
-      );
-
-      const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-        "base64",
-      );
-
-      const encryptionKeyMd5Base64 = Buffer.from(
-        encryptionKeyMd5,
-        "hex",
-      ).toString("base64");
-
-    } catch (error) {
-      throw new HTTPError(
-        HTTP_CODES.INTERNAL_SERVER_ERROR,
-        error,
-        "Failed to check object existence",
-      );
-    }
-  }
 }
 
 export const storage = new Storage();
