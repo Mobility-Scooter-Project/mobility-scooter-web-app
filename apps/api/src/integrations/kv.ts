@@ -26,9 +26,6 @@ export class KV {
             this.connectionPromise = new Promise((resolve) => {
                 try {
                     this.instance = new Redis(KV_URL);
-                    this.instance.on("error", (error) => {
-                        resolve(false);
-                    });
                     this.instance.on("connection", () => {
                         resolve(true);
                     });
@@ -52,4 +49,4 @@ export class KV {
     }
 }
 
-export const kv = KV.getInstance();
+export const kv = new KV()

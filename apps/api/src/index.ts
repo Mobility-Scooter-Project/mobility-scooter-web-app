@@ -11,9 +11,38 @@ import { HTTPError } from "./lib/errors";
 import { queue } from "./integrations/queue";
 import { Storage } from "./integrations/storage";
 import logger from "@shared/utils/logger"
+import { KV } from "./integrations/kv";
 
 const startTime = Date.now();
 logger.info("Starting API server...");
+
+let hasConnected = false;
+while (!hasConnected) {
+  const queueConnected = await queue.getConnectionStatus();
+  const storageConnected = await Storage.getConnectionStatus();
+  const kvConnected = await KV.getConnectionStatus();
+  hasConnected = queueConnected && storageConnected && kvConnected;
+
+  if (hasConnected) {
+    switch (true) {
+      case !queueConnected:
+        logger.debug(`Queue integration is not connected`);
+      case !storageConnected:
+        logger.debug(`Storage integration is not connected`);
+      case !kvConnected:
+        logger.debug(`KV integration is not connected`);
+        break;
+      default:
+        logger.debug(`Waiting to connect to integrations...`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  } else {
+    break;
+  }
+}
+
+logger.debug("Connected to all integrations");
 
 export type Variables = {
   db: DB;
@@ -82,27 +111,6 @@ app.get(
 
 export type AppType = typeof app;
 
-let hasConnected = false;
-while (!hasConnected) {
-  const queueStatusPromise = queue.getConnectionStatus();
-  const storageStatusPromise = Storage.getConnectionStatus();
-  const kvStatusPromise = Storage.getConnectionStatus();
-
-  const hasConnected = (await Promise.all([
-    queueStatusPromise,
-    storageStatusPromise,
-    kvStatusPromise,
-  ])).every((status) => status === true);
-
-  if (!hasConnected) {
-    logger.debug("Waiting to connect to integrations...");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  } else {
-    break;
-  }
-}
-
-logger.debug("Connected to all integrations");
 const endTime = Date.now();
 logger.info(`API server started in ${endTime - startTime}ms`);
 

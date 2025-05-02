@@ -53,9 +53,6 @@ services:
     # Use --certs-dir to specify TLS cert location
     command: server --console-address ":9001" --certs-dir /certs /data
     network_mode: "host"
-    ports: # Map ports explicitly now that host network mode is removed
-      - "9000:9000" # Minio API (HTTPS)
-      - "9001:9001" # Minio Console (HTTPS)
     depends_on:
       queue:
         condition: service_started # Ensure queue is started before minio

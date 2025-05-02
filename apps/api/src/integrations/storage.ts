@@ -42,23 +42,33 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
  */
 export class Storage {
   public static instance: S3Client;
-  private static isConnected = false;
+  private static connectionPromise: Promise<boolean>;
+  private static connectionAttempts = 0;
 
   public constructor() {
     if (!Storage.instance) {
-      try {
-        Storage.instance = new S3Client({
-          endpoint: STORAGE_URL,
-          credentials: {
-            accessKeyId: STORAGE_ACCESS_KEY,
-            secretAccessKey: STORAGE_SECRET_KEY,
-          }
-        });
+      Storage.connectionPromise = new Promise((resolve) => {
+        try {
+          Storage.instance = new S3Client({
+            endpoint: {
+              protocol: "https",
+              hostname: STORAGE_URL,
+              port: Number(STORAGE_PORT),
+              path: "/",
+            },
+            region: "us-east-1",
+            credentials: {
+              accessKeyId: STORAGE_ACCESS_KEY,
+              secretAccessKey: STORAGE_SECRET_KEY,
+            },
+            forcePathStyle: true,
+          });
 
-        Storage.isConnected = true;
-      } catch (error) {
-        Storage.isConnected = false;
-      }
+          resolve(true);
+        } catch (error) {
+          resolve(false);
+        }
+      });
     }
   }
 
@@ -67,8 +77,8 @@ export class Storage {
    *
    * @returns {boolean} `true` if the Storage is connected; otherwise, `false`.
    */
-  public static getConnectionStatus() {
-    return Storage.isConnected;
+  public static async getConnectionStatus() {
+    return Storage.connectionPromise;
   }
 
   /**
