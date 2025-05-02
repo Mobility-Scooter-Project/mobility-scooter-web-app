@@ -13,28 +13,21 @@ import { Redis } from "ioredis";
  * @throws {Error} When Redis connection fails
  */
 export class KV {
-    private static instance: Redis;
+    public static instance: Redis;
     private static connectionPromise: Promise<boolean>;
 
-    private constructor() { }
-    /**
-     * Returns a singleton instance of the Redis class.
-     * @returns {Redis} The singleton instance of the Redis class.
-     */
-    public static getInstance(): Redis {
-        if (!this.instance) {
-            this.connectionPromise = new Promise((resolve) => {
+    public constructor() {
+        if (!KV.instance) {
+            KV.connectionPromise = new Promise((resolve) => {
                 try {
-                    this.instance = new Redis(KV_URL);
-                    this.instance.on("connection", () => {
-                        resolve(true);
-                    });
+                    KV.instance = new Redis(KV_URL);
+                    resolve(true);
                 } catch (error) {
                     resolve(false);
                 }
             });
         }
-        return this.instance;
+        return KV.instance;
     }
 
     /**
@@ -42,11 +35,11 @@ export class KV {
      * @returns {Promise<boolean>} A promise that resolves to true if connected, false otherwise.
      */
     public static async getConnectionStatus(): Promise<boolean> {
-        if (!this.instance) {
+        if (!KV.instance) {
             return false;
         }
-        return await this.connectionPromise;
+        return await KV.connectionPromise;
     }
 }
 
-export const kv = new KV()
+export const kv = new KV();
