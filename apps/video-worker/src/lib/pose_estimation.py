@@ -10,6 +10,8 @@ from lib.audio_detection import format_time
 import torch
 import pika
 import json
+from lib.queue import client
+from utils.logger import logger
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
@@ -117,9 +119,9 @@ def pose_estimation(model, video_url, filename, video_id):
 
         angle = calculate_angle(midpoint_shoulder, midpoint_hip)
 
-        channel.basic_publish(
+        client.safe_publish(
           exchange='storage',
-          routing_key='keypoints.post',
+          routing_key='keypoints',
           body=json.dumps({
             "videoId": video_id,
             "timestamp": timestamp,
@@ -139,7 +141,6 @@ def pose_estimation(model, video_url, filename, video_id):
           )
         )
         
-
       print(f"\rExtracting keypoints and calculating angle for {filename}... {timestamp} complete", end="")
 
       # Perform operations for the frame

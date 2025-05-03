@@ -17,11 +17,32 @@ logger.debug("RabbitMQ connection established");
 const eventSubscriber = queue.createConsumer(
     {
         queue: TOPICS.KEYPOINTS,
-        queueOptions: { durable: true },
-        exchanges: [{ exchange: EXCHANGES.STORAGE, type: "direct" }],
+        qos: {
+            prefetchCount: 1,
+        },
+        queueOptions: {
+            queue: TOPICS.KEYPOINTS,
+            durable: true,
+            autoDelete: false,
+            exclusive: false
+        },
+        exchanges: [{
+            exchange: EXCHANGES.STORAGE,
+            durable: true,
+            passive: false,
+            type: "direct",
+        }],
+        queueBindings: [{
+            exchange: EXCHANGES.STORAGE,
+            queue: TOPICS.KEYPOINTS,
+            routingKey: "keypoints.*",
+        }]
+
     },
     eventHandlers.consumeEvent
 );
+
+eventSubscriber.start();
 
 const endTime = Date.now();
 logger.debug(`RabbitMQ consumer started in ${endTime - startTime}ms`);
