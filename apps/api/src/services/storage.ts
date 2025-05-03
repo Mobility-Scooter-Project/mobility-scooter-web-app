@@ -7,6 +7,10 @@ import { vault } from "@src/integrations/vault";
 import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
 import { Stream } from "nodemailer/lib/xoauth2";
+import { HTTPError } from "@src/lib/errors";
+import { HTTP_CODES } from "@src/config/http-codes";
+import logger from "@shared/utils/logger";
+import { WaiterState } from "@smithy/util-waiter"
 
 /**
  * Uploads an object to a storage bucket using a presigned URL and encryption.
@@ -42,6 +46,8 @@ const putObjectStream = async (
 
   const expires = 60 * 60 * 24;
 
+  const startTime = new Date();
+
   await storage.getOrCreateBucket(bucketName);
 
   const encryptionKey = await vault.createObjectEncryptionKey(
@@ -55,46 +61,75 @@ const putObjectStream = async (
     filePath,
     encryptionKey,
   );
-  /*
-    if (fileType == FILE_TYPES.VIDEO) {
-      const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
-      const videoDataPromise = generatePresignedGetUrl(
+
+
+  if (fileType == FILE_TYPES.VIDEO) {
+    const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+    const videoDataPromise = generatePresignedGetUrl(
+      filePath,
+      bucketName,
+      userId,
+    );
+
+    const transcriptPutUrlPromise = storage.presignedUrl(
+      "PUT",
+      bucketName,
+      transcriptPath,
+      expires,
+
+    );
+
+    const videoMetadataPromise = createVideoMetadata(
+      bucketName,
+      filePath,
+      uploadedAt,
+    );
+
+    const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
+      videoDataPromise,
+      transcriptPutUrlPromise,
+      videoMetadataPromise,
+    ]);
+
+
+    let uploadState = await storage.waitUntilObjectExists(
+      bucketName,
+      filePath,
+      encryptionKey
+    )
+
+    while (uploadState.state !== WaiterState.SUCCESS) {
+      if (uploadState.state === WaiterState.FAILURE) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to upload video file",
+        );
+      }
+      uploadState = await storage.waitUntilObjectExists(
+        bucketName,
         filePath,
-        bucketName,
-        userId,
-      );
-  
-      const transcriptPutUrlPromise = storage.presignedUrl(
-        "PUT",
-        bucketName,
-        transcriptPath,
-        expires,
-  
-      );
-  
-      const videoMetadataPromise = createVideoMetadata(
-        bucketName,
-        filePath,
-        uploadedAt,
-      );
-  
-      const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
-        videoDataPromise,
-        transcriptPutUrlPromise,
-        videoMetadataPromise,
-      ]);
-  
-      await queue.publish(
-        TOPICS.VIDEOS,
-        {
-          data: {
-            id: videoMetadata.id,
-            url: videoData.url,
-            filename: filePath,
-            transcriptPutUrl,
-          }
-        })
-    }*/
+        encryptionKey
+      )
+    }
+
+    await queue.publish(
+      TOPICS.VIDEOS,
+      {
+        data: {
+          id: videoMetadata.id,
+          url: videoData.url,
+          filename: filePath,
+          transcriptPutUrl,
+        }
+      })
+
+    logger.debug(
+      `Published video event to queue: ${videoMetadata.id} - ${filePath}`)
+  }
+
+  logger.info(
+    `Uploaded file ${filePath} to bucket ${bucketName} in ${new Date().getTime() - startTime.getTime()} ms`,
+  );
 };
 
 

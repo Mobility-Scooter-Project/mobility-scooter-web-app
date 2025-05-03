@@ -13,7 +13,6 @@ import { Hono } from "hono";
 import { describeRoute } from "hono-openapi";
 import { resolver } from "hono-openapi/zod";
 import { stream } from "hono/streaming";
-import Stream from "stream";
 
 const app = new Hono<{ Variables: Variables }>()
   .put(
@@ -31,7 +30,6 @@ const app = new Hono<{ Variables: Variables }>()
       const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
       const uploadStream = c.req.raw.body!;
-      c.header("Accept-Ranges", "bytes");
       c.header("Content-Type", "video/mp4");
 
       const userId = c.get("userId")!;

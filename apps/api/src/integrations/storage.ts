@@ -8,9 +8,11 @@ import {
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import crypto from "node:crypto";
-import { AbortMultipartUploadCommand, CompletedPart, CompleteMultipartUploadCommand, CreateBucketCommand, CreateMultipartUploadCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client, UploadPartCommand, } from "@aws-sdk/client-s3";
+import { AbortMultipartUploadCommand, CompletedPart, CompleteMultipartUploadCommand, CreateBucketCommand, CreateMultipartUploadCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client, UploadPartCommand, waitUntilObjectExists, } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import logger from "@shared/utils/logger";
+import type { WaiterResult } from "@smithy/util-waiter"
+import { cryptoUtils } from "@src/lib/crypto";
 
 /**
  * A singleton class that manages interactions with a storage service (MinIO).
@@ -156,25 +158,16 @@ export class Storage {
     objectName: string,
     encryptionKey: string,
   ) {
-    const encryptionKeyMd5 = crypto.hash(
-      "md5",
-      Buffer.from(encryptionKey, "hex"),
-    );
-    const base64EncryptionKey = Buffer.from(encryptionKey, "hex").toString(
-      "base64",
-    );
-    const base64EncryptionKeyMd5 = Buffer.from(
-      encryptionKeyMd5,
-      "hex",
-    ).toString("base64");
+
+    const { encryptionKeyBase64, encryptionKeyMd5Base64 } = cryptoUtils.getEncryptionHeaders(encryptionKey);
 
     try {
       const getObjectCommand = new GetObjectCommand({
         Bucket: bucketName,
         Key: objectName,
         SSECustomerAlgorithm: "AES256",
-        SSECustomerKey: base64EncryptionKey,
-        SSECustomerKeyMD5: base64EncryptionKeyMd5,
+        SSECustomerKey: encryptionKeyBase64,
+        SSECustomerKeyMD5: encryptionKeyMd5Base64,
       });
       const res = await Storage.instance.send(getObjectCommand);
 
@@ -254,17 +247,8 @@ export class Storage {
     objectName: string,
     encryptionKey: string,
   ) {
-    const encryptionKeyMd5 = crypto.hash(
-      "md5",
-      Buffer.from(encryptionKey, "hex"),
-    );
-    const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-      "base64",
-    );
-    const encryptionKeyMd5Base64 = Buffer.from(
-      encryptionKeyMd5,
-      "hex",
-    ).toString("base64");
+
+    const { encryptionKeyBase64, encryptionKeyMd5Base64 } = cryptoUtils.getEncryptionHeaders(encryptionKey);
 
     const commonHeaders = {
       Bucket: bucketName,
@@ -394,6 +378,35 @@ export class Storage {
     })
 
     objectStream.pipeTo(writableStream);
+  }
+
+  public waitUntilObjectExists(
+    bucketName: string,
+    objectName: string,
+    encryptionKey: string,
+  ): Promise<WaiterResult> {
+    const { encryptionKeyBase64, encryptionKeyMd5Base64 } = cryptoUtils.getEncryptionHeaders(encryptionKey);
+
+    try {
+      return waitUntilObjectExists({
+        client: Storage.instance,
+        minDelay: 1,
+        maxDelay: 5,
+        maxWaitTime: 30,
+      }, {
+        Bucket: bucketName,
+        Key: objectName,
+        SSECustomerAlgorithm: "AES256",
+        SSECustomerKey: encryptionKeyBase64,
+        SSECustomerKeyMD5: encryptionKeyMd5Base64,
+      })
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to retriever object waiter",
+      );
+    }
   }
 
   /**
