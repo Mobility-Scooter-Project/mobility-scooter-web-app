@@ -76,11 +76,17 @@ def generate_transcript(video_url, model, filename):
   """
   try:
     time_start = time.time()
-    result = model.transcribe(video_url, word_timestamps=True, fp16=False)  
-    vtt_content = format_vtt(result["segments"], "segms")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+      temp_video.write(requests.get(video_url).content)  
+      temp_video.flush()
+      logger.debug(f"Transcribing {filename}...")
+      
+      result = model.transcribe(temp_video.name, word_timestamps=True, fp16=False)  
+      logger.debug(f"Transcription completed for {filename} after {time.time() - time_start:.2f}s!")
+      vtt_content = format_vtt(result["segments"], "segms")
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
-      tmp.write(vtt_content.encode("utf-8"))  
+      with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
+        tmp.write(vtt_content.encode("utf-8"))  
       
     logger.info(f"Transcript generated successfully for {filename} after {time.time() - time_start:.2f}s!\n")
     return tmp
