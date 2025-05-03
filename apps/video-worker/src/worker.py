@@ -29,7 +29,7 @@ def process_video(body, pe_model, asr_model):
   get_url = message["data"]["url"]
   transcript_put_url = message["data"]["transcriptPutUrl"]
 
-  audio_detection(model=asr_model, video_url=get_url, filename=filename, video_id=id, transcript_url=transcript_put_url)
+  #audio_detection(model=asr_model, video_url=get_url, filename=filename, video_id=id, transcript_url=transcript_put_url)
   pose_estimation(model=pe_model, video_url=get_url, filename=filename, video_id=id)
 
 def worker():
@@ -39,9 +39,10 @@ def worker():
   if torch.cuda.is_available():
     asr_model = whisper.load_model("small").to("cuda")
     pe_model = YOLO("yolo11n-pose.pt", verbose=False).to("cuda")
+    logger.debug("GPU available, using CUDA for processing.")
   else:
-    asr_model = whisper.load_model("small")
-    pe_model = YOLO("yolo11n-pose.pt", verbose=False)
+    asr_model = whisper.load_model("small").to("cpu")
+    pe_model = YOLO("yolo11n-pose.pt", verbose=False).to("cpu")
     logger.debug("No GPU available, using CPU for processing.")
   logger.debug("Worker started.")
   
@@ -53,9 +54,7 @@ def worker():
       process_video(body, pe_model, asr_model)
     except Exception as e:
       logger.error(f"Error processing video: {e}")
-    finally:
-      video_queue.task_done()
-      
+  
 
 def callback(ch, method, properties, body):
   """

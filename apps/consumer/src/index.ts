@@ -16,7 +16,7 @@ logger.debug("RabbitMQ connection established");
 
 const eventSubscriber = queue.createConsumer(
     {
-        queue: TOPICS.EVENTS,
+        queue: TOPICS.KEYPOINTS,
         queueOptions: { durable: true },
         exchanges: [{ exchange: EXCHANGES.STORAGE, type: "direct" }],
     },
