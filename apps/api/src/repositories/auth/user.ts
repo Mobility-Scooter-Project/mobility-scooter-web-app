@@ -1,4 +1,4 @@
-import { identities, users } from "@shared/db/schema/auth";
+import { identities, users } from "@src/db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";

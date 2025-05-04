@@ -1,4 +1,4 @@
-import { apiKeys } from "@shared/db/schema/auth";
+import { apiKeys } from "@src/db/schema/auth";
 import type { DB } from "@src/middleware/db";
 import { sql, eq } from "drizzle-orm";
 

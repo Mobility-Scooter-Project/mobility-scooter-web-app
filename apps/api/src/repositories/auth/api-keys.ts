@@ -1,5 +1,5 @@
 import { HTTP_CODES } from "@src/config/http-codes";
-import { apiKeys } from "@shared/db/schema/auth";
+import { apiKeys } from "@src/db/schema/auth";
 import { HTTPError } from "@src/lib/errors";
 import { postgresDB } from "@src/middleware/db";
 import { eq, sql } from "drizzle-orm";

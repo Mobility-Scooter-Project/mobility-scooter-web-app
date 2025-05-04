@@ -10,7 +10,7 @@ import { prometheus } from '@hono/prometheus'
 import { HTTPError } from "./lib/errors";
 import { queue } from "./integrations/queue";
 import { Storage } from "./integrations/storage";
-import logger from "@shared/utils/logger"
+import logger from "./lib/logger"
 import { KV } from "./integrations/kv";
 
 const startTime = Date.now();

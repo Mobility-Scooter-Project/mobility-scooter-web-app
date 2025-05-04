@@ -1,4 +1,4 @@
-import { fileMetadata, tasks, events, keyPoints } from "@shared/db/schema/storage";
+import { fileMetadata, tasks, events, keyPoints } from "@src/db/schema/storage";
 import { postgresDB, type DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { eq } from "drizzle-orm";

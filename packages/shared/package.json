@@ -4,13 +4,6 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "db:migrate": "sleep 1 && drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:drop": "drizzle-kit drop",
-    "db:seed": "tsx scripts/seed.ts",
-    "db:up": "docker compose up db",
-    "populate-api-key": "tsx scripts/populate-api-key.ts",
-    "compose:up": "docker compose up"
   },
   "license": "ISC",
   "dependencies": {

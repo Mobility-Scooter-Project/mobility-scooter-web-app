@@ -1,6 +1,6 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
 import { FILE_TYPES } from "@src/config/file-types";
-import { TOPICS } from "../../../../packages/shared/src/config/queue";
+import { TOPICS } from "@src/config/queue";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
@@ -9,7 +9,7 @@ import crypto from "node:crypto";
 import { Stream } from "nodemailer/lib/xoauth2";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
-import logger from "@shared/utils/logger";
+import logger from "../lib/logger";
 import { WaiterState } from "@smithy/util-waiter"
 
 /**
