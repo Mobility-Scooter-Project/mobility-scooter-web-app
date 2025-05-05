@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Video processing worker for the video processing service",
     "scripts": {
-        "dev": "nodemon --exec 'celery -A main worker -l INFO' --ext py --watch ./"
+        "dev": "nodemon --exec 'poetry run python src/main.py' --ext py --watch ./"
     },
     "devDependencies": {
         "nodemon": "^3.1.9"

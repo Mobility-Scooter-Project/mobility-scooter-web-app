@@ -8,6 +8,7 @@ import cupy as cp
 import numpy as np
 from lib.audio_detection import format_time
 import torch
+import ray
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
@@ -50,6 +51,7 @@ def calculate_angle(p1, p2):
   except Exception as e:
     print(f"Calculating Angle Error: {e}")
 
+@ray.remote(num_gpus=0.25)
 def pose_estimation(model, video_url, filename, video_id):
   """
   Locates and stores the upper body key points using a pose estimation model
@@ -85,73 +87,73 @@ def pose_estimation(model, video_url, filename, video_id):
       keypoints = result.keypoints.xy
       boxes = result.boxes.xyxy
 
-    x1, y1, x2, y2 = boxes[0]
-    x_mid = (x1 + x2)/2
-    y_mid = (y1 + y2)/2
-    
-    while cap.isOpened():
-      points = {}
-      box_i = 0
-
-      frame_seconds = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
-      timestamp = format_time(timedelta(seconds=frame_seconds))
-
-      for i, (x1, y1, x2, y2) in enumerate(boxes):
-        if x1 < x_mid < x2 and y1 < y_mid < y2:
-          box_i = i
-          break
-
-      kp = keypoints[box_i]
-
-      for index in upper_body_keypoints:
-        if index < len(kp):
-          x, y = int(kp[index, 0]), int(kp[index, 1])
-          points[index] = (x, y)
-
-      # Calculate midpoints
-      if 5 in points and 6 in points and 11 in points and 12 in points:
-        midpoint_shoulder = (points[5][0] + points[6][0]) // 2, (points[5][1] + points[6][1]) // 2
-        midpoint_hip = (points[11][0] + points[12][0]) // 2, (points[11][1] + points[12][1]) // 2
-
-        angle = calculate_angle(midpoint_shoulder, midpoint_hip)
-
-        """
-        client.safe_publish(
-          exchange='storage',
-          routing_key='keypoints',
-          body=json.dumps({
-            "videoId": video_id,
-            "timestamp": timestamp,
-            "angle": angle,
-            "keypoints": {
-              "leftShoulder": points[5],
-              "rightShoulder": points[6],
-              "leftHip": points[11],
-              "rightHip": points[12],
-              "midpointShoulder": midpoint_shoulder,
-              "midpointHip": midpoint_hip,
-            },
-          }),
-          properties=pika.BasicProperties(
-            content_type='application/json',
-            delivery_mode=2,  # make message persistent
-          )
-        )
-        """
-        
-      print(f"\rExtracting keypoints and calculating angle for {filename}... {timestamp} complete", end="")
-
-      # Perform operations for the frame
-      ret, frame = cap.read()
-      if not ret:
-        break 
-
-      results = model(frame, verbose=False)
-      result = results[0]
+      x1, y1, x2, y2 = boxes[0]
+      x_mid = (x1 + x2)/2
+      y_mid = (y1 + y2)/2
       
-      # Get keypoints
-      if result.keypoints is not None and result.boxes is not None: 
-        keypoints = result.keypoints.xy
-        boxes = result.boxes.xyxy
+      while cap.isOpened():
+        points = {}
+        box_i = 0
+
+        frame_seconds = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+        timestamp = format_time(timedelta(seconds=frame_seconds))
+
+        for i, (x1, y1, x2, y2) in enumerate(boxes):
+          if x1 < x_mid < x2 and y1 < y_mid < y2:
+            box_i = i
+            break
+
+        kp = keypoints[box_i]
+
+        for index in upper_body_keypoints:
+          if index < len(kp):
+            x, y = int(kp[index, 0]), int(kp[index, 1])
+            points[index] = (x, y)
+
+        # Calculate midpoints
+        if 5 in points and 6 in points and 11 in points and 12 in points:
+          midpoint_shoulder = (points[5][0] + points[6][0]) // 2, (points[5][1] + points[6][1]) // 2
+          midpoint_hip = (points[11][0] + points[12][0]) // 2, (points[11][1] + points[12][1]) // 2
+
+          angle = calculate_angle(midpoint_shoulder, midpoint_hip)
+
+          """
+          client.safe_publish(
+            exchange='storage',
+            routing_key='keypoints',
+            body=json.dumps({
+              "videoId": video_id,
+              "timestamp": timestamp,
+              "angle": angle,
+              "keypoints": {
+                "leftShoulder": points[5],
+                "rightShoulder": points[6],
+                "leftHip": points[11],
+                "rightHip": points[12],
+                "midpointShoulder": midpoint_shoulder,
+                "midpointHip": midpoint_hip,
+              },
+            }),
+            properties=pika.BasicProperties(
+              content_type='application/json',
+              delivery_mode=2,  # make message persistent
+            )
+          )
+          """
+          
+        print(f"\rExtracting keypoints and calculating angle for {filename}... {timestamp} complete", end="")
+
+        # Perform operations for the frame
+        ret, frame = cap.read()
+        if not ret:
+          break 
+
+        results = model(frame, verbose=False)
+        result = results[0]
+        
+        # Get keypoints
+        if result.keypoints is not None and result.boxes is not None: 
+          keypoints = result.keypoints.xy
+          boxes = result.boxes.xyxy
 
     cap.release()

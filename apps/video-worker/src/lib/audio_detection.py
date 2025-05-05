@@ -4,6 +4,7 @@ import webvtt
 import requests
 import time
 import re
+import ray
 from dotenv import load_dotenv
 from datetime import timedelta
 from rapidfuzz import fuzz
@@ -198,6 +199,7 @@ def get_tasks_times(transcript_path, filename, video_id):
       },
     )
 
+@ray.remote(num_gpus=0.25)
 def audio_detection(model, video_url, transcript_url, filename, video_id):
   """
   Calls functions to generate a transcript and determine if the video has any tasks.

@@ -1,6 +1,8 @@
-import { Kafka, Producer } from "kafkajs";
+import { Kafka, logLevel, Producer } from "kafkajs";
 import { HTTPError } from "@src/lib/errors";
 import { BROKER } from "@src/config/constants";
+// @ts-ignore
+import * as PinoLogCreator from "@mia-platform/kafkajs-pino-logger"
 
 
 /**
@@ -24,7 +26,10 @@ export class Queue {
             try {
                 this.instance = new Kafka({
                     clientId: 'api',
-                    brokers: [BROKER]
+                    brokers: [BROKER],
+                    retry: {
+                        initialRetryTime: 1000
+                    }
                 });
                 this.producer = this.instance.producer();
                 await this.producer.connect();
