@@ -18,12 +18,10 @@ services:
       - kv:/data
     restart: always
   queue:
-    image: "rabbitmq:3"
-    ports:
-      - 5672:5672
-      - 15672:15672
+    image: "apache/kafka:latest"
+    network_mode: "host"
     volumes:
-      - queue:/var/lib/rabbitmq
+      - queue:/var/lib/kafka
     restart: always
   vault:
     image: hashicorp/vault:latest
@@ -61,12 +59,6 @@ services:
     environment:
       MINIO_ROOT_USER: "minioadmin"
       MINIO_ROOT_PASSWORD: "minioadmin"
-      # Update AMQP URL to use service name 'queue' instead of 'localhost'
-      MINIO_NOTIFY_AMQP_ENABLE_put_video: "on"
-      MINIO_NOTIFY_AMQP_URL_put_video: "amqp://guest:guest@localhost:5672/"
-      MINIO_NOTIFY_AMQP_EXCHANGE_put_video: "storage"
-      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_put_video: "direct"
-      MINIO_NOTIFY_AMQP_ROUTING_KEY_put_video: "videos.put"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s

@@ -6,7 +6,6 @@ import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
 import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
-import { Stream } from "nodemailer/lib/xoauth2";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
 import logger from "../lib/logger";
@@ -112,15 +111,19 @@ const putObjectStream = async (
       )
     }
 
-    await queue.publish(
-      TOPICS.VIDEOS,
+    await queue.producer.send(
       {
-        data: {
-          id: videoMetadata.id,
-          url: videoData.url,
-          filename: filePath,
-          transcriptPutUrl,
-        }
+        topic: TOPICS.VIDEOS,
+        messages:
+          [{
+            key: videoMetadata.id,
+            value: JSON.stringify({
+              id: videoMetadata.id,
+              url: videoData.url,
+              filename: filePath,
+              transcriptPutUrl,
+            })
+          }]
       })
 
     logger.debug(
