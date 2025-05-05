@@ -6,22 +6,41 @@ from lib.pose_estimation import pose_estimation
 from ultralytics import YOLO
 import whisper
 import torch
+import time
+from datetime import timedelta
+from utils.logger import logger
 
 @ray.remote(num_gpus = 0.5)
 class KafkaActor:
     def __init__(self, brokers, topic, group_id="ray-group"):
-        self.consumer = KafkaConsumer(
-            bootstrap_servers=brokers,
-            group_id=group_id,
-            auto_offset_reset="earliest",
-            client_id="video_worker",
-            reconnect_backoff_max_ms=10000 # 10 seconds
-        )
-        
-        self.consumer.subscribe([topic])
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.pe = YOLO("yolo11n.pt").to(device)
         self.whisper = whisper.load_model("small.en").to(device)
+        
+        retry_count = 0
+        connected = False
+        while retry_count < 5 and not connected:
+            try:
+                self.consumer = KafkaConsumer(
+                    bootstrap_servers=brokers,
+                    group_id=group_id,
+                    auto_offset_reset="earliest",
+                    client_id="video_worker",
+                )
+                
+            except:
+                delay = 2 + retry_count
+                logger.debug(f"Failed to connect to broker, retrying in {delay} seconds")
+                retry_count += 2
+                time.sleep(delay)
+            else:
+                connected = True
+                self.consumer.subscribe([topic])
+                logger.info(f"Successfully connected to broker after {retry_count + 1} attempts")
+                
+        if not connected:
+            error = f"Failed to connect to broker after {retry_count} attempts."
+            raise Exception(error)
         
     def consumer(self):
         for msg in self.consumer:

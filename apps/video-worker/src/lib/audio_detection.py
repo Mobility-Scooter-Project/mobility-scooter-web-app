@@ -8,8 +8,8 @@ import ray
 from dotenv import load_dotenv
 from datetime import timedelta
 from rapidfuzz import fuzz
-from utils.logger import logger
 from config.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
+from utils.logger import logger
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
