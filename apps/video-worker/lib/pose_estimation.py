@@ -8,10 +8,6 @@ import cupy as cp
 import numpy as np
 from lib.audio_detection import format_time
 import torch
-import pika
-import json
-from lib.queue import client
-from utils.logger import logger
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
@@ -119,6 +115,7 @@ def pose_estimation(model, video_url, filename, video_id):
 
         angle = calculate_angle(midpoint_shoulder, midpoint_hip)
 
+        """
         client.safe_publish(
           exchange='storage',
           routing_key='keypoints',
@@ -140,6 +137,7 @@ def pose_estimation(model, video_url, filename, video_id):
             delivery_mode=2,  # make message persistent
           )
         )
+        """
         
       print(f"\rExtracting keypoints and calculating angle for {filename}... {timestamp} complete", end="")
 

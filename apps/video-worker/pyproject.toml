@@ -16,6 +16,7 @@ dependencies = [
     "cupy-cuda12x (>=13.4.1,<14.0.0)",
     "ultralytics (>=8.3.116,<9.0.0)",
     "pypino (>=0.1.0,<0.2.0)",
+    "celery[redis] (>=5.5.2,<6.0.0)",
 ]
 
 [tool.poetry]
