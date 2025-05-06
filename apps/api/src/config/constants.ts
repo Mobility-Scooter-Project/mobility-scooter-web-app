@@ -21,5 +21,5 @@ export const SMTP_HOST = process.env.SMTP_HOST || "missing SMTP_HOST";
 export const VAULT_ADDR = process.env.VAULT_ADDR || "missing VAULT_ADDR";
 export const VAULT_TOKEN = process.env.VAULT_TOKEN || "missing VAULT_TOKEN";
 
-export const BROKER = process.env.BROKER || "missing BROKER"
+export const BROKER_URL = process.env.BROKER_URL || "missing BROKER_URL"
 export const ENVIRONMENT = process.env.ENVIRONMENT || "development";

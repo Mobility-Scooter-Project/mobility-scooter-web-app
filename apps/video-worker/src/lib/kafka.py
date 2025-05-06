@@ -29,17 +29,17 @@ class KafkaActor:
                 )
                 
             except:
-                delay = 2 + retry_count
+                delay = 3 + retry_count
                 logger.debug(f"Failed to connect to broker, retrying in {delay} seconds")
-                retry_count += 2
+                retry_count += 1
                 time.sleep(delay)
             else:
                 connected = True
                 self.consumer.subscribe([topic])
-                logger.info(f"Successfully connected to broker after {retry_count + 1} attempts")
+                logger.info(f"Successfully connected to broker after {retry_count + 1} attempt(s)")
                 
         if not connected:
-            error = f"Failed to connect to broker after {retry_count} attempts."
+            error = f"Failed to connect to broker after {retry_count} attempt(s)"
             raise Exception(error)
         
     def consumer(self):

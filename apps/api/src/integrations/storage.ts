@@ -85,22 +85,17 @@ export class Storage {
    * @param bucketName - The name of the bucket to check
    */
   public async bucketExists(bucketName: string) {
-    let bucketExists = false;
-
     try {
       const command = new HeadBucketCommand({
         Bucket: bucketName,
       })
 
-      const res = await Storage.instance.send(command);
-      if (res.$metadata.httpStatusCode === 200) {
-        bucketExists = true;
-      }
+      await Storage.instance.send(command);
+      return true
     } catch (error) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, error, "Failed to check bucket existence");
+      logger.debug(error);
+      return false;
     }
-
-    return bucketExists;
   }
 
   public async makeBucket(bucketName: string) {

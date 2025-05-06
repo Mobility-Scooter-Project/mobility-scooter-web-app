@@ -1,6 +1,6 @@
 import { Kafka, logLevel, Producer } from "kafkajs";
 import { HTTPError } from "@src/lib/errors";
-import { BROKER } from "@src/config/constants";
+import { BROKER_URL } from "@src/config/constants";
 // @ts-ignore
 import * as PinoLogCreator from "@mia-platform/kafkajs-pino-logger"
 
@@ -26,9 +26,9 @@ export class Queue {
             try {
                 this.instance = new Kafka({
                     clientId: 'api',
-                    brokers: [BROKER],
+                    brokers: [BROKER_URL],
                     retry: {
-                        initialRetryTime: 1000
+                        initialRetryTime: 5000
                     }
                 });
                 this.producer = this.instance.producer();

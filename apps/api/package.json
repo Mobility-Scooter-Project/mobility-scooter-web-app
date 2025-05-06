@@ -14,7 +14,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:up": "docker compose up db",
     "populate-api-key": "tsx scripts/populate-api-key.ts",
-    "compose:up": "docker compose up --remove-orphans"
+    "compose:up": "docker compose --compatibility up --remove-orphans "
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",
