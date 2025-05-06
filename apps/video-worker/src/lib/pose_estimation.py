@@ -3,7 +3,7 @@ import cv2
 import requests
 import tempfile
 from dotenv import load_dotenv
-from datetime import timedelta
+from datetime import timedelta, datetime
 import cupy as cp
 import numpy as np
 from lib.audio_detection import format_time
@@ -12,6 +12,7 @@ import ray
 from ultralytics import YOLO
 from lib.format_time import format_time
 from ray.experimental.tqdm_ray import tqdm
+from utils.logger import logger
 
 load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
@@ -24,8 +25,7 @@ class PoseEstimator:
     Initializes the PoseEstimator with a given YOLO pose estimation model.
 
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    self.model = YOLO("yolo11n-pose.pt").to(device)
+    self.model = None
     self.upper_body_keypoints = [5, 6, 11, 12]  # Left Shoulder, Right Shoulder, Left Hip, Right Hip
 
   @staticmethod
@@ -72,12 +72,18 @@ class PoseEstimator:
       video_id (str): The ID of the video.
     """
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+      start = datetime.now()
       temp_video.write(requests.get(video_url).content)
       temp_video.flush()
+      end = datetime.now()
+      logger.debug(f"Downloaded file in {(end - start).total_seconds()} seconds")
       
-
+      if not self.model:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = YOLO("yolo11n-pose.pt").to(device)
+      
       cap = cv2.VideoCapture(temp_video.name)
-      progress_bar = iter(tqdm(range(cap.CAP_PROP_FRAME_COUNT)))
+      progress_bar = iter(tqdm(range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))))
       if not cap.isOpened():
         print(f"Error: Could not open video file {video_url}")
         return
@@ -159,9 +165,11 @@ class PoseEstimator:
 
           results = self.model(frame, verbose=False)
           result = results[0]
-
+          
           if result.keypoints is not None and result.boxes is not None:
             keypoints = result.keypoints.xy
             boxes = result.boxes.xyxy
 
       cap.release()
+      end = datetime.now()
+      logger.info(f"Pose estimation complete for {filename} in {end-start}")

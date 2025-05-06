@@ -10,8 +10,10 @@ from datetime import timedelta
 from rapidfuzz import fuzz
 from config.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
 from utils.logger import logger
-from faster_whisper import WhisperModel
+from faster_whisper import WhisperModel, BatchedInferencePipeline
+from ray.experimental.tqdm_ray import tqdm
 import torch
+from datetime import datetime
 from lib.format_time import format_time
 
 @ray.remote
@@ -24,18 +26,10 @@ class AudioDetection:
     self.TASK_LIST = TASK_LIST
     self.KEY_WORDS = KEY_WORDS
     self.FILLER_PHRASES = FILLER_PHRASES
-    model_size = os.getenv('WHISPER_MODEL_SIZE')
-    device = "cpu"
-    compute_type = "int8"
-    
-    if torch.cuda.is_available():
-      device = "cuda"
-      compute_type = "float16"
-      
-    self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    self.model = None
 
   @staticmethod
-  def format_vtt(self, segments, mode):
+  def format_vtt(segments, mode):
     """
     Converts the transcript into WebVTT format with time-synchronized text tracks.
     """
@@ -47,32 +41,45 @@ class AudioDetection:
           end = format_time(timedelta(seconds=word["end"]))
           vtt_output += f"{start} --> {end}\n{word['word']}\n\n"
     elif mode == "segms":
-      for segment in segments:
-        start = format_time(timedelta(seconds=segment["start"]))
-        end = format_time(timedelta(seconds=segment["end"]))
-        text = segment["text"].strip()
+      for segment in tqdm(segments):
+        start = format_time(timedelta(seconds=segment.start))
+        end = format_time(timedelta(seconds=segment.end))
+        text = segment.text.strip()
         vtt_output += f"{start} --> {end}\n{text}\n\n"
     return vtt_output
 
-  def generate_transcript(self, video_url, model, filename):
+  def generate_transcript(self, video_url, filename):
     """
     Generates a transcript of the video.
     """
     try:
-      time_start = time.time()
       with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+        start = datetime.now()
         temp_video.write(requests.get(video_url).content)
         temp_video.flush()
         self.logger.debug(f"Transcribing {filename}...")
+        
+        if not self.model:
+          model_size = os.getenv('WHISPER_MODEL_SIZE')
+          device = "cpu"
+          compute_type = "int8"
+          
+          if torch.cuda.is_available():
+            device = "cuda"
+            compute_type = "float16"
+      
+          model = WhisperModel(model_size, device=device, compute_type=compute_type)
+          self.model = BatchedInferencePipeline(model=model)
+        
+        segments, info = self.model.transcribe(temp_video.name, word_timestamps=True)
+        end = datetime.now()
+        self.logger.debug(f"Transcription completed for {filename} after {end-start}")
+        vtt_content = self.format_vtt(segments, "segms")
 
-        result = model.transcribe(temp_video.name, word_timestamps=True)
-        self.logger.debug(f"Transcription completed for {filename} after {time.time() - time_start:.2f}s!")
-        vtt_content = self.format_vtt(result["segments"], "segms")
-
+        logger.debug("Saving temp transcript...")
         with tempfile.NamedTemporaryFile(delete=False, suffix=".vtt") as tmp:
           tmp.write(vtt_content.encode("utf-8"))
 
-      self.logger.info(f"Transcript generated successfully for {filename} after {time.time() - time_start:.2f}s!\n")
       return tmp
     except Exception as e:
       self.logger.error(f"Error generating transcript for {filename}: {e}")
@@ -159,12 +166,16 @@ class AudioDetection:
     """
     Calls functions to generate a transcript and determine if the video has any tasks.
     """
+    start = datetime.now()
     self.logger.info(f"Generating transcript for {filename}...")
-    transcript = self.generate_transcript(video_url, self.model, filename)
+    transcript = self.generate_transcript(video_url, filename)
 
+    logger.debug(f"Uploading transcript of f{filename}...")
     with open(transcript.name, "rb") as f:
       requests.put(transcript_url, data=f, verify=False)
 
-    print(f"Detecting tasks from {filename}'s transcript...")
+    logger.debug(f"Detecting tasks from {filename}'s transcript...")
     self.get_tasks_times(transcript.name, filename, video_id)
     os.remove(transcript.name)
+    end = datetime.now()
+    logger.info(f"Audio detection complete after {end - start}")

@@ -18,6 +18,7 @@ class KafkaActor:
                     group_id=group_id,
                     auto_offset_reset="earliest",
                     client_id="video_worker",
+                    enable_auto_commit=False
                 )
                 
             except:
@@ -46,10 +47,12 @@ class KafkaActor:
             filename = data["filename"]
             
             try:
-                pose_ref = self.pose_actor.process_video.remote(video_url, filename, id)
+                #pose_ref = self.pose_actor.process_video.remote(video_url, filename, id)
                 audio_ref = self.audio_actor.audio_detection.remote(video_url, transcript_url, filename, id)
-                result = ray.get([pose_ref, audio_ref])
-            except:
-                print(f"An error occurred while processing video")
+                ray.get(audio_ref)
+            except Exception as e:
+                logger.error(f"An error occurred while processing video: {e}")
+            else:
+                self.consumer.commit()
             
             
