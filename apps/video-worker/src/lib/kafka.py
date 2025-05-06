@@ -5,6 +5,7 @@ import time
 from utils.logger import logger
 from lib.audio_detection import AudioDetection
 from lib.pose_estimation import PoseEstimator
+from datetime import datetime
 
 @ray.remote
 class KafkaActor:
@@ -47,9 +48,12 @@ class KafkaActor:
             filename = data["filename"]
             
             try:
-                #pose_ref = self.pose_actor.process_video.remote(video_url, filename, id)
+                start = datetime.now()
+                pose_ref = self.pose_actor.process_video.remote(video_url, filename, id)
                 audio_ref = self.audio_actor.audio_detection.remote(video_url, transcript_url, filename, id)
-                ray.get(audio_ref)
+                ray.get([audio_ref, pose_ref])
+                end = datetime.now()
+                logger.info(f"Video processing complete after {end - start}")
             except Exception as e:
                 logger.error(f"An error occurred while processing video: {e}")
             else:
