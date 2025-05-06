@@ -10,10 +10,9 @@ from datetime import timedelta
 from rapidfuzz import fuzz
 from config.tasks import TASK_LIST, KEY_WORDS, FILLER_PHRASES
 from utils.logger import logger
-import whisper
+from faster_whisper import WhisperModel
 import torch
 from lib.format_time import format_time
-
 
 @ray.remote
 class AudioDetection:
@@ -25,7 +24,15 @@ class AudioDetection:
     self.TASK_LIST = TASK_LIST
     self.KEY_WORDS = KEY_WORDS
     self.FILLER_PHRASES = FILLER_PHRASES
-    self.model = whisper.load_model("small")
+    model_size = os.getenv('WHISPER_MODEL_SIZE')
+    device = "cpu"
+    compute_type = "int8"
+    
+    if torch.cuda.is_available():
+      device = "cuda"
+      compute_type = "float16"
+      
+    self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
   @staticmethod
   def format_vtt(self, segments, mode):
@@ -58,7 +65,7 @@ class AudioDetection:
         temp_video.flush()
         self.logger.debug(f"Transcribing {filename}...")
 
-        result = model.transcribe(temp_video.name, word_timestamps=True, fp16=False)
+        result = model.transcribe(temp_video.name, word_timestamps=True)
         self.logger.debug(f"Transcription completed for {filename} after {time.time() - time_start:.2f}s!")
         vtt_content = self.format_vtt(result["segments"], "segms")
 

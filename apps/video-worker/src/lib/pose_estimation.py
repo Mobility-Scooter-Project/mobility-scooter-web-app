@@ -17,7 +17,7 @@ load_dotenv()
 API_KEY = os.getenv('TESTING_API_KEY')
 USER_TOKEN = os.getenv('USER_TOKEN')
 
-@ray.remote(num_gpus=0.75)
+@ray.remote
 class PoseEstimator:
   def __init__(self):
     """

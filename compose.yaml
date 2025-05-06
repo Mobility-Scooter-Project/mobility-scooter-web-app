@@ -1,13 +1,15 @@
 services:
   cert-generator:
     image: alpine/curl
+    working_dir: /certs
     volumes:
       - certs:/certs
-    command: >
+    command: >-
       sh -c '
-        curl https://github.com/minio/certgen/releases/latest/download/certgen-linux-amd64 -o /usr/local/bin/certgen &&
+        curl -L https://github.com/minio/certgen/releases/latest/download/certgen-linux-amd64 \
+          -o /usr/local/bin/certgen &&
         chmod +x /usr/local/bin/certgen &&
-        certgen --host localhost &&
+        certgen --host "localhost,127.0.0.1,storage" &&
         chown -R 1001:0 /certs
       '
   db:

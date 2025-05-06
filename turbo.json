@@ -24,15 +24,18 @@
       "dependsOn": ["^db:migrate"]
     },
     "db:seed": {
+      "with": ["db:up"],
       "dependsOn": ["^db:seed"]
     },
     "db:studio": {
+      "with": ["db:up"],
       "dependsOn": ["^db:studio"]
     },
     "db:drop": {
       "dependsOn": ["^db:drop"]
     },
     "populate-api-key": {
+      "with": ["db:up"],
       "dependsOn": ["^populate-api-key"]
     },
     "test": {

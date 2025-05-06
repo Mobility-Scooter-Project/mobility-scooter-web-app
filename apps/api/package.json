@@ -8,12 +8,12 @@
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --packages=external",
     "lint": "eslint --fix .",
     "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'",
-    "db:migrate": "sleep 1 && drizzle-kit migrate",
+    "db:migrate": "sleep 2 && drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
-    "db:seed": "tsx scripts/seed.ts",
+    "db:seed": "sleep 2 && tsx scripts/seed.ts",
     "db:up": "docker compose up db",
-    "populate-api-key": "tsx scripts/populate-api-key.ts",
+    "populate-api-key": "sleep 2 && tsx scripts/populate-api-key.ts",
     "compose:up": "docker compose --compatibility up --remove-orphans"
   },
   "dependencies": {
