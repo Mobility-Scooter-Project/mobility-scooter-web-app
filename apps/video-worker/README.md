@@ -18,7 +18,7 @@ cd /src && fastapi dev main.py
 Adding Ultralytics, which is used for loading the YOLO model, to Poetry automatically installs torch and torchvision that are not compatible with GPU computation. 
 
 Uninstall them: pip3 uninstall torch torchvision
-Then install: pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu128.
+Then install: pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
 
 # Whisper defaults to CPU instead of utilizing Nvidia GPU on Windows 11

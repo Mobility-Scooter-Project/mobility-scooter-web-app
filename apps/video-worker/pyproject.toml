@@ -7,6 +7,7 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.9,<4.0.0"
+
 dependencies = [
     "python-dotenv (>=1.0.1,<2.0.0)",
     "openai-whisper (>=20240930,<20240931)",
@@ -17,13 +18,22 @@ dependencies = [
     "pypino (>=0.1.0,<0.2.0)",
     "ray (>=2.45.0,<3.0.0)",
     "kafka-python (>=2.2.4,<3.0.0)",
-    "torch (>=2.7.0,<3.0.0)",
-    "xformers (>=0.0.30,<0.0.31)",
     "sqlalchemy (>=2.0.40,<3.0.0)",
+    "torch (>=2.7.0,<3.0.0)",
+    "torchvision (>=0.22.0,<0.23.0)",
 ]
 
 [tool.poetry]
 package-mode = false
+
+[[tool.poetry.source]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+priority = "explicit"
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch-cu128"}
+torchvision = {source = "pytorch-cu128"}
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
