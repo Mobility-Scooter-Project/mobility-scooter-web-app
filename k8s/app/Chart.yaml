@@ -9,3 +9,5 @@ dependencies:
     version: 0.1.0
   - name: web
     version: 0.1.0
+  - name: valkey
+    repository: "oci://registry-1.docker.io/bitnamicharts/valkey"
