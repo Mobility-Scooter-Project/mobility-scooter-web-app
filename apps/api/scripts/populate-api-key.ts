@@ -32,6 +32,8 @@ try {
   });
 
   // write to .env file
+  fs.appendFileSync(".env", `TESTING_API_KEY=${key}\n`);
+  fs.appendFileSync("../video-worker/.env", `\nAPI_KEY=${key}\n`);
   fs.appendFileSync(".env", `\nTESTING_API_KEY=${key}`);
   fs.appendFileSync("../web/.env", `\nAPI_KEY=${key}`);
 

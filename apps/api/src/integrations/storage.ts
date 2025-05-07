@@ -1,5 +1,4 @@
 import {
-  ENVIRONMENT,
   STORAGE_ACCESS_KEY,
   STORAGE_PORT,
   STORAGE_SECRET,
@@ -8,8 +7,12 @@ import {
 } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import { Client } from "minio";
 import crypto from "node:crypto";
+import { AbortMultipartUploadCommand, CompletedPart, CompleteMultipartUploadCommand, CreateBucketCommand, CreateMultipartUploadCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client, UploadPartCommand, waitUntilObjectExists, } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import logger from "../lib/logger";
+import type { WaiterResult } from "@smithy/util-waiter"
+import { cryptoUtils } from "@src/lib/crypto";
 
 /**
  * A singleton class that manages interactions with a storage service (MinIO).
@@ -38,27 +41,43 @@ import crypto from "node:crypto";
  * - HTTP 401 for authentication/authorization failures
  */
 export class Storage {
-  public static instance: Client;
+  public static instance: S3Client;
+  private static connectionPromise: Promise<boolean>;
+
   public constructor() {
     if (!Storage.instance) {
-      try {
-        Storage.instance = new Client({
-          endPoint: STORAGE_URL,
-          port: Number(STORAGE_PORT),
-          useSSL: true,
-          accessKey: STORAGE_ACCESS_KEY,
-          secretKey: STORAGE_SECRET_KEY,
-        });
-
-        if (ENVIRONMENT !== "production") {
-          Storage.instance.setRequestOptions({
-            rejectUnauthorized: false,
+      Storage.connectionPromise = new Promise((resolve) => {
+        try {
+          Storage.instance = new S3Client({
+            endpoint: {
+              protocol: "https:",
+              hostname: STORAGE_URL,
+              port: Number(STORAGE_PORT),
+              path: "/",
+            },
+            region: "us-east-1",
+            credentials: {
+              accessKeyId: STORAGE_ACCESS_KEY,
+              secretAccessKey: STORAGE_SECRET_KEY,
+            },
+            forcePathStyle: true,
           });
+
+          resolve(true);
+        } catch (error) {
+          resolve(false);
         }
-      } catch (error) {
-        console.error("Failed to connect to MinIO:", error);
-      }
+      });
     }
+  }
+
+  /**
+   * Retrieves the current connection status of the Storage module.
+   *
+   * @returns {boolean} `true` if the Storage is connected; otherwise, `false`.
+   */
+  public static async getConnectionStatus() {
+    return Storage.connectionPromise;
   }
 
   /**
@@ -66,15 +85,38 @@ export class Storage {
    * @param bucketName - The name of the bucket to check
    */
   public async bucketExists(bucketName: string) {
-    let bucketExists = false;
     try {
-      bucketExists = await Storage.instance.bucketExists(bucketName);
-    } catch (error) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, error, "Failed to check bucket existence");
-    }
+      const command = new HeadBucketCommand({
+        Bucket: bucketName,
+      })
 
-    if (!bucketExists) {
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Bucket not found");
+      await Storage.instance.send(command);
+      return true
+    } catch (error) {
+      logger.debug(error);
+      return false;
+    }
+  }
+
+  public async makeBucket(bucketName: string) {
+    await this.bucketExists(bucketName);
+    try {
+      const createBucketCommand = new CreateBucketCommand({
+        Bucket: bucketName,
+      });
+      const res = await Storage.instance.send(createBucketCommand);
+      if (res.$metadata.httpStatusCode !== 200) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to create bucket",
+        );
+      }
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to create bucket",
+      );
     }
   }
 
@@ -86,9 +128,9 @@ export class Storage {
    */
   public async getOrCreateBucket(bucketName: string) {
     try {
-      const bucketExists = await Storage.instance.bucketExists(bucketName);
+      const bucketExists = await this.bucketExists(bucketName);
       if (!bucketExists) {
-        await Storage.instance.makeBucket(bucketName, "us-east-1");
+        await this.makeBucket(bucketName);
       }
     } catch (error) {
       throw new HTTPError(
@@ -111,24 +153,20 @@ export class Storage {
     objectName: string,
     encryptionKey: string,
   ) {
-    const encryptionKeyMd5 = crypto.hash(
-      "md5",
-      Buffer.from(encryptionKey, "hex"),
-    );
-    const base64EncryptionKey = Buffer.from(encryptionKey, "hex").toString(
-      "base64",
-    );
-    const base64EncryptionKeyMd5 = Buffer.from(
-      encryptionKeyMd5,
-      "hex",
-    ).toString("base64");
+
+    const { encryptionKeyBase64, encryptionKeyMd5Base64 } = cryptoUtils.getEncryptionHeaders(encryptionKey);
 
     try {
-      return await Storage.instance.getObject(bucketName, objectName, {
+      const getObjectCommand = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: objectName,
         SSECustomerAlgorithm: "AES256",
-        SSECustomerKey: base64EncryptionKey,
-        SSECustomerKeyMD5: base64EncryptionKeyMd5,
+        SSECustomerKey: encryptionKeyBase64,
+        SSECustomerKeyMD5: encryptionKeyMd5Base64,
       });
+      const res = await Storage.instance.send(getObjectCommand);
+
+      return res.Body?.transformToWebStream();
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -151,22 +189,37 @@ export class Storage {
    * @throws {HTTPException} When URL generation fails with HTTP 500 error
    */
   public async presignedUrl(
-    method: string,
+    method: "GET" | "PUT",
     bucketName: string,
     objectName: string,
     expires: number,
-    reqParams?: Parameters<Client["presignedUrl"]>[4],
+    reqParams?: {
+      SSECustomerAlgorithm?: string;
+      SSECustomerKey?: string;
+      SSECustomerKeyMD5?: string;
+    },
     requestDate?: Date,
   ) {
     try {
-      return await Storage.instance.presignedUrl(
-        method,
-        bucketName,
-        objectName,
-        expires,
-        reqParams,
-        requestDate,
-      );
+      let command;
+      let baseRequest = {
+        Bucket: bucketName,
+        Key: objectName,
+        SSECustomerAlgorithm: reqParams?.SSECustomerAlgorithm,
+        SSECustomerKey: reqParams?.SSECustomerKey,
+        SSECustomerKeyMD5: reqParams?.SSECustomerKeyMD5,
+      };
+
+      switch (method) {
+        case "GET":
+          command = new GetObjectCommand(baseRequest);
+          break;
+        case "PUT":
+          command = new PutObjectCommand(baseRequest);
+          break;
+      }
+
+      return await getSignedUrl(Storage.instance, command, { expiresIn: expires, signingDate: requestDate });
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -183,39 +236,170 @@ export class Storage {
    * @param encryptionKey - The encryption key in hexadecimal format for server-side encryption
    * @throws {HTTPError} When the upload fails with HTTP 500 Internal Server Error
    */
-  public async uploadToPresignedUrl(
-    url: string,
-    object: Blob,
+  public async multipartUpload(
+    objectStream: ReadableStream<any>,
+    bucketName: string,
+    objectName: string,
     encryptionKey: string,
   ) {
-    try {
-      const encryptionKeyMd5 = crypto.hash(
-        "md5",
-        Buffer.from(encryptionKey, "hex"),
-      );
-      const encryptionKeyBase64 = Buffer.from(encryptionKey, "hex").toString(
-        "base64",
-      );
-      const encryptionKeyMd5Base64 = Buffer.from(
-        encryptionKeyMd5,
-        "hex",
-      ).toString("base64");
 
-      await fetch(url, {
-        method: "PUT",
-        body: object,
-        headers: {
-          "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-          "X-Amz-Server-Side-Encryption-Customer-Key": encryptionKeyBase64,
-          "X-Amz-Server-Side-Encryption-Customer-Key-MD5":
-            encryptionKeyMd5Base64,
-        },
-      });
+    const { encryptionKeyBase64, encryptionKeyMd5Base64 } = cryptoUtils.getEncryptionHeaders(encryptionKey);
+
+    const commonHeaders = {
+      Bucket: bucketName,
+      Key: objectName,
+      SSECustomerAlgorithm: "AES256",
+      SSECustomerKey: encryptionKeyBase64,
+      SSECustomerKeyMD5: encryptionKeyMd5Base64,
+    }
+
+    let UploadId = "";
+    let PartNumber = 1;
+    const Parts: CompletedPart[] = [];
+    const partSize = 5 * 1024 * 1024; // 5MB
+    let uploadBuffer = new Uint8Array(0);
+
+    const createMultipartUploadCommand = new CreateMultipartUploadCommand({
+      ...commonHeaders,
+    });
+
+    const writableStream = new WritableStream({
+      start: async (controller) => {
+        try {
+          const res = await Storage.instance.send(createMultipartUploadCommand);
+          UploadId = res.UploadId!;
+          logger.info(`Multipart upload initiated with ID: ${UploadId}`);
+        } catch (error) {
+          controller.error(`Failed to create multipart upload: ${error}`);
+        }
+      },
+      write: async (chunk: Uint8Array, controller) => {
+        if (chunk.length === 0) {
+          return;
+        }
+
+        const newBuffer = new Uint8Array(uploadBuffer.length + chunk.length);
+        newBuffer.set(uploadBuffer, 0);
+        newBuffer.set(chunk, uploadBuffer.length);
+        uploadBuffer = newBuffer;
+
+        try {
+          while (uploadBuffer.length >= partSize) {
+            const uploadPartCommand = new UploadPartCommand({
+              ...commonHeaders,
+              PartNumber: PartNumber,
+              UploadId: UploadId,
+              Body: uploadBuffer.slice(0, partSize),
+            });
+
+            const res = await Storage.instance.send(uploadPartCommand);
+
+            Parts.push({
+              ...res,
+              PartNumber: PartNumber,
+            });
+
+            logger.debug(`Uploaded part ${PartNumber} successfully.`);
+            PartNumber++;
+            uploadBuffer = uploadBuffer.slice(partSize);
+          }
+        } catch (error) {
+          controller.error(`Failed to upload part: ${error}`);
+        }
+      },
+      close: async () => {
+        logger.debug(`All parts uploaded. Uploading last part...`);
+        if (uploadBuffer.length > 0) {
+          try {
+            const uploadPartCommand = new UploadPartCommand({
+              ...commonHeaders,
+              PartNumber,
+              UploadId: UploadId,
+              Body: uploadBuffer,
+            });
+
+            const res = await Storage.instance.send(uploadPartCommand);
+
+            Parts.push({
+              ...res,
+              PartNumber: PartNumber,
+            });
+          } catch (error) {
+            throw new HTTPError(
+              HTTP_CODES.INTERNAL_SERVER_ERROR,
+              error,
+              "Failed to upload last part",
+            );
+          }
+        }
+
+        logger.debug(`All parts uploaded successfully. Completing multipart upload...`);
+
+        try {
+          const completeMultipartUploadCommand = new CompleteMultipartUploadCommand({
+            ...commonHeaders,
+            UploadId: UploadId,
+            MultipartUpload: {
+              Parts: Parts,
+            },
+          });
+          await Storage.instance.send(completeMultipartUploadCommand);
+        } catch (error) {
+          throw new HTTPError(
+            HTTP_CODES.INTERNAL_SERVER_ERROR,
+            error,
+            "Failed to complete multipart upload",
+          );
+        }
+
+        logger.info(`Multipart upload completed successfully.`);
+      },
+      abort: async () => {
+        logger.error(`Multipart upload aborted.`);
+        try {
+          const abortMultipartUploadCommand = new AbortMultipartUploadCommand({
+            ...commonHeaders,
+            UploadId: UploadId,
+          });
+          await Storage.instance.send(abortMultipartUploadCommand);
+        } catch (error) {
+          throw new HTTPError(
+            HTTP_CODES.INTERNAL_SERVER_ERROR,
+            error,
+            "Failed to abort multipart upload",
+          );
+        }
+      }
+    })
+
+    objectStream.pipeTo(writableStream);
+  }
+
+  public waitUntilObjectExists(
+    bucketName: string,
+    objectName: string,
+    encryptionKey: string,
+  ): Promise<WaiterResult> {
+    const { encryptionKeyBase64, encryptionKeyMd5Base64 } = cryptoUtils.getEncryptionHeaders(encryptionKey);
+
+    try {
+      return waitUntilObjectExists({
+        client: Storage.instance,
+        minDelay: 1,
+        maxDelay: 5,
+        maxWaitTime: 30,
+      }, {
+        Bucket: bucketName,
+        Key: objectName,
+        SSECustomerAlgorithm: "AES256",
+        SSECustomerKey: encryptionKeyBase64,
+        SSECustomerKeyMD5: encryptionKeyMd5Base64,
+      })
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         error,
-        "Failed to upload to pre-signed URL",
+        "Failed to retriever object waiter",
       );
     }
   }
@@ -225,7 +409,6 @@ export class Storage {
    * 
    * @param filePath - The path to the file in the storage bucket
    * @param bucketName - The name of the storage bucket
-   * @param userId - The ID of the user requesting access
    * @param method - The HTTP method for the presigned URL
    * @param expires - The expiration timestamp in seconds since epoch
    * @param signature - The signature to validate against
@@ -239,7 +422,6 @@ export class Storage {
   public async validatePresignedUrl(
     filePath: string,
     bucketName: string,
-    userId: string,
     method: string,
     expires: string,
     signature: string,
@@ -249,8 +431,9 @@ export class Storage {
 
     const expectedSignature = crypto
       .createHmac("sha256", STORAGE_SECRET)
-      .update(`${method}\n${expires}\n${filePath}\n${bucketName}\n${userId}`)
+      .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
       .digest("hex");
+
     if (signature !== expectedSignature) {
       throw new HTTPError(
         HTTP_CODES.UNAUTHORIZED,
@@ -267,6 +450,7 @@ export class Storage {
 
     await storage.bucketExists(bucketName);
   }
+
 }
 
 export const storage = new Storage();

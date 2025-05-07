@@ -1,5 +1,5 @@
 {
-  "name": "@mobility-scooter-web-app/web",
+  "name": "@mswa/web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@mjackson/form-data-parser": "^0.7.0",
-    "@mobility-scooter-web-app/api": "workspace:^",
+    "@mswa/api": "workspace:^",
     "@react-router/node": "^7.5.0",
     "@react-router/serve": "^7.5.0",
     "hono": "^4.7.4",

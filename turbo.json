@@ -16,6 +16,32 @@
       "persistent": true,
       "cache": false
     },
+    "db:up": {
+      "dependsOn": ["^db:up"]
+    },
+    "db:migrate": {
+      "with": ["db:up"],
+      "dependsOn": ["^db:migrate"]
+    },
+    "db:generate": {
+      "with": ["db:up"],
+      "dependsOn": ["^db:migrate"]
+    },
+    "db:seed": {
+      "with": ["db:up"],
+      "dependsOn": ["^db:seed"]
+    },
+    "db:studio": {
+      "with": ["db:up"],
+      "dependsOn": ["^db:studio"]
+    },
+    "db:drop": {
+      "dependsOn": ["^db:drop"]
+    },
+    "populate-api-key": {
+      "with": ["db:up"],
+      "dependsOn": ["^populate-api-key"]
+    },
     "test": {
       "with": ["compose:up"],
       "cache": false,

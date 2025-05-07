@@ -6,9 +6,43 @@ import auth from "@src/handlers/auth";
 import { Hono } from "hono";
 import { openAPISpecs } from "hono-openapi";
 import { PinoLogger, pinoLogger } from 'hono-pino'
-import { ENVIRONMENT } from "./config/constants";
 import { prometheus } from '@hono/prometheus'
 import { HTTPError } from "./lib/errors";
+import { queue } from "./integrations/queue";
+import { Storage } from "./integrations/storage";
+import logger from "./lib/logger"
+import { KV } from "./integrations/kv";
+
+const startTime = Date.now();
+logger.info("Starting API server...");
+
+let hasConnected = false;
+while (!hasConnected) {
+  const queueConnected = await queue.getConnectionStatus();
+  const storageConnected = await Storage.getConnectionStatus();
+  const kvConnected = await KV.getConnectionStatus();
+  hasConnected = queueConnected && storageConnected && kvConnected;
+
+  if (hasConnected) {
+    switch (true) {
+      case !queueConnected:
+        logger.debug(`Queue integration is not connected`);
+      case !storageConnected:
+        logger.debug(`Storage integration is not connected`);
+      case !kvConnected:
+        logger.debug(`KV integration is not connected`);
+        break;
+      default:
+        logger.debug(`Waiting to connect to integrations...`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  } else {
+    break;
+  }
+}
+
+logger.debug("Connected to all integrations");
 
 export type Variables = {
   db: DB;
@@ -21,22 +55,20 @@ const { printMetrics, registerMetrics } = prometheus()
 
 export const app = new Hono<{ Variables: Variables }>()
   .use(pinoLogger({
-    pino: {
-      level: ENVIRONMENT === "test" ? "silent" : "info",
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: ENVIRONMENT === "development",
-          sync: ENVIRONMENT === "test",
-        }
-      }
-    }
+    pino: logger,
   }))
   .use('*', registerMetrics)
   .get("/metrics", printMetrics)
   .get("/healthcheck", (c) => {
     return c.text("OK");
   })
+  .get(
+    "/docs",
+    apiReference({
+      theme: "elysiajs",
+      spec: { url: "/api/v1/openapi" },
+    }),
+  )
   .basePath("/api/v1")
   .route("/auth", auth)
   .route("/storage", storage);
@@ -77,15 +109,10 @@ app.get(
   }),
 );
 
-app.get(
-  "/docs",
-  apiReference({
-    theme: "elysiajs",
-    spec: { url: "/api/v1/openapi" },
-  }),
-);
-
 export type AppType = typeof app;
+
+const endTime = Date.now();
+logger.info(`API server started in ${endTime - startTime}ms`);
 
 serve(
   {
@@ -93,6 +120,8 @@ serve(
     port: 3000,
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
+    logger.info(`Server is running on http://localhost:${info.port}`);
+    logger.info(`API Docs: http://localhost:${info.port}/docs`);
+    logger.info(`OpenAPI Spec: http://localhost:${info.port}/api/v1/openapi`);
   },
 );

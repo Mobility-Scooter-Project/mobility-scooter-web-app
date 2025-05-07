@@ -1,5 +1,5 @@
 import { HTTP_CODES } from "@src/config/http-codes";
-import { apiKeyRepository } from "@src/repositories/api-keys";
+import { apiKeyRepository } from "@src/repositories/auth/api-keys";
 import { apiKeyService } from "@src/services/auth/api-key";
 import type { Context, Next } from "hono";
 import { postgresDB } from "./db";
