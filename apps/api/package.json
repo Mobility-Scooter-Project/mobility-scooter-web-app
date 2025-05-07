@@ -39,6 +39,7 @@
     "nodemailer": "^6.10.0",
     "otpauth": "^9.3.6",
     "pg": "^8.13.3",
+    "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
     "popular-english-words": "^1.0.2",
     "prom-client": "^15.1.3",
