@@ -11,6 +11,7 @@ on:
   pull_request:
     paths:
       - apps/api/**
+      - k8s/app/api/**
       - .github/workflows/build_and_push_web.yaml
 
 env:

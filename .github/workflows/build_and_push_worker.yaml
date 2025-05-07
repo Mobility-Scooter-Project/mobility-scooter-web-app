@@ -6,11 +6,12 @@ on:
       - develop
       - main
     paths:
-      - apps/worker/**
+      - apps/video-worker/**
       - .github/workflows/build_and_push_worker.yaml
   pull_request:
     paths:
-      - apps/worker/**
+      - apps/video-worker/**
+      - k8s/app/video-worker/**
       - .github/workflows/build_and_push_worker.yaml
 
 env:
