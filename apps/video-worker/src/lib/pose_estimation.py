@@ -13,10 +13,7 @@ from ultralytics import YOLO
 from lib.format_time import format_time
 from ray.experimental.tqdm_ray import tqdm
 from utils.logger import logger
-
-load_dotenv()
-API_KEY = os.getenv('TESTING_API_KEY')
-USER_TOKEN = os.getenv('USER_TOKEN')
+from lib.db import DBActor
 
 @ray.remote
 class PoseEstimator:
@@ -27,6 +24,7 @@ class PoseEstimator:
     """
     self.model = None
     self.upper_body_keypoints = [5, 6, 11, 12]  # Left Shoulder, Right Shoulder, Left Hip, Right Hip
+    self.db = DBActor.remote()
 
   @staticmethod
   def calculate_angle(p1, p2):
@@ -104,6 +102,8 @@ class PoseEstimator:
         x1, y1, x2, y2 = boxes[0]
         x_mid = (x1 + x2) / 2
         y_mid = (y1 + y2) / 2
+        
+        pending = []
 
         while cap.isOpened():
           next(progress_bar)
@@ -134,31 +134,26 @@ class PoseEstimator:
 
             angle = self.calculate_angle(midpoint_shoulder, midpoint_hip)
 
-            # Publishing to a message queue is commented out.
-            """
-            client.safe_publish(
-              exchange='storage',
-              routing_key='keypoints',
-              body=json.dumps({
-                "videoId": video_id,
-                "timestamp": timestamp,
-                "angle": angle,
-                "keypoints": {
-                  "leftShoulder": points[5],
-                  "rightShoulder": points[6],
-                  "leftHip": points[11],
-                  "rightHip": points[12],
-                  "midpointShoulder": midpoint_shoulder,
-                  "midpointHip": midpoint_hip,
-                },
-              }),
-              properties=pika.BasicProperties(
-                content_type='application/json',
-                delivery_mode=2,  # make message persistent
-              )
-            )
-            """
-
+            kps = {
+              "leftShoulder": points[5],
+              "rightShoulder": points[6],
+              "leftHip": points[11],
+              "rightHip": points[12],
+              "midpointShoulder": midpoint_shoulder,
+              "midpointHip": midpoint_hip
+            }
+            
+            pending.append(self.db.upsert_keypoints.remote(video_id, timestamp, angle, str(kps)))
+            
+            if len(pending) >= 10:
+              try:
+                ray.get(pending)
+              except Exception as e:
+                logger.error(f"Failed to batch pending keypoints: {e}")
+              else:
+                pending = []
+              
+            
           ret, frame = cap.read()
           if not ret:
             break
@@ -171,5 +166,13 @@ class PoseEstimator:
             boxes = result.boxes.xyxy
 
       cap.release()
+      
+      if len(pending) > 0:
+        try:
+          ray.get(pending)
+        except Exception as e:
+          logger.error(f"Failed to batch final keypoints: {e}")
+        
+      
       end = datetime.now()
       logger.info(f"Pose estimation complete for {filename} in {end-start}")

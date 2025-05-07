@@ -7,6 +7,8 @@ import {
   json,
   real,
   integer,
+  primaryKey,
+  serial,
 } from "drizzle-orm/pg-core";
 
 export const storage = pgSchema("storage");
@@ -54,7 +56,7 @@ export const tasks = storage.table("tasks", {
 })
 
 export const keyPoints = storage.table("keypoints", {
-  id: uuid().primaryKey().defaultRandom(),
+  id: serial('id').primaryKey(),
   videoId: uuid()
     .references(() => fileMetadata.id)
     .notNull(),

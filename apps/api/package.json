@@ -10,6 +10,7 @@
     "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'",
     "db:migrate": "sleep 2 && drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate",
     "db:drop": "drizzle-kit drop",
     "db:seed": "sleep 2 && tsx scripts/seed.ts",
     "db:up": "docker compose up db",
