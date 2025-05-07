@@ -19,4 +19,24 @@ WORKDIR /usr/src/mswa/apps/api
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
 
-FROM python:3
+FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu24.04 AS worker
+
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y \
+      python3 python3-pip python3-dev python-is-python3 curl \
+      libpq-dev build-essential \
+      libgl1 libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG POETRY_VERSION=2.1.2
+ENV POETRY_HOME=/opt/poetry
+ENV PATH="$POETRY_HOME/bin:$PATH"
+RUN curl -sSL https://install.python-poetry.org | python3 - --version $POETRY_VERSION
+
+WORKDIR /worker
+
+COPY ./apps/video-worker/ /worker/
+RUN poetry config virtualenvs.in-project false \
+ && poetry install --no-interaction --no-ansi
+
+CMD ["poetry", "run", "python", "src/main.py"]
