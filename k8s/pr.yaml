@@ -35,6 +35,8 @@ spec:
               value: '{{.branch | normalize}}'
             - name: api.image.tag
               value: '{{.branch | normalize}}'
+            - name: api.configmap.data.KV_URL
+              value: '{{.branch | normalize}}-valkey-primary'
 
       destination:
         server: https://kubernetes.default.svc
