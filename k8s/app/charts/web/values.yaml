@@ -1,4 +1,6 @@
 replicas: 2
+appName: web
+
 image:
   name: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web
   tag: "latest"
