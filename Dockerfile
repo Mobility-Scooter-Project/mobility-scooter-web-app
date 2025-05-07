@@ -18,3 +18,5 @@ FROM build AS api
 WORKDIR /usr/src/mswa/apps/api
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
+
+FROM python:3

@@ -15,8 +15,10 @@ from ray.experimental.tqdm_ray import tqdm
 import torch
 from datetime import datetime
 from lib.format_time import format_time
+from lib.db import DBActor
+import json
 
-@ray.remote
+@ray.remote(num_gpus=0.25)
 class AudioDetection:
   def __init__(self):
     load_dotenv()
@@ -27,6 +29,7 @@ class AudioDetection:
     self.KEY_WORDS = KEY_WORDS
     self.FILLER_PHRASES = FILLER_PHRASES
     self.model = None
+    self.db = DBActor.remote()
 
   @staticmethod
   def format_vtt(segments, mode):
@@ -60,7 +63,7 @@ class AudioDetection:
         self.logger.debug(f"Transcribing {filename}...")
         
         if not self.model:
-          model_size = os.getenv('WHISPER_MODEL_SIZE')
+          model_size = "small"
           device = "cpu"
           compute_type = "int8"
           
@@ -145,22 +148,12 @@ class AudioDetection:
 
     for taskId, t in enumerate(tasks_time):
       filtered_task = self.filter_task_description(t['task'])
-      requests.post(
-        "http://localhost:3000/api/v1/storage/videos/store-task",
-        json={
-          "videoId": video_id,
-          "taskId": taskId + 1,
-          "task": {
-            "task": filtered_task,
-            "start": t['start'],
-            "end": t['end'],
-          }
-        },
-        headers={
-          "Authorization": "Bearer " + self.API_KEY,
-          "Content-Type": "application/json",
-        },
-      )
+      task = {
+        "task": filtered_task,
+        "start": t['start'],
+        "end": t['end']
+      }
+      ray.get(self.db.upsert_task.remote(video_id, taskId + 1, json.dumps(task)))
 
   def audio_detection(self, video_url, transcript_url, filename, video_id):
     """

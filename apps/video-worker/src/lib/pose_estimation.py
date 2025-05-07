@@ -15,7 +15,7 @@ from ray.experimental.tqdm_ray import tqdm
 from utils.logger import logger
 from lib.db import DBActor
 
-@ray.remote
+@ray.remote(num_gpus=0.75)
 class PoseEstimator:
   def __init__(self):
     """
@@ -104,7 +104,7 @@ class PoseEstimator:
         y_mid = (y1 + y2) / 2
         
         pending = []
-
+        i = 0
         while cap.isOpened():
           next(progress_bar)
           points = {}
@@ -143,7 +143,7 @@ class PoseEstimator:
               "midpointHip": midpoint_hip
             }
             
-            pending.append(self.db.upsert_keypoints.remote(video_id, timestamp, angle, str(kps)))
+            pending.append(self.db.upsert_keypoints.remote(i, video_id, timestamp, angle, str(kps)))
             
             if len(pending) >= 10:
               try:
@@ -164,6 +164,7 @@ class PoseEstimator:
           if result.keypoints is not None and result.boxes is not None:
             keypoints = result.keypoints.xy
             boxes = result.boxes.xyxy
+          i += 1
 
       cap.release()
       

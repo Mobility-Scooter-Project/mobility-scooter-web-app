@@ -1,2 +1,2 @@
-ALTER TABLE "storage"."keypoints" ALTER COLUMN "id" SET DATA TYPE serial;--> statement-breakpoint
-ALTER TABLE "storage"."keypoints" ALTER COLUMN "id" DROP DEFAULT;
+ALTER TABLE "storage"."keypoints" DROP COLUMN "id";
+ALTER TABLE "storage"."keypoints" ADD COLUMN "id" SERIAL PRIMARY KEY;

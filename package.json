@@ -9,6 +9,7 @@
     "db:studio": "turbo run db:studio",
     "db:drop": "turbo run db:drop",
     "db:seed": "turbo run db:seed",
+    "db:generate": "turbo run db:generate",
     "db:up": "turbo run db:up",
     "populate-api-key": "turbo run populate-api-key",
     "compose:up": "turbo run compose:up"

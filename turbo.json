@@ -23,6 +23,10 @@
       "with": ["db:up"],
       "dependsOn": ["^db:migrate"]
     },
+    "db:generate": {
+      "with": ["db:up"],
+      "dependsOn": ["^db:migrate"]
+    },
     "db:seed": {
       "with": ["db:up"],
       "dependsOn": ["^db:seed"]
