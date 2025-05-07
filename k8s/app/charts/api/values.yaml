@@ -1,4 +1,5 @@
-replicas: 2
+replicas: 1
+appName: api
 image:
   name: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api
   tag: "latest"

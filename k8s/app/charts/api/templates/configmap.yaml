@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-config
+  name: {{ .Release.Name }}-{{ .Values.appName }}-config
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Release.Name }}
+    app: {{ .Release.Name }}-{{ .Values.appName }}
 data:
   JWT_SECRET: {{ randAlphaNum 32 | quote }}
   BASE_URL: {{ .Values.configmap.data.BASE_URL | quote }}
