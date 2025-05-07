@@ -25,7 +25,7 @@ spec:
       project: "default"
       source:
         repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-        targetRevision: '{{.branch}}'
+        targetRevision: '{{.head_sha}}'
         path: k8s/app
         helm:
           valueFiles:
@@ -41,9 +41,6 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
-      ignoreDifferences:
-        - group: '*'
-          kind: PersistentVolumeClaim # PR envs are ephemeral
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
