@@ -1,16 +1,43 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
-import { TOPICS } from "@src/config/topic";
+import { FILE_TYPES } from "@src/config/file-types";
+import { TOPICS } from "@src/config/queue";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
+import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
+import { HTTPError } from "@src/lib/errors";
+import { HTTP_CODES } from "@src/config/http-codes";
+import logger from "../lib/logger";
+import { WaiterState } from "@smithy/util-waiter"
 
-
+/**
+ * Uploads an object to a storage bucket using a presigned URL and encryption.
+ *
+ * This function performs the following steps:
+ * 1. Retrieves or creates the specified storage bucket.
+ * 2. Generates a presigned URL for uploading the object to the bucket.
+ * 3. Creates an encryption key for the object using the vault service.
+ * 4. Uploads the object to the presigned URL with the generated encryption key.
+ * 5. Generates a presigned URL for retrieving the object.
+ * 6. Publishes a message to the queue with the object's URL and filename.
+ *
+ * @param filePath - The destination path for the object in the bucket.
+ * @param userId - The identifier of the user uploading the object.
+ * @param bucketName - The name of the bucket where the object will be stored.
+ * @param object - The Blob object to be uploaded.
+ * @param uploadedAt - The date when the object was uploaded.
+ * @param fileType - The type of the file being uploaded (e.g., video, transcript).
+ *
+ * @returns A promise that resolves once the object has been uploaded and the queue message has been published.
+ */
 const putObjectStream = async (
   filePath: string,
   userId: string,
   bucketName: string,
-  object: Blob,
+  uploadStream: ReadableStream<any>,
+  uploadedAt: Date,
+  fileType = FILE_TYPES.VIDEO,
 ) => {
   // TODO: check if user has access to patientId
 
@@ -18,48 +45,94 @@ const putObjectStream = async (
 
   const expires = 60 * 60 * 24;
 
+  const startTime = new Date();
+
   await storage.getOrCreateBucket(bucketName);
 
-  const presignedUrlPromise = storage.presignedUrl(
-    "PUT",
-    bucketName,
-    filePath,
-    expires,
-    {
-      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-    }
-  );
-
-  const encryptionKeyPromise = vault.createObjectEncryptionKey(
+  const encryptionKey = await vault.createObjectEncryptionKey(
     bucketName,
     filePath,
   );
 
-  const [encryptionKey, presignedUrl] = await Promise.all([
-    encryptionKeyPromise,
-    presignedUrlPromise,
-  ]);
-
-  await storage.uploadToPresignedUrl(
-    presignedUrl,
-    object,
+  await storage.multipartUpload(
+    uploadStream,
+    bucketName,
+    filePath,
     encryptionKey,
   );
 
-  // TODO: @tdang2180 - add your metadata upload here
 
-  const data = await generatePresignedGetUrl(
-    filePath,
-    bucketName,
-    userId,
+  if (fileType == FILE_TYPES.VIDEO) {
+    const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+    const videoDataPromise = generatePresignedGetUrl(
+      filePath,
+      bucketName,
+      userId,
+    );
+
+    const transcriptPutUrlPromise = storage.presignedUrl(
+      "PUT",
+      bucketName,
+      transcriptPath,
+      expires,
+
+    );
+
+    const videoMetadataPromise = createVideoMetadata(
+      bucketName,
+      filePath,
+      uploadedAt,
+    );
+
+    const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
+      videoDataPromise,
+      transcriptPutUrlPromise,
+      videoMetadataPromise,
+    ]);
+
+
+    let uploadState = await storage.waitUntilObjectExists(
+      bucketName,
+      filePath,
+      encryptionKey
+    )
+
+    while (uploadState.state !== WaiterState.SUCCESS) {
+      if (uploadState.state === WaiterState.FAILURE) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to upload video file",
+        );
+      }
+      uploadState = await storage.waitUntilObjectExists(
+        bucketName,
+        filePath,
+        encryptionKey
+      )
+    }
+
+    await queue.producer.send(
+      {
+        topic: TOPICS.VIDEOS,
+        messages:
+          [{
+            key: videoMetadata.id,
+            value: JSON.stringify({
+              id: videoMetadata.id,
+              url: videoData.url,
+              filename: filePath,
+              transcriptPutUrl,
+            })
+          }]
+      })
+
+    logger.debug(
+      `Published video event to queue: ${videoMetadata.id} - ${filePath}`)
+  }
+
+  logger.info(
+    `Uploaded file ${filePath} to bucket ${bucketName} in ${new Date().getTime() - startTime.getTime()} ms`,
   );
-
-  await queue.publish(
-    TOPICS.VIDEOS,
-    {
-      videoUrl: data.url,
-      filename: filePath,
-    });
 };
 
 
@@ -79,7 +152,6 @@ const putObjectStream = async (
  * - X-MSWA-Expires: Expiration timestamp (24 hours from generation)
  * - X-MSWA-FilePath: The provided file path
  * - X-MSWA-Bucket: The provided bucket name
- * - X-MSWA-UserId: The provided user ID
  * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
  */
 const generatePresignedGetUrl = async (
@@ -97,13 +169,12 @@ const generatePresignedGetUrl = async (
     "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
     "X-MSWA-FilePath": filePath,
     "X-MSWA-Bucket": bucketName,
-    "X-MSWA-UserId": userId,
   })
 
   // sign the URL
   const signature = crypto
     .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}\n${userId}`)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}`)
     .digest("hex");
 
   params.append("X-MSWA-Signature", signature);
@@ -152,7 +223,6 @@ const getObjectStream = async (
  * Validates a pre-signed URL for storage operations
  * @param filePath - The path to the file in storage
  * @param bucketName - The name of the storage bucket
- * @param userId - The ID of the user making the request
  * @param method - The HTTP method for the pre-signed URL
  * @param expires - The expiration timestamp of the pre-signed URL
  * @param signature - The signature of the pre-signed URL for validation
@@ -162,7 +232,6 @@ const getObjectStream = async (
 const validatePresignedUrl = async (
   filePath: string,
   bucketName: string,
-  userId: string,
   method: string,
   expires: string,
   signature: string,
@@ -170,11 +239,36 @@ const validatePresignedUrl = async (
   await storage.validatePresignedUrl(
     filePath,
     bucketName,
-    userId,
     method,
     expires,
     signature,
   );
+}
+
+/**
+ * Stores video metadata in the database and creates a video event
+ *
+ * @param patientId - ID associated with a patient
+ * @param path - Path of the video file
+ * @param uploadedAt - Date of the video
+ * @returns String
+ *  - ID of the video metadata
+ *
+ * @remarks
+ * This function will create an event ID and store the video metadata in the database.
+ * The event ID is used to track the status of the video.
+ */
+const createVideoMetadata = async (
+  patientId: string,
+  path: string,
+  uploadedAt: Date,
+) => {
+
+  return await videoRepository.createVideoMetadata({
+    patientId,
+    path,
+    uploadedAt
+  });
 }
 
 export const storageService = {
@@ -182,4 +276,5 @@ export const storageService = {
   getObjectStream,
   putObjectStream,
   validatePresignedUrl,
+  createVideoMetadata,
 };

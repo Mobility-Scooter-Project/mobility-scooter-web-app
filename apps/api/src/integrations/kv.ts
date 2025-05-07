@@ -13,25 +13,33 @@ import { Redis } from "ioredis";
  * @throws {Error} When Redis connection fails
  */
 export class KV {
-    private static instance: Redis;
+    public static instance: Redis;
+    private static connectionPromise: Promise<boolean>;
 
-    private constructor() { }
-    /**
-     * Returns a singleton instance of the Redis class.
-     * @returns {Redis} The singleton instance of the Redis class.
-     */
-    public static getInstance(): Redis {
-        if (!this.instance) {
-            try {
-                this.instance = new Redis({
-                    lazyConnect: true,
-                });
-            } catch (error) {
-                console.error("Failed to connect to Redis:", error);
-            }
+    public constructor() {
+        if (!KV.instance) {
+            KV.connectionPromise = new Promise((resolve) => {
+                try {
+                    KV.instance = new Redis(KV_URL);
+                    resolve(true);
+                } catch (error) {
+                    resolve(false);
+                }
+            });
         }
-        return this.instance;
+        return KV.instance;
+    }
+
+    /**
+     * Checks the connection status of the Redis instance.
+     * @returns {Promise<boolean>} A promise that resolves to true if connected, false otherwise.
+     */
+    public static async getConnectionStatus(): Promise<boolean> {
+        if (!KV.instance) {
+            return false;
+        }
+        return await KV.connectionPromise;
     }
 }
 
-export const kv = KV.getInstance();
+export const kv = new KV();

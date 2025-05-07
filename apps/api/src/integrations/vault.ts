@@ -25,6 +25,7 @@ import * as crypto from "node:crypto";
  */
 export class Vault {
   private static instance: VaultClient;
+  private static isConnected = false;
 
   public constructor() {
     if (!Vault.instance) {
@@ -40,8 +41,9 @@ export class Vault {
             },
           },
         });
+        Vault.isConnected = true;
       } catch (error) {
-        console.error("Failed to connect to Vault:", error);
+        Vault.isConnected = false;
       }
     }
   }

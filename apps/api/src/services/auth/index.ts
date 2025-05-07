@@ -1,17 +1,16 @@
 import type { DB } from "@middleware/db";
 import { postgresDB } from "@middleware/db";
-import { refreshTokenRepository } from "@repositories/refresh-token";
-import { userRepository } from "@repositories/user";
-import { BASE_URL, ENVIRONMENT, JWT_SECRET } from "@src/config/constants";
+import { refreshTokenRepository } from "@src/repositories/auth/refresh-token";
+import { userRepository } from "@src/repositories/auth/user";
+import { BASE_URL, JWT_SECRET } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { sendEmail } from "@src/integrations/smtp";
 import { sql } from "drizzle-orm";
-import { HTTPException } from "hono/http-exception";
 import { sign, verify } from "hono/jwt";
 import { sessionService } from "./session";
-import { COMMON_HEADERS } from "@src/config/common-headers";
 import { vault } from "@src/integrations/vault";
 import { HTTPError } from "@src/lib/errors";
+import { ENVIRONMENT } from "@src/config/constants";
 
 /**
  * Creates a new user with email/password authentication and returns a session

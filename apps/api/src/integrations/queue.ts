@@ -1,7 +1,9 @@
-import { QUEUE_URL } from "@src/config/constants";
-import { HTTP_CODES } from "@src/config/http-codes";
+import { Kafka, logLevel, Producer } from "kafkajs";
 import { HTTPError } from "@src/lib/errors";
-import { Connection } from "rabbitmq-client";
+import { BROKER_URL } from "@src/config/constants";
+// @ts-ignore
+import * as PinoLogCreator from "@mia-platform/kafkajs-pino-logger"
+
 
 /**
  * A singleton class that manages the connection to a message queue (RabbitMQ).
@@ -15,40 +17,41 @@ import { Connection } from "rabbitmq-client";
  * ```
  */
 export class Queue {
-    private static instance: Connection;
-    private static publisher: ReturnType<Connection["createPublisher"]>;
+    private instance!: Kafka;
+    public producer!: Producer;
+    private connectionPromise: Promise<boolean>;
 
     public constructor() {
-        if (!Queue.instance) {
+        this.connectionPromise = new Promise(async (resolve) => {
             try {
-                setTimeout(() => {
-                    Queue.instance = new Connection(QUEUE_URL);
-                    Queue.publisher = Queue.instance.createPublisher({ confirm: true });
-                }
-                    , 6000);
+                this.instance = new Kafka({
+                    clientId: 'api',
+                    brokers: [BROKER_URL],
+                    retry: {
+                        initialRetryTime: 5000
+                    }
+                });
+                this.producer = this.instance.producer();
+                await this.producer.connect();
+                resolve(true)
             } catch (error) {
-                console.error("Failed to connect to RabbitMQ:", error);
+                resolve(false);
             }
-        }
+        })
+
+
     }
 
     /**
-     * Publishes a message to a RabbitMQ topic.
-     * @param topic - The routing key/topic to publish the message to
-     * @param message - The message payload to publish
-     * @throws {HTTPError} When the message fails to publish to RabbitMQ
-     * @returns {Promise<void>}
+     * Retrieves the connection status of the Queue.
+     *
+     * @returns {boolean} True if the Queue is connected, false otherwise.
      */
-    public async publish(topic: string, message: any) {
-        try {
-            await Queue.publisher.send(topic, message);
-        } catch (error) {
-            throw new HTTPError(
-                HTTP_CODES.INTERNAL_SERVER_ERROR,
-                error,
-                "Failed to publish message to RabbitMQ",
-            );
+    public async getConnectionStatus() {
+        if (!this.connectionPromise) {
+            return false;
         }
+        return await this.connectionPromise;
     }
 }
 

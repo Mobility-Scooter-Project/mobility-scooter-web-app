@@ -71,6 +71,41 @@
       "when": 1741904032473,
       "tag": "0009_update_video_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745362250909,
+      "tag": "0010_square_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1745453866107,
+      "tag": "0011_confused_starhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1745644428681,
+      "tag": "0012_strong_tyger_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1745693054224,
+      "tag": "0013_generalize_storage_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1746576884971,
+      "tag": "0014_serial_kp_ids",
+      "breakpoints": true
     }
   ]
 }
