@@ -7,12 +7,10 @@ on:
       - main
     paths:
       - apps/video-worker/**
-      - .github/workflows/build_and_push_worker.yaml
   pull_request:
     paths:
       - apps/video-worker/**
       - k8s/app/video-worker/**
-      - .github/workflows/build_and_push_worker.yaml
 
 env:
   REGISTRY: ghcr.io
