@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import fs from "fs";
-import { DATABASE_URL } from "../src/config/constants";
+import { DATABASE_URL } from "../../../apps/api/src/config/constants";
 import { metadata, tenants, units } from "../src/db/schema/tenants";
 import { exit } from "process";
 

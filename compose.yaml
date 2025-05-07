@@ -1,89 +1,87 @@
 services:
+  cert-generator:
+    image: alpine/curl
+    working_dir: /certs
+    volumes:
+      - certs:/certs
+    command: >-
+      sh -c '
+        curl -L https://github.com/minio/certgen/releases/latest/download/certgen-linux-amd64 \
+          -o /usr/local/bin/certgen &&
+        chmod +x /usr/local/bin/certgen &&
+        certgen --host "localhost,127.0.0.1,storage" &&
+        chown -R 1001:0 /certs
+      '
   db:
-    build: ./docker/postgres
+    build: ./packages/docker/postgres
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "postgres"
     ports:
-      - "5432:5432"
+      - 5432:5432
     volumes:
       - db:/var/lib/postgresql/data
-    restart: always
   kv:
-    image: "redis:latest"
+    image: bitnami/valkey:latest
     ports:
       - "6379:6379"
-    volumes:
-      - kv:/data
-    restart: always
-  queue:
-    image: "rabbitmq:3"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+  kafka:
+    image: bitnami/kafka:latest
     ports:
-      - 5672:5672
-      - 15672:15672
+      - 9092:9092
     volumes:
-      - queue:/var/lib/rabbitmq
-    restart: always
+      - kafka:/bitnami/kafka
+    environment:
+      - KAFKA_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_CFG_LISTENERS_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+
   vault:
     image: hashicorp/vault:latest
-    network_mode: "host"
+    user: root
     volumes:
       - vault:/vault/file
-      - ./docker/vault/init.sh:/init.sh
-    command: sh /init.sh
+      - ./packages/docker/vault/init.sh:/init.sh
+    entrypoint: sh /init.sh
+    ports:
+      - 8200:8200
     environment:
-      VAULT_ADDR: "http://127.0.0.1:8200"
-      VAULT_DEV_ROOT_TOKEN_ID: "root" # Ensure token matches command if using dev mode
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_ADDR=http://0.0.0.0:8200
     cap_add:
       - IPC_LOCK # Needed for vault
-  cert-generator:
-    image: alpine/curl
-    volumes:
-      - certs:/certs
-    command: >
-      sh -c '
-        curl https://github.com/minio/certgen/releases/latest/download/certgen-linux-amd64 -o /usr/local/bin/certgen &&
-        chmod +x /usr/local/bin/certgen &&
-        certgen --host localhost
-      '
-    # This service only needs to run once to generate certs if they don't exist
   storage:
-    image: "minio/minio"
-    # Use --certs-dir to specify TLS cert location
-    command: server --console-address ":9001" --certs-dir /certs /data
-    network_mode: "host"
-    ports: # Map ports explicitly now that host network mode is removed
-      - "9000:9000" # Minio API (HTTPS)
-      - "9001:9001" # Minio Console (HTTPS)
+    image: bitnami/minio:latest
+    ports:
+      - 9000:9000
+      - 9001:9001
     depends_on:
-      queue:
-        condition: service_started # Ensure queue is started before minio
       cert-generator:
         condition: service_completed_successfully # Ensure certs are generated
     environment:
       MINIO_ROOT_USER: "minioadmin"
       MINIO_ROOT_PASSWORD: "minioadmin"
-      # Update AMQP URL to use service name 'queue' instead of 'localhost'
-      MINIO_NOTIFY_AMQP_ENABLE_put_video: "on"
-      MINIO_NOTIFY_AMQP_URL_put_video: "amqp://guest:guest@localhost:5672/"
-      MINIO_NOTIFY_AMQP_EXCHANGE_put_video: "storage"
-      MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_put_video: "direct"
-      MINIO_NOTIFY_AMQP_ROUTING_KEY_put_video: "videos.put"
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      MINIO_SCHEME: "https"
+    entrypoint: |
+      sh -c '
+        chown -R 1001:0 /certs &&
+        exec /opt/bitnami/scripts/minio/run.sh
+      '
     volumes:
-      - storage:/data
+      - storage:/bitnami/data
       - certs:/certs # Mount the shared certificate volume
-    restart: always
 
 volumes:
   db:
-  kv:
-  queue:
   storage:
+  kafka:
   vault:
   certs: # Define the shared volume for certificates

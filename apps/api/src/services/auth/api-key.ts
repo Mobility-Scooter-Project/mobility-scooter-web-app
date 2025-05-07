@@ -17,9 +17,8 @@ import { sql, eq } from "drizzle-orm";
 const retrieveApiKey = async (db: DB, key: string) => {
   const data = await db.query.apiKeys.findFirst({
     where: (fields) =>
-      sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${
-        fields.isActive
-      } = ${true}`,
+      sql`${fields.encryptedKey} = crypt(${key}, ${fields.encryptedKey}) and ${fields.isActive
+        } = ${true}`,
   });
   if (data && data.isActive) {
     try {

@@ -1,112 +1,12 @@
+from config.constants import BROKER_URL
+from lib.kafka import KafkaActor
 import os
-import json
-import pika
-import queue
-import requests
-from threading import Thread
-from dotenv import load_dotenv
-from pika.exchange_type import ExchangeType
-from fastapi import FastAPI
+import ray
 
-from ultralytics import YOLO
-import whisper
+# temp disable worker killing
+os.environ["RAY_memory_monitor_refresh_ms"] = "0"
 
-from scripts.audio_detection import audio_detection
-from scripts.pose_estimation import pose_estimation
-
-load_dotenv()
-QUEUE_URL = os.getenv('QUEUE_URL')
-API_KEY = os.getenv('TESTING_API_KEY')
-USER_TOKEN = os.getenv('USER_TOKEN')
-app = FastAPI()
-
-video_queue = queue.Queue()
-NUM_WORKERS = 2  # adjust depending on GPU memory
-
-def worker():
-  '''
-  Worker function to process videos from the queue.
-  '''
-  pe_model = YOLO("yolo11n-pose.pt", verbose=False)
-  asr_model = whisper.load_model("small").to("cuda")
-
-  while True:
-    body = video_queue.get()
-    if body is None:
-        break  # Stop signal
-    try:
-      process_video(body, pe_model, asr_model)
-    except Exception as e:
-      print(f"Error processing video: {e}")
-    finally:
-      video_queue.task_done()
-
-
-def callback(ch, method, properties, body):
-  """
-  Callback function to handle messages from RabbitMQ.
-
-  Args:
-    ch: The channel object used to communicate with RabbitMQ.
-    method: Delivery method containing delivery tag and exchange information.
-    properties: Message properties (e.g., headers, content type).
-    body (bytes): The message containing video data in JSON format.
-  """
-  video_queue.put(body)
-
-
-def process_video(body, pe_model, asr_model):
-  """
-  Calls functions to perform audio detection and pose estimation on the video.
-
-  Args:
-    body (bytes): Video data from the queue.
-    pe_model (YOLO): The loaded YOLO pose estimation model.
-    asr_model (Whisper): The loaded Whisper ASR model.
-  """  
-  video = json.loads(body.decode())
-  
-  response = requests.post(
-    "http://localhost:3000/api/v1/storage/videos/find-video-id", 
-    json={
-      "videoPath": video['filename'],
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  ) 
-
-  video_id = response.json()["data"]["videoId"]
-
-  audio_detection(asr_model, video['videoGetUrl'], video['transcriptPutUrl'], video['filename'], video_id)
-  pose_estimation(pe_model, video['videoGetUrl'], video['filename'], video_id)
-
-
-  requests.post(
-    "http://localhost:3000/api/v1/storage/videos/update-video-event", 
-    json={
-      "videoId": video_id,
-      "status": "processed",
-    },
-    headers={
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json",
-      "X-User": USER_TOKEN,
-    },
-  ) 
-
-# Set up RabbitMQ
-connection = pika.BlockingConnection(pika.ConnectionParameters(QUEUE_URL))
-channel = connection.channel()
-channel.exchange_declare(exchange='storage', exchange_type=ExchangeType.direct)
-channel.queue_declare(queue='videos', durable=True, passive=False)
-channel.queue_bind(exchange='storage', queue='videos', routing_key='videos.put')
-
-for _ in range(NUM_WORKERS):
-  Thread(target=worker, daemon=True).start()
-
-print("Video Worker started")
-channel.basic_consume(queue='videos', on_message_callback=callback, auto_ack=True)
-channel.start_consuming()
+if __name__ == "__main__":
+    ray.init()
+    actor = KafkaActor.remote(BROKER_URL, "videos")
+    ray.get(actor.consumer.remote())

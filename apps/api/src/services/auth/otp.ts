@@ -1,7 +1,7 @@
 import { vault } from "@src/integrations/vault";
 import { generateTOTP, verifyTOTP } from "@src/lib/otp";
 import type { DB } from "@src/middleware/db";
-import { userRepository } from "@src/repositories/user";
+import { userRepository } from "@src/repositories/auth/user";
 
 /**
  * Generates a Time-based One-Time Password (TOTP) for a user.

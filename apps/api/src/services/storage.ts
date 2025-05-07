@@ -1,16 +1,43 @@
 import { BASE_URL, STORAGE_SECRET } from "@src/config/constants";
-import { TOPICS } from "@src/config/topic";
+import { FILE_TYPES } from "@src/config/file-types";
+import { TOPICS } from "@src/config/queue";
 import { queue } from "@src/integrations/queue";
 import { storage } from "@src/integrations/storage";
 import { vault } from "@src/integrations/vault";
+import { videoRepository } from "@src/repositories/storage/video";
 import crypto from "node:crypto";
+import { HTTPError } from "@src/lib/errors";
+import { HTTP_CODES } from "@src/config/http-codes";
+import logger from "../lib/logger";
+import { WaiterState } from "@smithy/util-waiter"
 
-
+/**
+ * Uploads an object to a storage bucket using a presigned URL and encryption.
+ *
+ * This function performs the following steps:
+ * 1. Retrieves or creates the specified storage bucket.
+ * 2. Generates a presigned URL for uploading the object to the bucket.
+ * 3. Creates an encryption key for the object using the vault service.
+ * 4. Uploads the object to the presigned URL with the generated encryption key.
+ * 5. Generates a presigned URL for retrieving the object.
+ * 6. Publishes a message to the queue with the object's URL and filename.
+ *
+ * @param filePath - The destination path for the object in the bucket.
+ * @param userId - The identifier of the user uploading the object.
+ * @param bucketName - The name of the bucket where the object will be stored.
+ * @param object - The Blob object to be uploaded.
+ * @param uploadedAt - The date when the object was uploaded.
+ * @param fileType - The type of the file being uploaded (e.g., video, transcript).
+ *
+ * @returns A promise that resolves once the object has been uploaded and the queue message has been published.
+ */
 const putObjectStream = async (
   filePath: string,
   userId: string,
   bucketName: string,
-  object: Blob,
+  uploadStream: ReadableStream<any>,
+  uploadedAt: Date,
+  fileType = FILE_TYPES.VIDEO,
 ) => {
   // TODO: check if user has access to patientId
 
@@ -18,48 +45,94 @@ const putObjectStream = async (
 
   const expires = 60 * 60 * 24;
 
+  const startTime = new Date();
+
   await storage.getOrCreateBucket(bucketName);
 
-  const presignedUrlPromise = storage.presignedUrl(
-    "PUT",
-    bucketName,
-    filePath,
-    expires,
-    {
-      "X-Amz-Server-Side-Encryption-Customer-Algorithm": "AES256",
-    }
-  );
-
-  const encryptionKeyPromise = vault.createObjectEncryptionKey(
+  const encryptionKey = await vault.createObjectEncryptionKey(
     bucketName,
     filePath,
   );
 
-  const [encryptionKey, presignedUrl] = await Promise.all([
-    encryptionKeyPromise,
-    presignedUrlPromise,
-  ]);
-
-  await storage.uploadToPresignedUrl(
-    presignedUrl,
-    object,
+  await storage.multipartUpload(
+    uploadStream,
+    bucketName,
+    filePath,
     encryptionKey,
   );
 
-  // TODO: @tdang2180 - add your metadata upload here
 
-  const data = await generatePresignedGetUrl(
-    filePath,
-    bucketName,
-    userId,
+  if (fileType == FILE_TYPES.VIDEO) {
+    const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
+    const videoDataPromise = generatePresignedGetUrl(
+      filePath,
+      bucketName,
+      userId,
+    );
+
+    const transcriptPutUrlPromise = storage.presignedUrl(
+      "PUT",
+      bucketName,
+      transcriptPath,
+      expires,
+
+    );
+
+    const videoMetadataPromise = createVideoMetadata(
+      bucketName,
+      filePath,
+      uploadedAt,
+    );
+
+    const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
+      videoDataPromise,
+      transcriptPutUrlPromise,
+      videoMetadataPromise,
+    ]);
+
+
+    let uploadState = await storage.waitUntilObjectExists(
+      bucketName,
+      filePath,
+      encryptionKey
+    )
+
+    while (uploadState.state !== WaiterState.SUCCESS) {
+      if (uploadState.state === WaiterState.FAILURE) {
+        throw new HTTPError(
+          HTTP_CODES.INTERNAL_SERVER_ERROR,
+          "Failed to upload video file",
+        );
+      }
+      uploadState = await storage.waitUntilObjectExists(
+        bucketName,
+        filePath,
+        encryptionKey
+      )
+    }
+
+    await queue.producer.send(
+      {
+        topic: TOPICS.VIDEOS,
+        messages:
+          [{
+            key: videoMetadata.id,
+            value: JSON.stringify({
+              id: videoMetadata.id,
+              url: videoData.url,
+              filename: filePath,
+              transcriptPutUrl,
+            })
+          }]
+      })
+
+    logger.debug(
+      `Published video event to queue: ${videoMetadata.id} - ${filePath}`)
+  }
+
+  logger.info(
+    `Uploaded file ${filePath} to bucket ${bucketName} in ${new Date().getTime() - startTime.getTime()} ms`,
   );
-
-  await queue.publish(
-    TOPICS.VIDEOS,
-    {
-      videoUrl: data.url,
-      filename: filePath,
-    });
 };
 
 
@@ -79,7 +152,6 @@ const putObjectStream = async (
  * - X-MSWA-Expires: Expiration timestamp (24 hours from generation)
  * - X-MSWA-FilePath: The provided file path
  * - X-MSWA-Bucket: The provided bucket name
- * - X-MSWA-UserId: The provided user ID
  * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
  */
 const generatePresignedGetUrl = async (
@@ -97,13 +169,12 @@ const generatePresignedGetUrl = async (
     "X-MSWA-Expires": Math.floor(expires.getTime() / 1000).toString(),
     "X-MSWA-FilePath": filePath,
     "X-MSWA-Bucket": bucketName,
-    "X-MSWA-UserId": userId,
   })
 
   // sign the URL
   const signature = crypto
     .createHmac("sha256", STORAGE_SECRET)
-    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}\n${userId}`)
+    .update(`${method}\n${params.get("X-MSWA-Expires")}\n${filePath}\n${bucketName}`)
     .digest("hex");
 
   params.append("X-MSWA-Signature", signature);
@@ -152,7 +223,6 @@ const getObjectStream = async (
  * Validates a pre-signed URL for storage operations
  * @param filePath - The path to the file in storage
  * @param bucketName - The name of the storage bucket
- * @param userId - The ID of the user making the request
  * @param method - The HTTP method for the pre-signed URL
  * @param expires - The expiration timestamp of the pre-signed URL
  * @param signature - The signature of the pre-signed URL for validation
@@ -162,7 +232,6 @@ const getObjectStream = async (
 const validatePresignedUrl = async (
   filePath: string,
   bucketName: string,
-  userId: string,
   method: string,
   expires: string,
   signature: string,
@@ -170,7 +239,6 @@ const validatePresignedUrl = async (
   await storage.validatePresignedUrl(
     filePath,
     bucketName,
-    userId,
     method,
     expires,
     signature,
@@ -180,10 +248,9 @@ const validatePresignedUrl = async (
 /**
  * Stores video metadata in the database and creates a video event
  *
- * @param db - Database connection
  * @param patientId - ID associated with a patient
  * @param path - Path of the video file
- * @param date - Date of the video
+ * @param uploadedAt - Date of the video
  * @returns String
  *  - ID of the video metadata
  *
@@ -191,156 +258,17 @@ const validatePresignedUrl = async (
  * This function will create an event ID and store the video metadata in the database.
  * The event ID is used to track the status of the video.
  */
-const storeVideoMetadata = async (
-  db: DB,
+const createVideoMetadata = async (
   patientId: string,
   path: string,
-  date: Date,
+  uploadedAt: Date,
 ) => {
 
-  const eventId = await videoRepository.storeVideoEvent(db, "pending")
-  
-  return videoRepository.storeVideoMetadata(db, {
+  return await videoRepository.createVideoMetadata({
     patientId,
-    eventId,
     path,
-    date
+    uploadedAt
   });
-}
-
-/**
- * Stores a transcript in the database
- *
- * @param db - Database connection
- * @param videoId - ID of the video
- * @param transcriptPath - Path of the transcript file
- * @returns String
- *  - ID of the transcript
- *
- * @remarks
- * This function will store the transcript in the database.
- */
-const storeTranscript = async (
-  db: DB, 
-  videoId: string, 
-  transcriptPath: string) => {
-  
-  return videoRepository.storeTranscript(db, {
-    videoId, 
-    path: transcriptPath,
-  });
-}
-
-/**
- * Stores a task in the database
- *
- * @param db - Database connection
- * @param videoId - ID of the video
- * @param taskId - ID of the task in relations to other tasks in the video
- * @param task - Task object containing task details
- * @returns String
- *  - ID of the task
- *
- * @remarks
- * This function will store the task in the database.
- */
-const storeTask = async (
-  db: DB, 
-  videoId: string,
-  taskId: number, 
-  task: {
-    task: string;
-    start: string;
-    end: string;
-  }) => {
-
-  return videoRepository.storeTask(db, {
-    videoId, 
-    taskId, 
-    task,
-  });
-}
-
-/**
- * Stores keypoints in the database
- *
- * @param db - Database connection
- * @param videoId - ID of the video
- * @param timestamp - Timestamp of a frame in the video
- * @param angle - Angle of the trunk flexion
- * @param keypoints - Keypoints object containing keypoint details
- * @returns String
- *  - ID of the keypoint
- *
- * @remarks
- * This function will store keypoints in the database.
- */
-const storeKeypoint = async (
-  db: DB, 
-  videoId: string, 
-  timestamp: string,
-  angle: number, 
-  keypoints: {
-    [name: string]: [number, number];
-  } 
-) => {
-
-  return videoRepository.storeKeypoint(db, {
-    videoId,
-    timestamp,
-    angle,
-    keypoints,
-  });
-}
-
-/**
- * Finds a video ID in the database by a video path
- *
- * @param db - Database connection
- * @param videoPath - Path of the video file
- * @returns String
- *  - ID of the video
- *
- * @remarks
- * This function will find a video ID in the database by its path.
- */
-const findVideo = async (
-  db: DB,
-  pathOrId: string,
-  videoIdentifier: string,
-) => {
-  const video = await videoRepository.findVideo(db, pathOrId, videoIdentifier);
-
-  if (!video) {
-    throw new HTTPException(HTTP_CODES.UNAUTHORIZED, {
-      res: new Response(
-        JSON.stringify({ data: null, error: "Invalid video path" }),
-      ),
-    });
-  }
-
-  return video;
-}
-
-/**
- * Updates the status of a video event in the database
- *
- * @param db - Database connection
- * @param eventId - ID of the video event
- * @param status - Status of the video event
- * @returns String
- *  - ID of the updated video event
- *
- * @remarks
- * This function will update the status of a video event in the database.
- */
-const updateVideoEvent = async (
-  db: DB,
-  eventId: string,
-  status: VideoStatus,
-) => {
-  
-  return videoRepository.updateVideoEvent(db, eventId, status);
 }
 
 export const storageService = {
@@ -348,4 +276,5 @@ export const storageService = {
   getObjectStream,
   putObjectStream,
   validatePresignedUrl,
+  createVideoMetadata,
 };

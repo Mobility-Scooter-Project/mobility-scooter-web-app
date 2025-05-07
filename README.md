@@ -13,7 +13,7 @@ pnpm i
 ```
 
 #### Dev
-Launches docker-compose, `web` and `api` apps:
+Launches docker-compose, and all apps:
 ```sh
 pnpm dev
 ```
