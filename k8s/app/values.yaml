@@ -7,3 +7,8 @@ api:
   image:
     tag: "latest"
   replicas: 2
+
+valkey:
+  architecture: standalone
+  auth:
+    enabled: false
