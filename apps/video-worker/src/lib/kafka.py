@@ -42,6 +42,18 @@ class KafkaActor:
         self.db = DBActor.remote()
         
     def consumer(self):
+        """
+        Continuously consumes messages from the Kafka consumer and processes video data.
+        For each message consumed:
+            - Deserialize the message payload from JSON.
+            - Extract important fields such as the video ID, video URL, transcript URL, and filename.
+            - Update the processing status in the database to "processing".
+            - Initiate asynchronous processing by invoking the pose and audio actors to process the video and its audio.
+            - Wait for both processing tasks to complete.
+            - Log the total duration of the video processing.
+            - Upon successful processing, update the processing status to "processed" in the database and commit the Kafka consumer offset.
+            - In case of any exceptions, log the error without updating the status to "processed".
+        """
         for msg in self.consumer:
             data = json.loads(msg.value)
             

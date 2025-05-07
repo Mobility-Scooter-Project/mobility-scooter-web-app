@@ -25,7 +25,6 @@
       "@services/*": ["src/services/*"],
       "@middleware/*": ["src/middleware/*"],
       "@handlers/*": ["src/handlers/*"],
-      "@db/*": ["../../packages/shared/src/db/*"],
       "@lib/*": ["src/lib/*"],
       "@integrations/*": ["src/integrations/*"],
       "@repositories/*": ["src/repositories/*"],
