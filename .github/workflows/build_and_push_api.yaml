@@ -7,7 +7,6 @@ on:
       - main
     paths:
       - apps/api/**
-      - k8s/app/api/**
       - .github/workflows/build_and_push_web.yaml
   pull_request:
     paths:
