@@ -14,7 +14,8 @@ valkey:
   auth:
     enabled: false
   persistence: false
-  resourcesPreset: "nano"
+  primary:
+    resourcesPreset: "nano"
 
 # https://github.com/bitnami/charts/blob/main/bitnami/kafka/values.yaml
 kafka:
