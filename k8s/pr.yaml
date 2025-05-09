@@ -36,7 +36,7 @@ spec:
             - name: api.image.tag
               value: '{{.branch | normalize}}'
             - name: api.configmap.data.KV_URL
-              value: 'redis://mswa-{{.branch | normalize}}-valkey-primary:6379'
+              value: 'redis://mswa-{{.branch | normalize}}-{{.number}}-valkey-primary:6379'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{.branch | normalize}}-{{.number}}'
