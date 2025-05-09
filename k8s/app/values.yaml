@@ -8,12 +8,15 @@ api:
     tag: "latest"
   replicas: 2
 
+# https://github.com/bitnami/charts/blob/main/bitnami/valkey/values.yaml
 valkey:
   architecture: standalone
   auth:
     enabled: false
   persistence: false
+  resourcesPreset: "nano"
 
 # https://github.com/bitnami/charts/blob/main/bitnami/kafka/values.yaml
 kafka:
   persistence: false
+  resourcesPreset: "micro"
