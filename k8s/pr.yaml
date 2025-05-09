@@ -12,7 +12,7 @@ spec:
         owner: mobility-scooter-project
         repo: mobility-scooter-web-app
         tokenRef:
-          secretName: argocd-github
+          secretName: argocd-github-token
           key: token
   template:
     metadata:
