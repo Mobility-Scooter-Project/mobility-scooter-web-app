@@ -12,4 +12,7 @@ dependencies:
   # https://github.com/bitnami/charts/tree/main/bitnami/valkey
   - name: valkey
     version: 3.0.4
-    repository: "oci://registry-1.docker.io/bitnamicharts"
+    repository: oci://registry-1.docker.io/bitnamicharts
+  - name: kafka
+    version: 32.2.3
+    repository: oci://registry-1.docker.io/bitnamicharts

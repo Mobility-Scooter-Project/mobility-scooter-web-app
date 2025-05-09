@@ -8,5 +8,8 @@ dependencies:
 - name: valkey
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 3.0.4
-digest: sha256:23e4c0708a52b84b99f2aef475803fe849bf9381ee86495f7c0dba2f5fbff5c7
-generated: "2025-05-07T14:15:38.620189798-07:00"
+- name: kafka
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 32.2.3
+digest: sha256:79c373d94f9d3f32df08679856d18ed866591a2c7bb50cd27e5638e179584b1c
+generated: "2025-05-09T15:38:36.508747104-07:00"

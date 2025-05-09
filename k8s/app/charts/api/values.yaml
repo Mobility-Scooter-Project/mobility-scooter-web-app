@@ -12,7 +12,7 @@ configmap:
     DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
     KV_URL: redis://localhost:6379
     QUEUE_URL: amqp://guest:guest@localhost:5672
-    STORAGE_URL: localhost
+    BROKER_URL: localhost
     STORAGE_PORT: 9000
     STORAGE_ACCESS_KEY: minioadmin
     STORAGE_SECRET_KEY: minioadmin
