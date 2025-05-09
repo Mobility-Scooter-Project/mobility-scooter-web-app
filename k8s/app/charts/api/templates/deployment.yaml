@@ -28,6 +28,6 @@ spec:
               port: {{ .Values.containerPort }}
             initialDelaySeconds: 3
             periodSeconds: 30
-      envFrom:
-        - configMapRef:
-            name: {{ .Release.Name }}-{{ .Values.appName }}-config
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-{{ .Values.appName }}-config
