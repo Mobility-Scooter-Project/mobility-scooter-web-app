@@ -35,7 +35,6 @@ vault:
             - |
               # In dev mode Vault auto–initializes & unseals, so we can enable engines immediately:
               vault login root
-              vault secrets enable -version=1 -path=secret kv || true
               vault secrets enable -path=transit transit || true
               vault write -f transit/keys/object-key || true
     resourcesPreset: nano
