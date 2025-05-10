@@ -6,12 +6,11 @@ on:
       - develop
       - main
     paths:
-      - apps/worker/**
-      - .github/workflows/build_and_push_worker.yaml
+      - apps/video-worker/**
   pull_request:
     paths:
-      - apps/worker/**
-      - .github/workflows/build_and_push_worker.yaml
+      - apps/video-worker/**
+      - k8s/app/video-worker/**
 
 env:
   REGISTRY: ghcr.io
