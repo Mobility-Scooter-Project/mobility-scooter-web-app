@@ -21,25 +21,27 @@ valkey:
 # https://github.com/bitnami/charts/blob/main/bitnami/vault/values.yaml
 vault:
   server:
-    initContainers:
-      - name: enable-kv
-        image: docker.io/bitnami/vault:1.19.3-debian-12-r3 # make sure to update this with each helm upgrade
-        env:
-          - name: VAULT_ADDR
-            value: http://localhost:8200
-          - name: VAULT_TOKEN
-            value: root
-        command:
+    lifeCycleHooks:
+      podStart:
+        exec:
+          command:  
           - sh
           - -c
           - |
-            # wait for Vault to come up
-            until curl -s ${VAULT_ADDR}/v1/sys/health | grep -q initialized; do
+            echo "⏳ waiting for Vault to be ready…"
+            until curl -sf http://127.0.0.1:8200/v1/sys/health | grep -q initialized; do
               sleep 1
             done
 
-            vault login ${VAULT_TOKEN}
-            vault secrets enable -version=2 -path=secret kv
+            echo "🔐 logging in and enabling engines"
+            VAULT_ADDR=http://127.0.0.1:8200 vault login root
+
+            # idempotently enable KV v2
+            vault secrets enable -version=2 -path=secret kv || echo "kv already enabled"
+
+            # idempotently enable Transit and create a key
+            vault secrets enable -path=transit transit || echo "transit already enabled"
+            vault write -f transit/keys/object-key || echo "object-key exists"
 
     resourcesPreset: nano
     persistence:
