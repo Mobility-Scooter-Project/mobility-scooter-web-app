@@ -11,5 +11,8 @@ dependencies:
 - name: kafka
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 32.2.3
-digest: sha256:79c373d94f9d3f32df08679856d18ed866591a2c7bb50cd27e5638e179584b1c
-generated: "2025-05-09T15:38:36.508747104-07:00"
+- name: vault
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 1.7.9
+digest: sha256:c1637c602b5fa28ed0bd6d1780be28da947b078e2847997fa1da06d7d7ee47e4
+generated: "2025-05-10T10:46:53.754459529-07:00"

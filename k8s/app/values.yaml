@@ -18,6 +18,33 @@ valkey:
     persistence: 
       enabled: false
 
+# https://github.com/bitnami/charts/blob/main/bitnami/vault/values.yaml
+vault:
+  server:
+    initContainers:
+      - name: enable-kv
+        image: docker.io/bitnami/vault:1.7.9  
+        env:
+          - name: VAULT_ADDR
+            value: http://localhost:8200
+          - name: VAULT_TOKEN
+            value: root
+        command:
+          - sh
+          - -c
+          - |
+            # wait for Vault to come up
+            until curl -s ${VAULT_ADDR}/v1/sys/health | grep -q initialized; do
+              sleep 1
+            done
+
+            vault login ${VAULT_TOKEN}
+            vault secrets enable -version=2 -path=secret kv
+            
+    resourcesPreset: nano
+    persistence:
+      enabled: false
+
 # https://github.com/bitnami/charts/blob/main/bitnami/kafka/values.yaml
 kafka:
   controller:
