@@ -20,5 +20,5 @@ containerPort: 3000
 
 configmap:
   data:
-    API_BASE_URL: http://localhost:8000
+    API_BASE_URL: http://localhost:3000
     API_KEY: your-api-key

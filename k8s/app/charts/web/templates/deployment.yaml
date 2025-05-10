@@ -30,7 +30,7 @@ spec:
             periodSeconds: 30
           envFrom:
             - configMapRef:
-                name: {{ .Release.Name }}-{{ .Values.appName}}-config
+                name: {{ .Release.Name }}-{{ .Values.appName }}-config
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
