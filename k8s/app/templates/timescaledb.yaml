@@ -1,8 +1,8 @@
 apiVersion: postgres-operator.crunchydata.com/v1beta1
 kind: PostgresCluster
 metadata:
-  name: timescaledb-single
-  namespace: pgo-system
+  name: {{ .Release.Name }}-timescaledb
+  namespace: {{ .Release.Namespace }}
 spec:
   postgresVersion: 14
 
