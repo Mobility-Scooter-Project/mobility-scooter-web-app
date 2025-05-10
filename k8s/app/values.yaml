@@ -23,7 +23,7 @@ vault:
   server:
     initContainers:
       - name: enable-kv
-        image: docker.io/bitnami/vault:1.7.9  
+        image: docker.io/bitnami/vault:1.19.3-debian-12-r3 # make sure to update this with each helm upgrade
         env:
           - name: VAULT_ADDR
             value: http://localhost:8200
@@ -40,7 +40,7 @@ vault:
 
             vault login ${VAULT_TOKEN}
             vault secrets enable -version=2 -path=secret kv
-            
+
     resourcesPreset: nano
     persistence:
       enabled: false
