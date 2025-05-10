@@ -44,6 +44,8 @@ spec:
 
             - name: web.image.tag
               value: '{{.branch | normalize}}'
+            - name: web.ingress.subdomain
+              value: 'mswa-web-{{.branch | normalize}}-{{.number}}'
             - name: web.configmap.data.API_BASE_URL
               value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
       destination:
