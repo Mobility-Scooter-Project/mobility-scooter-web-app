@@ -21,28 +21,23 @@ valkey:
 # https://github.com/bitnami/charts/blob/main/bitnami/vault/values.yaml
 vault:
   server:
-    lifeCycleHooks:
-      podStart:
+    args:
+      - "server"
+      - "-dev"
+      - "-dev-root-token-id=root"
+      - "-dev-listen-address=0.0.0.0:8200"
+    lifecycleHooks:
+      postStart:
         exec:
-          command:  
-          - sh
-          - -c
-          - |
-            echo "⏳ waiting for Vault to be ready…"
-            until curl -sf http://127.0.0.1:8200/v1/sys/health | grep -q initialized; do
-              sleep 1
-            done
-
-            echo "🔐 logging in and enabling engines"
-            VAULT_ADDR=http://127.0.0.1:8200 vault login root
-
-            # idempotently enable KV v2
-            vault secrets enable -version=2 -path=secret kv || echo "kv already enabled"
-
-            # idempotently enable Transit and create a key
-            vault secrets enable -path=transit transit || echo "transit already enabled"
-            vault write -f transit/keys/object-key || echo "object-key exists"
-
+          command:
+            - sh
+            - -c
+            - |
+              # In dev mode Vault auto–initializes & unseals, so we can enable engines immediately:
+              vault login root
+              vault secrets enable -version=2 -path=secret kv || true
+              vault secrets enable -path=transit transit || true
+              vault write -f transit/keys/object-key || true
     resourcesPreset: nano
     extraVolumes:
       - name: data
