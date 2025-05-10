@@ -44,6 +44,12 @@ vault:
             vault write -f transit/keys/object-key || echo "object-key exists"
 
     resourcesPreset: nano
+    extraVolumes:
+      - name: data
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: data
+        mountPath: /bitnami/vault/data
     persistence:
       enabled: false
 
