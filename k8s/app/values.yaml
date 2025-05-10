@@ -19,8 +19,12 @@ valkey:
 
 # https://github.com/bitnami/charts/blob/main/bitnami/kafka/values.yaml
 kafka:
-  persistence: false
   controller:
-    resourcesPreset: "micro"
+    replicaCount: 1   
+    controllerOnly: false 
+    resourcesPreset: micro    
+    persistence:
+      enabled: false          # no PVCs
+
   broker:
-    resourcesPreset: "nano"
+    replicaCount: 0
