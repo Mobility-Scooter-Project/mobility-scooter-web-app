@@ -24,7 +24,7 @@ spec:
               name: http-api-svc
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthcheck
               port: {{ .Values.containerPort }}
             initialDelaySeconds: 3
             periodSeconds: 30
