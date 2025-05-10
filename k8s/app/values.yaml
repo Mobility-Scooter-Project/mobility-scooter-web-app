@@ -23,7 +23,7 @@ kafka:
   controller:
     replicaCount: 1   
     controllerOnly: false 
-    resourcesPreset: nano   
+    resourcesPreset: micro  
     persistence:
       enabled: false          # no PVCs
 
