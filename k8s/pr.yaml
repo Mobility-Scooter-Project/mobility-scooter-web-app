@@ -38,7 +38,7 @@ spec:
             - name: api.configmap.data.KV_URL
               value: redis://mswa-{{ .branch | normalize }}-{{ .number }}-valkey-primary:6379
             - name: api.configmap.data.BROKER_URL
-              value: mswa-{{ .branch | normalize }}-{{ .number }}-kafka
+              value: mswa-{{ .branch | normalize }}-{{ .number }}-kafka:9092
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{ .branch | normalize }}-{{ .number }}'
