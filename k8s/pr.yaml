@@ -31,14 +31,21 @@ spec:
           valueFiles:
             - values.yaml
           parameters:
-            - name: web.image.tag
-              value: '{{.branch | normalize}}'
             - name: api.image.tag
               value: '{{.branch | normalize}}'
+            - name: api.configmap.data.BASE_URL
+              value: 'mswa-{{.branch | normalize }}-{{ .number }}-api'
             - name: api.configmap.data.KV_URL
               value: redis://mswa-{{ .branch | normalize }}-{{ .number }}-valkey-primary:6379
             - name: api.configmap.data.BROKER_URL
-              value: mswa-{{ .branch | normalize }}-{{ .number }}-kafka:9092
+              value: mswa-{{.branch | normalize }}-{{ .number }}-kafka:9092
+            - name: api.configmap.data.VAULT_ADDR
+              value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-vault-server-active:8200'
+
+            - name: web.image.tag
+              value: '{{.branch | normalize}}'
+            - name: web.configmap.data.API_BASE_URL
+              value: 'https://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{ .branch | normalize }}-{{ .number }}'
