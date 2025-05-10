@@ -1,0 +1,23 @@
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PostgresCluster
+metadata:
+  name: timescaledb-single
+  namespace: pgo-system
+spec:
+  postgresVersion: 14
+
+  # ← just one pod, no replicas
+  instances: 1
+
+  # persist just a tiny volume
+  storage:
+    primary:
+      size: 1Gi
+
+  # load the TimescaleDB library
+  configuration:
+    shared_preload_libraries: "timescaledb"
+
+  # operator will run CREATE EXTENSION for you
+  extensions:
+    - name: timescaledb

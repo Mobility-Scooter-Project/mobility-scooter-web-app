@@ -1,12 +1,14 @@
+api:
+  image:
+    tag: "latest"
+  replicas: 1
+
 web:
   image:
     tag: "latest"
   replicas: 1
 
-api:
-  image:
-    tag: "latest"
-  replicas: 1
+
 
 # https://github.com/bitnami/charts/blob/main/bitnami/valkey/values.yaml
 valkey:
