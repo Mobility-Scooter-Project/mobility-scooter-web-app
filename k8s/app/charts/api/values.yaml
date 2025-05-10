@@ -21,6 +21,7 @@ configmap:
     KV_URL: redis://localhost:6379
     BROKER_URL: localhost
     STORAGE_PORT: 9000
+    STORAGE_URL: localhost
     STORAGE_ACCESS_KEY: minioadmin
     STORAGE_SECRET_KEY: minioadmin
     VAULT_ADDR: http://localhost:8200
