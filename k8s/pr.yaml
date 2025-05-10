@@ -45,7 +45,7 @@ spec:
             - name: web.image.tag
               value: '{{.branch | normalize}}'
             - name: web.configmap.data.API_BASE_URL
-              value: 'https://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
+              value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{ .branch | normalize }}-{{ .number }}'
