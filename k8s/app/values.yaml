@@ -30,14 +30,18 @@ vault:
       postStart:
         exec:
           command:
-            - sh
-            - -c
-            - |
-              # In dev mode Vault auto–initializes & unseals, so we can enable engines immediately:
-              vault login root
-              vault secrets enable -version=2 -path=secret kv || true
-              vault secrets enable -path=transit transit || true
-              vault write -f transit/keys/object-key || true
+            - sh; -c; |
+            # wait for dev Vault to be ready…
+            - until curl -sf http://127.0.0.1:8200/v1/sys/health | grep -q initialized; do sleep 1; done
+
+            - VAULT_ADDR=http://127.0.0.1:8200 vault login root
+
+            # upgrade the built-in KV v1 at "secret/" to KV v2:
+            - vault secrets tune -version=2 secret || echo "tune already applied"
+
+            # idempotently enable Transit:
+            - vault secrets enable -path=transit transit || echo "transit already enabled"
+            - vault write -f transit/keys/object-key || echo "object-key exists"
     resourcesPreset: nano
     extraVolumes:
       - name: data
