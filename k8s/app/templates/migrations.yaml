@@ -28,8 +28,8 @@ spec:
             
             echo "Cloning repo..."
             git clone https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-            git checkout {{ .Values.head_sha}}
             cd mobility-scooter-web-app/apps/api
+            git checkout {{ .Values.head_sha}}
             echo "Installing pnpm..."
             npm install -g pnpm
             echo "Installing drizzle..."
