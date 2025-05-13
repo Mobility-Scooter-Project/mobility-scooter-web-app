@@ -14,7 +14,7 @@ spec:
         image: node:20-bookworm
         env: 
           - name: DATABASE_URL
-            value: postgresql://postgres:postgres@postgres-service:5432
+            value: 'postgresql://postgres:postgres@{{ .Release.Name }}-postgres:5432'
         command: ["/bin/sh", "-c"]
         args: 
           - |
