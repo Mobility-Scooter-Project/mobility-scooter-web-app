@@ -12,33 +12,6 @@ web:
 postgresql:
   postgresqlSharedPreloadLibraries: "pgcrypto"
   primary:
-    initContainers:
-      - name: wait-for-db
-        image: busybox
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            until wget -q -O - http://localhost:5432 || nc -z localhost 5432; do
-              echo "Waiting for database to be available..."
-              sleep 2
-            done
-            echo "Database is ready!"
-      - name: apply-migrations
-        image: node:20-bookworm
-        env: 
-          - name: DATABASE_URL
-            value: postgresql://postgres:postgres@localhost:5432
-        command: ["/bin/sh", "-c"]
-        args: 
-          - |
-            echo "Cloning repo..."
-            git clone https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
-            cd mobility-scooter-web-app/apps/api
-            echo "Installing pnpm..."
-            npm install -g pnpm
-            echo "Installing drizzle..."
-            pnpm i
-            pnpm run db:migrate
     resourcesPreset: nano
     persistence:
       enabled: false
