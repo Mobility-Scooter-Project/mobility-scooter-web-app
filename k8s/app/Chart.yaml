@@ -9,9 +9,9 @@ dependencies:
     version: 0.1.0
   - name: web
     version: 0.1.0
-  - name: stackgres-operator
-    version: 1.16.1
-    repository: https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
+  - name: postgresql
+    version: 16.4.11
+    repository: oci://registry-1.docker.io/bitnamicharts
   - name: valkey
     version: 3.0.4
     repository: oci://registry-1.docker.io/bitnamicharts

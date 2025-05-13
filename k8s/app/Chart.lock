@@ -5,9 +5,9 @@ dependencies:
 - name: web
   repository: ""
   version: 0.1.0
-- name: stackgres-operator
-  repository: https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
-  version: 1.16.1
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 16.4.11
 - name: valkey
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 3.0.4
@@ -17,5 +17,5 @@ dependencies:
 - name: vault
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 1.7.9
-digest: sha256:6fc87ab02cd1525a6b70e33982a3fd72a7bf3586dbea65790d7f3ab4a7992ec0
-generated: "2025-05-12T19:50:55.206402319-07:00"
+digest: sha256:e95277267d6241cbc47d0aaf52cde5ec5854434310413f47d90a06c0600d6f8c
+generated: "2025-05-12T20:09:15.618851135-07:00"
