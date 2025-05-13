@@ -12,7 +12,7 @@ web:
 postgresql:
   postgresqlSharedPreloadLibraries: "pgaudit,pgcrypto,timescaledb"
   primary:
-    resourcePreset: nano
+    resourcesPreset: nano
     persistence:
       enabled: false
     initdb:
