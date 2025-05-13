@@ -13,6 +13,16 @@ postgresql:
   postgresqlSharedPreloadLibraries: "pgcrypto"
   primary:
     initContainers:
+      - name: wait-for-db
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            until wget -q -O - http://localhost:5432 || nc -z localhost 5432; do
+              echo "Waiting for database to be available..."
+              sleep 2
+            done
+            echo "Database is ready!"
       - name: apply-migrations
         image: node:20-bookworm
         env: 
