@@ -31,6 +31,8 @@ spec:
           valueFiles:
             - values.yaml
           parameters:
+            - name: head_sha
+              value: '{{.head_sha}}'
             - name: api.image.tag
               value: '{{.branch | normalize}}'
             - name: api.configmap.data.BASE_URL

@@ -1,3 +1,5 @@
+head_sha: ""
+
 api:
   image:
     tag: "latest"
