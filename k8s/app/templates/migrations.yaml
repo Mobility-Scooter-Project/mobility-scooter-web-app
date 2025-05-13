@@ -21,7 +21,7 @@ spec:
             echo "Waiting for database to be ready..."
             apt-get update && apt-get install -y netcat-openbsd
             
-            until nc -z postgres-service 5432; do
+            until nc -z {{ .Release.Name }}-postgres 5432; do
               echo "Waiting for PostgreSQL to be available..."
               sleep 2
             done
