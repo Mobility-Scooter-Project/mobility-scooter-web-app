@@ -14,7 +14,7 @@ postgresql:
   primary:
     initContainers:
       - name: apply-migrations
-        image: node:20-slim
+        image: node:20-alpine
         env: 
           - name: DATABASE_URL
             value: postgresql://postgres:postgres@localhost:5432
