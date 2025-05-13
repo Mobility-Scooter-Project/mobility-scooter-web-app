@@ -22,7 +22,6 @@ const app = new Hono<{ Variables: Variables }>()
       tags: ["storage"],
       description: "Upload a file to the storage bucket",
     }),
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     async (c) => {
@@ -52,7 +51,6 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     "/presigned-url",
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     zValidator("json", presignedUrlSchema),

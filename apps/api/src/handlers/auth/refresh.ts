@@ -33,7 +33,6 @@ const app = new Hono<{ Variables: Variables }>().post(
     },
   }),
   dbMiddleware,
-  validateApiKey,
   zValidator("json", refreshTokenSchema),
   async (c) => {
     const { token } = c.req.valid("json");
