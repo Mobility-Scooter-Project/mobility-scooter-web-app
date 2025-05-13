@@ -11,6 +11,24 @@ web:
 # https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
 postgresql:
   postgresqlSharedPreloadLibraries: "pgcrypto"
+  initContainers:
+    - name: apply-migrations
+      image: node:20-slim
+      env: 
+        - name: DATABASE_URL
+          value: postgresql://postgres:postgres@localhost:5432
+      command: ["/bin/sh", "c"]
+      args: 
+        - |
+          echo "Cloning repo..."
+          git clone https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
+          cd mobility-scooter-web-app/apps/api
+          echo "Installing pnpm..."
+          npm install -g pnpm
+          echo "Installing drizzle..."
+          pnpm i
+          pnpm run db:migrate
+
   primary:
     resourcesPreset: nano
     persistence:
