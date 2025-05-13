@@ -41,6 +41,8 @@ spec:
               value: 'postgresql://postgres:postgres@mswa-{{.branch | normalize}}-{{ .number }}-postgresql:5432'
             - name: api.configmap.data.KV_URL
               value: redis://mswa-{{ .branch | normalize }}-{{ .number }}-valkey-primary:6379
+            - name: api.configmap.data.STORAGE_URL
+              value: '{{ .branch | normalize }}-{{ .number }}-minio'
             - name: api.configmap.data.BROKER_URL
               value: mswa-{{.branch | normalize }}-{{ .number }}-kafka:9092
             - name: api.configmap.data.VAULT_ADDR
