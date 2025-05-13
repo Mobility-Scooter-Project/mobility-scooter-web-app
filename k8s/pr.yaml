@@ -35,6 +35,8 @@ spec:
               value: '{{.branch | normalize}}'
             - name: api.configmap.data.BASE_URL
               value: 'mswa-{{.branch | normalize }}-{{ .number }}-api'
+            - name: api.configmap.data.DATABASE_URL
+              value: 'postgresql://postgres:postgres@mswa-{{.branch | normalize}}-{{ .number }}-postgresql:5432'
             - name: api.configmap.data.KV_URL
               value: redis://mswa-{{ .branch | normalize }}-{{ .number }}-valkey-primary:6379
             - name: api.configmap.data.BROKER_URL
