@@ -8,11 +8,17 @@ web:
     tag: "latest"
   replicas: 1
 
+# https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
 postgresql:
+  postgresqlSharedPreloadLibraries: "pgaudit,pgcrypto,timescaledb"
   primary:
     resourcePreset: nano
     persistence:
       enabled: false
+    initdb:
+      scripts:
+        create_timescaledb.sql |
+          CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
 # https://github.com/bitnami/charts/blob/main/bitnami/valkey/values.yaml
 valkey:
