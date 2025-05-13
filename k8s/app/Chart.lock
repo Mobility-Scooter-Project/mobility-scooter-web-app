@@ -5,9 +5,6 @@ dependencies:
 - name: web
   repository: ""
   version: 0.1.0
-- name: pgo
-  repository: oci://registry.developers.crunchydata.com/crunchydata
-  version: 5.8.0
 - name: valkey
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 3.0.4
@@ -17,5 +14,5 @@ dependencies:
 - name: vault
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 1.7.9
-digest: sha256:fad483bcf9c974a1412815e94b027e00e3bd64b010256ff3999eb56c0b1f2731
-generated: "2025-05-10T12:12:58.912526477-07:00"
+digest: sha256:c1637c602b5fa28ed0bd6d1780be28da947b078e2847997fa1da06d7d7ee47e4
+generated: "2025-05-10T12:22:17.034173132-07:00"
