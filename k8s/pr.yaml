@@ -69,3 +69,4 @@ spec:
         - CreateNamespace=true
         automated:
           selfHeal: true
+          prune: true
