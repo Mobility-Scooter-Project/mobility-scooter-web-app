@@ -1,0 +1,10 @@
+appName: worker
+
+image:
+  name: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/worker
+  tag: latest
+
+configmap:
+  data:
+    BROKER_URL: localhost:9092
+    DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
