@@ -22,6 +22,7 @@ postgresql:
     initdb:
       scripts:
         create_timescaledb.sql: |
+          CREATE EXTENSION IF NOT EXISTS pgcrypto CASCADE;
           CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
 # https://github.com/bitnami/charts/blob/main/bitnami/valkey/values.yaml

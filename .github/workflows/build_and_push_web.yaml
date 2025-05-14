@@ -10,7 +10,6 @@ on:
   pull_request:
     paths:
       - apps/web/**
-      - k8s/app/web/**
 
 env:
   REGISTRY: ghcr.io

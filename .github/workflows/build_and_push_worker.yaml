@@ -10,7 +10,6 @@ on:
   pull_request:
     paths:
       - apps/video-worker/**
-      - k8s/app/video-worker/**
 
 env:
   REGISTRY: ghcr.io
