@@ -2,7 +2,6 @@ import { zValidator } from "@hono/zod-validator";
 import type { Variables } from "@src/index";
 import { dbMiddleware } from "@src/middleware/db";
 import { userMiddleware } from "@src/middleware/user";
-import { validateApiKey } from "@src/middleware/validate-api-key";
 import { storageService } from "@src/services/storage";
 import {
   presignedQuerySchema,
