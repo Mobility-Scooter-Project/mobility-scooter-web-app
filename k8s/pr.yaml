@@ -56,7 +56,7 @@ spec:
               value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
 
             - name: worker.image.tag
-              value: '{{.branch | normalize}}'
+              value: 'develop'
             - name: worker.configmap.data.BROKER_URL
               value: mswa-{{.branch | normalize }}-{{ .number }}-kafka:9092
             - name: worker.configmap.data.DATABASE_URL
