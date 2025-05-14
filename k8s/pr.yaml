@@ -19,7 +19,7 @@ spec:
       name: 'mswa-{{.branch | normalize}}-{{.number}}'
       annotations:
         argocd-image-updater.argoproj.io/write-back-method: argocd
-        argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}},api=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:{{.branch | normalize}}
+        argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}},api=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:{{.branch | normalize}},worker=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/worker:{{ .branch | normalize}}
         argocd-image-updater.argoproj.io/update-strategy: digest
     spec:
       project: "default"
@@ -54,6 +54,13 @@ spec:
               value: 'mswa-web-{{.branch | normalize}}-{{.number}}'
             - name: web.configmap.data.API_BASE_URL
               value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
+
+            - name: worker.image.tag
+              value: '{{.branch | normalize}}'
+            - name: worker.configmap.data.BROKER_URL
+              value: mswa-{{.branch | normalize }}-{{ .number }}-kafka:9092
+            - name: worker.configmap.data.DATABASE_URL
+              value: 'postgresql://postgres:postgres@mswa-{{.branch | normalize}}-{{ .number }}-postgresql:5432'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'mswa-{{ .branch | normalize }}-{{ .number }}'
