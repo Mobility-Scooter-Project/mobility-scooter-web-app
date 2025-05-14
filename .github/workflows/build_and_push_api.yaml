@@ -7,11 +7,9 @@ on:
       - main
     paths:
       - apps/api/**
-      - .github/workflows/build_and_push_web.yaml
   pull_request:
     paths:
       - apps/api/**
-      - .github/workflows/build_and_push_web.yaml
 
 env:
   REGISTRY: ghcr.io

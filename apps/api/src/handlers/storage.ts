@@ -2,7 +2,6 @@ import { zValidator } from "@hono/zod-validator";
 import type { Variables } from "@src/index";
 import { dbMiddleware } from "@src/middleware/db";
 import { userMiddleware } from "@src/middleware/user";
-import { validateApiKey } from "@src/middleware/validate-api-key";
 import { storageService } from "@src/services/storage";
 import {
   presignedQuerySchema,
@@ -22,7 +21,6 @@ const app = new Hono<{ Variables: Variables }>()
       tags: ["storage"],
       description: "Upload a file to the storage bucket",
     }),
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     async (c) => {
@@ -52,7 +50,6 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     "/presigned-url",
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     zValidator("json", presignedUrlSchema),

@@ -30,7 +30,6 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     async (c) => {
@@ -68,7 +67,6 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     userMiddleware,
     otpRateLimiter,
     dbMiddleware,

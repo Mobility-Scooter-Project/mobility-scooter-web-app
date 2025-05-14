@@ -40,7 +40,6 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     dbMiddleware,
     signUpRateLimiter,
     zValidator("json", createUserWithPasswordSchema),
@@ -85,7 +84,6 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     dbMiddleware,
     zValidator("json", signInWithPasswordSchema),
     signInRateLimiter,
@@ -128,7 +126,6 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     zValidator("json", resetPasswordTokenSchema),
     resetPasswordRateLimiter,
     async (c) => {
@@ -169,7 +166,6 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     zValidator("json", resetPasswordSchema),
     resetPasswordRateLimiter,
     async (c) => {

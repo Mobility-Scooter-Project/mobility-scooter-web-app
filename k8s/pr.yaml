@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: mswa-pr
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - pullRequest:
+      github:
+        owner: mobility-scooter-project
+        repo: mobility-scooter-web-app
+        tokenRef:
+          secretName: argocd-github-token
+          key: token
+  template:
+    metadata:
+      name: 'mswa-{{.branch | normalize}}-{{.number}}'
+      annotations:
+        argocd-image-updater.argoproj.io/write-back-method: argocd
+        argocd-image-updater.argoproj.io/image-list: web=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:{{.branch | normalize}},api=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:{{.branch | normalize}},worker=ghcr.io/mobility-scooter-project/mobility-scooter-web-app/worker:{{ .branch | normalize}}
+        argocd-image-updater.argoproj.io/update-strategy: digest
+    spec:
+      project: "default"
+      source:
+        repoURL: https://github.com/Mobility-Scooter-Project/mobility-scooter-web-app.git
+        targetRevision: '{{.head_sha}}'
+        path: k8s/app
+        helm:
+          valueFiles:
+            - values.yaml
+          parameters:
+            - name: head_sha
+              value: '{{.head_sha}}'
+            - name: api.image.tag
+              value: '{{.branch | normalize}}'
+            - name: api.configmap.data.BASE_URL
+              value: 'mswa-{{.branch | normalize }}-{{ .number }}-api'
+            - name: api.configmap.data.DATABASE_URL
+              value: 'postgresql://postgres:postgres@mswa-{{.branch | normalize}}-{{ .number }}-postgresql:5432'
+            - name: api.configmap.data.KV_URL
+              value: redis://mswa-{{ .branch | normalize }}-{{ .number }}-valkey-primary:6379
+            - name: api.configmap.data.STORAGE_URL
+              value: '{{ .branch | normalize }}-{{ .number }}-minio'
+            - name: api.configmap.data.BROKER_URL
+              value: mswa-{{.branch | normalize }}-{{ .number }}-kafka:9092
+            - name: api.configmap.data.VAULT_ADDR
+              value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-vault-server-active:8200'
+
+            - name: web.image.tag
+              value: '{{.branch | normalize}}'
+            - name: web.ingress.subdomain
+              value: 'mswa-web-{{.branch | normalize}}-{{.number}}'
+            - name: web.configmap.data.API_BASE_URL
+              value: 'http://mswa-{{.branch | normalize }}-{{ .number }}-api:3000'
+
+            - name: worker.image.tag
+              value: 'develop'
+            - name: worker.configmap.data.BROKER_URL
+              value: mswa-{{.branch | normalize }}-{{ .number }}-kafka:9092
+            - name: worker.configmap.data.DATABASE_URL
+              value: 'postgresql://postgres:postgres@mswa-{{.branch | normalize}}-{{ .number }}-postgresql:5432'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'mswa-{{ .branch | normalize }}-{{ .number }}'
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true
+        automated:
+          selfHeal: true
+          prune: true
