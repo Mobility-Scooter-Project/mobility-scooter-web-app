@@ -1,11 +1,14 @@
 import { HTTP_CODES } from "@src/config/http-codes";
-import { kv } from "@src/integrations/kv";
+import container, { KVSymbol } from "@src/lib/container";
 import { SHARED_DATA, TESTING_API_KEY } from "@tests/config/constants";
 import { client } from "@tests/lib/client";
+import Redis from "ioredis";
+
 
 export default () =>
     describe("OTP", () => {
         beforeEach(async () => {
+            const kv = await container.getAsync<Redis>(KVSymbol);
             await kv.flushall();
         });
 

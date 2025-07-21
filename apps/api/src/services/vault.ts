@@ -23,14 +23,13 @@ import * as crypto from "node:crypto";
  * await vault.createOtpSecret('userId', 'secretValue');
  * ```
  */
-export class Vault {
+export class VaultService {
   private static instance: VaultClient;
-  private static isConnected = false;
 
   public constructor() {
-    if (!Vault.instance) {
+    if (!VaultService.instance) {
       try {
-        Vault.instance = VaultClient.boot("main", {
+        VaultService.instance = VaultClient.boot("main", {
           api: {
             url: VAULT_ADDR,
           },
@@ -41,9 +40,8 @@ export class Vault {
             },
           },
         });
-        Vault.isConnected = true;
       } catch (error) {
-        Vault.isConnected = false;
+        console.error("Failed to initialize Vault client:", error);
       }
     }
   }
@@ -59,7 +57,7 @@ export class Vault {
    */
   public async createOtpSecret(userId: string, secret: string) {
     try {
-      await Vault.instance.write(`kv/auth/otp/${userId}`, { secret });
+      await VaultService.instance.write(`kv/auth/otp/${userId}`, { secret });
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create OTP secret");
     }
@@ -75,7 +73,7 @@ export class Vault {
    */
   public async getOtpSecretByUserId(userId: string) {
     try {
-      const secret = await Vault.instance.read(`kv/auth/otp/${userId}`);
+      const secret = await VaultService.instance.read(`kv/auth/otp/${userId}`);
       return secret.getData().secret as string;
     } catch (e) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, e, "TOTP does not exist");
@@ -93,7 +91,7 @@ export class Vault {
   public async createObjectEncryptionKey(bucketName: string, path: string) {
     const secret = crypto.randomBytes(32).toString("hex"); // 32 bytes = 256 bits for AES-256 encryption
     try {
-      await Vault.instance.write(`kv/storage/${bucketName}/${path}`, { secret });
+      await VaultService.instance.write(`kv/storage/${bucketName}/${path}`, { secret });
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create encryption key");
     }
@@ -109,7 +107,7 @@ export class Vault {
    */
   public async getObjectEncryptionKey(bucketName: string, path: string) {
     try {
-      const secret = await Vault.instance.read(`kv/storage/${bucketName}/${path}`);
+      const secret = await VaultService.instance.read(`kv/storage/${bucketName}/${path}`);
       return secret.getData().secret as string;
     } catch (e) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, "Encryption key does not exist");
@@ -125,7 +123,7 @@ export class Vault {
    */
   public async createPasswordResetToken(token: string, userId: string) {
     try {
-      await Vault.instance.write(`kv/auth/password-reset/${userId}`, {
+      await VaultService.instance.write(`kv/auth/password-reset/${userId}`, {
         token,
         used: false,
       });
@@ -145,7 +143,7 @@ export class Vault {
    *  - INTERNAL_SERVER_ERROR if updating token status fails
    */
   public async markPasswordResetTokenUsed(token: string, userId: string) {
-    const data = (await Vault.instance.read(`kv/auth/password-reset/${userId}`)).getData();
+    const data = (await VaultService.instance.read(`kv/auth/password-reset/${userId}`)).getData();
     if (!data || data.token !== token) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, "Token not found");
     }
@@ -154,7 +152,7 @@ export class Vault {
     }
 
     try {
-      await Vault.instance.write(`kv/auth/password-reset/${userId}`, {
+      await VaultService.instance.write(`kv/auth/password-reset/${userId}`, {
         token,
         used: true,
       });
@@ -163,5 +161,3 @@ export class Vault {
     }
   };
 }
-
-export const vault = new Vault();

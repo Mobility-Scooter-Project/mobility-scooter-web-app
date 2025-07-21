@@ -1,4 +1,5 @@
 import { DATABASE_URL } from "@src/config/constants";
+import { injectable } from "inversify";
 import pg from "pg";
 const { Pool } = pg;
 
@@ -8,8 +9,9 @@ const { Pool } = pg;
  * @class DB
  * @description Manages a single PostgreSQL connection pool instance for the application
  */
-export class DB {
-    private static instance: DB;
+@injectable()
+export class DBService {
+    private static instance: DBService;
     private pool;
 
     private constructor() {
@@ -18,11 +20,11 @@ export class DB {
         });
     }
 
-    public static getInstance(): DB {
-        if (!DB.instance) {
-            DB.instance = new DB();
+    public static getInstance(): DBService {
+        if (!DBService.instance) {
+            DBService.instance = new DBService();
         }
-        return DB.instance;
+        return DBService.instance;
     }
 
     public getPool() {
@@ -30,4 +32,4 @@ export class DB {
     }
 }
 
-export const pool = DB.getInstance().getPool();
+export const pool = DBService.getInstance().getPool();

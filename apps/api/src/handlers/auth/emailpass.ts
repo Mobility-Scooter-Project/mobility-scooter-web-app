@@ -7,8 +7,7 @@ import {
   signInRateLimiter,
   resetPasswordRateLimiter,
 } from "@src/middleware/rate-limit";
-import { validateApiKey } from "@src/middleware/validate-api-key";
-import { authService } from "@src/services/auth";
+import { AuthService } from "@src/services/auth";
 import {
   createUserWithPasswordSchema,
   signInWithPasswordSchema,
@@ -44,6 +43,8 @@ const app = new Hono<{ Variables: Variables }>()
     signUpRateLimiter,
     zValidator("json", createUserWithPasswordSchema),
     async (c) => {
+      const authService = c.get("container").get(AuthService);
+      
       const { email, password, firstName, lastName, unitId } =
         c.req.valid("json");
       const db = c.get("db");
@@ -88,6 +89,8 @@ const app = new Hono<{ Variables: Variables }>()
     zValidator("json", signInWithPasswordSchema),
     signInRateLimiter,
     async (c) => {
+      const authService = c.get("container").get(AuthService);
+
       const { email, password } = c.req.valid("json");
       const db = c.get("db");
 
@@ -129,6 +132,8 @@ const app = new Hono<{ Variables: Variables }>()
     zValidator("json", resetPasswordTokenSchema),
     resetPasswordRateLimiter,
     async (c) => {
+      const authService = c.get("container").get(AuthService);
+
       const { email } = c.req.valid("json");
 
       const token = await authService.generateResetPasswordToken(email);
@@ -169,6 +174,8 @@ const app = new Hono<{ Variables: Variables }>()
     zValidator("json", resetPasswordSchema),
     resetPasswordRateLimiter,
     async (c) => {
+      const authService = c.get("container").get(AuthService);
+      
       const { token, password } = c.req.valid("json");
 
       await authService.resetPassword(token, password);
