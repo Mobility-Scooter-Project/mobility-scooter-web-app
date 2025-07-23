@@ -1,8 +1,11 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { ENVIRONMENT } from "@src/config/constants";
-import { kv } from "@src/integrations/kv";
+import container, { KVSymbol } from "@src/lib/container";
 import { rateLimiter } from "hono-rate-limiter";
+import Redis from "ioredis";
 import RedisStore from "rate-limit-redis";
+
+const kv = await container.getAsync<Redis>(KVSymbol)
 
 const sharedStore = new RedisStore({
   // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis

@@ -1,12 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import { HTTP_CODES } from "@src/config/http-codes";
 import type { Variables } from "@src/index";
+import container from "@src/lib/container";
 import { generateQRCode } from "@src/lib/qr";
 import { dbMiddleware } from "@src/middleware/db";
 import { otpRateLimiter } from "@src/middleware/rate-limit";
 import { userMiddleware } from "@src/middleware/user";
-import { validateApiKey } from "@src/middleware/validate-api-key";
-import { otpService } from "@src/services/auth/otp";
+import { OtpService } from "@src/services/auth/otp";
 import { OTPResponseSchema, verifyTOTPSchema } from "@src/validators/auth";
 import { Hono } from "hono";
 import { describeRoute } from "hono-openapi";
@@ -30,10 +30,11 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     async (c) => {
+      const otpService = c.get("container").get(OtpService);
+
       const userId = c.get("userId")!;
       const db = c.get("db");
 
@@ -68,12 +69,13 @@ const app = new Hono<{ Variables: Variables }>()
         },
       },
     }),
-    validateApiKey,
     userMiddleware,
     otpRateLimiter,
     dbMiddleware,
     zValidator("json", verifyTOTPSchema),
     async (c) => {
+      const otpService = c.get("container").get(OtpService);
+      
       const userId = c.get("userId")!;
       const db = c.get("db");
 

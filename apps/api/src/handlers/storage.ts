@@ -2,8 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import type { Variables } from "@src/index";
 import { dbMiddleware } from "@src/middleware/db";
 import { userMiddleware } from "@src/middleware/user";
-import { validateApiKey } from "@src/middleware/validate-api-key";
-import { storageService } from "@src/services/storage";
+import { StorageService } from "@src/services/storage";
 import {
   presignedQuerySchema,
   presignedUrlResponseSchema,
@@ -22,10 +21,11 @@ const app = new Hono<{ Variables: Variables }>()
       tags: ["storage"],
       description: "Upload a file to the storage bucket",
     }),
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     async (c) => {
+      const storageService = await c.get("container").getAsync(StorageService);
+
       const uploadedAt = new Date();
       const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
@@ -52,11 +52,12 @@ const app = new Hono<{ Variables: Variables }>()
   )
   .post(
     "/presigned-url",
-    validateApiKey,
     userMiddleware,
     dbMiddleware,
     zValidator("json", presignedUrlSchema),
     async (c) => {
+      const storageService = await c.get("container").getAsync(StorageService);
+
       const { filePath, bucketName } = c.req.valid("json");
       const userId = c.get("userId")!;
 
@@ -93,6 +94,8 @@ const app = new Hono<{ Variables: Variables }>()
     dbMiddleware,
     zValidator("query", presignedQuerySchema),
     async (c) => {
+      const storageService = await c.get("container").getAsync(StorageService);
+      
       const filePath = c.req.valid("query")["X-MSWA-FilePath"];
       const bucketName = c.req.valid("query")["X-MSWA-Bucket"];
       const method = c.req.valid("query")["X-MSWA-Method"];
