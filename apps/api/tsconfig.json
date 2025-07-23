@@ -16,6 +16,7 @@
     "jsxImportSource": "hono/jsx",
     "outDir": "./dist",
     "esModuleInterop": true,
+    "experimentalDecorators": true,
     "allowJs": true,
     "baseUrl": ".",
     "composite": true,

@@ -1,15 +1,15 @@
-import { postgresDB } from "../../../src/middleware/db";
-import { sql } from "drizzle-orm";
-import { kv } from "../../../src/integrations/kv"
 import register from "./register";
-import { SHARED_DATA } from "@tests/config/constants";
 import login from "./login";
 import resetPassword from "./reset-password";
 import refreshToken from "./refresh-token";
 import otp from "./otp";
+import container, { KVSymbol } from "@src/lib/container";
+import Redis from "ioredis";
+
 
 export default () => describe("User", () => {
   beforeEach(async () => {
+    const kv = await container.getAsync<Redis>(KVSymbol);
     await kv.flushall();
   });
 
@@ -20,8 +20,7 @@ export default () => describe("User", () => {
   otp();
 
   afterAll(async () => {
-    await Promise.all([
-      kv.flushall(),
-    ]);
+    const kv = await container.getAsync<Redis>(KVSymbol);
+    await kv.flushall();
   });
 });

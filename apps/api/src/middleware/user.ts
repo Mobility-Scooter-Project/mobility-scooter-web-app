@@ -4,8 +4,6 @@ import { HTTPError } from "@src/lib/errors";
 import type { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 
-
-
 /**
  * Middleware function to authenticate and process user information from JWT token.
  * 

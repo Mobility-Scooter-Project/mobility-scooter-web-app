@@ -5,13 +5,8 @@ Authorization: Bearer {{$dotenv TESTING_API_KEY}}
 Content-Type: application/json
 
 {
-<<<<<<<< HEAD:apps/api/http/storage/upload-video-presigned-url.http
- "email": "test@example.com",
- "password": "testing124"
-========
   "email": "test@example.com",
   "password": "testing124"
->>>>>>>> 263ff978e4cb7adfa70078953db6c07b6870e1d6:apps/api/http/storage/download-object.http
 }
 
 ### Get Video Presigned URL
@@ -22,14 +17,9 @@ X-User: {{login.response.body.data.token}}
 Content-Type: application/json
 
 {
-<<<<<<<< HEAD:apps/api/http/storage/upload-video-presigned-url.http
- "date": "{{$datetime iso8601}}",
- "filename": "{{$randomInt 0 1000}}.mp4",
- "patientId": "abc-123-456-789"
-========
   "filePath": "videos/sample.mp4",
-  "patientId": "http-client"
->>>>>>>> 263ff978e4cb7adfa70078953db6c07b6870e1d6:apps/api/http/storage/download-object.http
+  "patientId": "http-client",
+  "bucketName": "http-client"
 }
 
 ### Download Video

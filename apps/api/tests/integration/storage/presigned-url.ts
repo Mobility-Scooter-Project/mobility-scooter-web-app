@@ -2,7 +2,7 @@ import { SHARED_LOGIN } from "@tests/config/constants";
 import { getClientWithHeaders } from "@tests/lib/client";
 import * as fs from "fs";
 import { client as unauthenticatedClient } from "@tests/lib/client";
-import { Storage } from "@src/integrations/storage";
+import { S3Service } from "@src/services/s3";
 
 const SHARED_DATA = {
     bucketName: "test-bucket",
@@ -80,10 +80,5 @@ export default () => describe("Presigned URL", () => {
         expect(response.status).toBe(401);
     });
 
-    afterAll(async () => {
-        await Storage.instance.removeObject(
-            "test-bucket",
-            "test-file.txt",
-        )
-    });
+    // TODO: delete the file after the test using DI
 });
