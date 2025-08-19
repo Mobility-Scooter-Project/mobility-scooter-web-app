@@ -1,0 +1,18 @@
+{
+    "dockerComposeFile": "../compose.yaml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/mobility-scooter-web-app",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/devcontainers/features/python:1": {},
+        "ghcr.io/devcontainers-extra/features/poetry:2": {},
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-containers"
+            ]
+        }
+    }
+}
