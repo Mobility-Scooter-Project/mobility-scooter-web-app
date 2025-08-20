@@ -18,8 +18,11 @@ export const STORAGE_SECRET_KEY =
 
 export const SMTP_HOST = process.env.SMTP_HOST || "missing SMTP_HOST";
 
-export const VAULT_ADDR = process.env.VAULT_ADDR || "missing VAULT_ADDR";
-export const VAULT_TOKEN = process.env.VAULT_TOKEN || "missing VAULT_TOKEN";
+export const VAULT_URL = process.env.VAULT_URL || "missing VAULT_URL";
+
+export const KEYSTONE_URL = process.env.KEYSTONE_URL || "missing KEYSTONE_URL";
+export const KEYSTONE_CLIENT_ID = process.env.KEYSTONE_CLIENT_ID || "missing KEYSTONE_CLIENT_ID";
+export const KEYSTONE_CLIENT_SECRET = process.env.KEYSTONE_CLIENT_SECRET || "missing KEYSTONE_CLIENT_SECRET";
 
 export const BROKER_URL = process.env.BROKER_URL || "missing BROKER_URL"
 export const ENVIRONMENT = process.env.ENVIRONMENT || "development";

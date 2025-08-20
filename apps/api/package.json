@@ -23,6 +23,7 @@
     "@hono/zod-validator": "^0.4.3",
     "@mia-platform/kafkajs-pino-logger": "^2.0.1",
     "@scalar/hono-api-reference": "^0.7.2",
+    "axios": "^1.11.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
     "eslint": "^9.22.0",

@@ -11,6 +11,7 @@ container.bind(KVSymbol).toResolvedValue(async () => {
     return await KVService.build();
 }).inSingletonScope();
 
+
 container.bind(QueueSymbol).toResolvedValue(async () => {
     return await QueueService.build();
 }).inSingletonScope();
