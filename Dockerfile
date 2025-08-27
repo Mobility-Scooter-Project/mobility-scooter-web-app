@@ -19,7 +19,7 @@ WORKDIR /usr/src/mswa/apps/api
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
 
-FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu24.04 AS worker
+FROM nvidia/cuda:12.8.0-base-ubuntu22.04 AS worker
 
 RUN apt-get update \
  && apt-get install --no-install-recommends -y \
