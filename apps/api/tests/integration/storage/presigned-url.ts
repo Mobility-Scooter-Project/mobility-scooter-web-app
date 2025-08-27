@@ -2,10 +2,8 @@ import { SHARED_LOGIN } from "@tests/config/constants";
 import { getClientWithHeaders } from "@tests/lib/client";
 import * as fs from "fs";
 import { client as unauthenticatedClient } from "@tests/lib/client";
-import { S3Service } from "@src/services/s3";
 
 const SHARED_DATA = {
-    bucketName: "test-bucket",
     filePath: "test-file.txt",
 };
 
@@ -34,10 +32,11 @@ export default () => describe("Presigned URL", () => {
 
         const body = fs.readFileSync(`${__dirname}/test-file.txt`);
 
-        const res = await client.api.v1.storage[":bucketName"][":filePath"].$put({
+        const res = await client.api.v1.storage[":filePath{.*}"].$put({
             param: SHARED_DATA,
         }, {
             init: {
+                // @ts-ignore
                 body: body,
             }
         });
@@ -73,12 +72,11 @@ export default () => describe("Presigned URL", () => {
     });
 
     it("should return 401 when using an invalid presigned URL", async () => {
-        const url = presignedUrl.replace("test-bucket", "invalid-bucket");
+        const url = presignedUrl.replace("test-file", "invalid-file");
         const response = await fetch(url, {
             method: "GET"
         });
         expect(response.status).toBe(401);
     });
 
-    // TODO: delete the file after the test using DI
 });

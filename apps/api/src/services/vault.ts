@@ -60,7 +60,6 @@ export class VaultService {
   public async upsertSecret(path: string, key: string, secret: string) {
     await this._lazyInit();
     secret = Buffer.from(secret, 'utf8').toString('base64'); // Encode secret to base64
-    try {
       const response = await this._client!.post('/v1/secrets', JSON.stringify({
         payload: secret,
         secret_type: 'symmetric',
@@ -93,40 +92,32 @@ export class VaultService {
       secretRef = VAULT_URL + secretRef; // Ensure the secretRef is a full URL
 
       await this._kv.hmset(path, { [key]: secretRef });
-
-    } catch (error) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, error, `Failed to upsert secret at ${path}`);
-    }
   }
 
   public async readSecret(path: string, key: string) {
     await this._lazyInit();
-    try {
-      const secretRef = await this._kv.hget(path, key);
+    const secretRef = await this._kv.hget(path, key);
 
-      // TODO: handle refresh from Barbican if needed
-      if (!secretRef) {
-        throw new HTTPError(HTTP_CODES.NOT_FOUND, `Secret not found at ${path}`);
-      }
-
-      const response = await this._client!.get(secretRef);
-
-      if (response.status === 401) {
-        this._client!.defaults.headers['X-Auth-Token'] = await this._keystone.getAuthToken();
-        const retryResponse = await this._client!.get(secretRef);
-        if (!retryResponse.status.toString().includes('20')) {
-          throw new HTTPError(HTTP_CODES.NOT_FOUND, retryResponse.data, `Secret not found at ${path}`);
-        }
-        return retryResponse.data as string;
-      }
-
-      if (!response.status.toString().includes('20')) {
-        throw new HTTPError(HTTP_CODES.NOT_FOUND, response.data, `Secret not found at ${path}`);
-      }
-      return response.data as string;
-    } catch (error) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, error, `Failed to read secret at ${path}`);
+    // TODO: handle refresh from Barbican if needed
+    if (!secretRef) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, `Secret not found at ${path}`);
     }
+
+    const response = await this._client!.get(secretRef);
+
+    if (response.status === 401) {
+      this._client!.defaults.headers['X-Auth-Token'] = await this._keystone.getAuthToken();
+      const retryResponse = await this._client!.get(secretRef);
+      if (!retryResponse.status.toString().includes('20')) {
+        throw new HTTPError(HTTP_CODES.NOT_FOUND, retryResponse.data, `Secret not found at ${path}`);
+      }
+      return retryResponse.data as string;
+    }
+
+    if (!response.status.toString().includes('20')) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, response.data, `Secret not found at ${path}`);
+    }
+    return response.data as string;
   }
 
   /**
@@ -183,7 +174,7 @@ export class VaultService {
    * @returns A promise that resolves to the encryption key as a string
    * @throws {HTTPError} With status 404 if the encryption key does not exist in Vault
    */
-  public async getObjectEncryptionKey( path: string) {
+  public async getObjectEncryptionKey(path: string) {
     try {
       return await this.readSecret(`storage/${STORAGE_BUCKET}`, path);
     } catch (e) {
@@ -217,22 +208,18 @@ export class VaultService {
    *  - INTERNAL_SERVER_ERROR if updating token status fails
    */
   public async markPasswordResetTokenUsed(token: string, userId: string) {
-    try {
-      const secret = await this.readSecret(`auth/password-reset`, userId);
-      const parsedSecret = JSON.parse(JSON.stringify(secret));
+    const secret = await this.readSecret(`auth/password-reset`, userId);
+    const parsedSecret = JSON.parse(JSON.stringify(secret));
 
-      if (parsedSecret.used) {
-        throw new HTTPError(HTTP_CODES.BAD_REQUEST, "Password reset token has already been used");
-      }
-
-      if (parsedSecret.token !== token) {
-        throw new HTTPError(HTTP_CODES.NOT_FOUND, "Password reset token does not match");
-      }
-
-      parsedSecret.used = true;
-      await this.upsertSecret(`auth/password-reset`, userId, JSON.stringify(parsedSecret));
-    } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to mark password reset token as used");
+    if (parsedSecret.used) {
+      throw new HTTPError(HTTP_CODES.BAD_REQUEST, "Password reset token has already been used");
     }
-  };
+
+    if (parsedSecret.token !== token) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Password reset token does not match");
+    }
+
+    parsedSecret.used = true;
+    await this.upsertSecret(`auth/password-reset`, userId, JSON.stringify(parsedSecret));
+  }
 }
