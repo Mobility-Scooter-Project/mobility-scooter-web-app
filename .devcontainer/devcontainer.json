@@ -2,17 +2,24 @@
     "dockerComposeFile": "../compose.yaml",
     "service": "devcontainer",
     "workspaceFolder": "/workspaces/mobility-scooter-web-app",
+    "postStartCommand": "pnpm i && cd apps/video-worker && poetry install",
     "features": {
         "ghcr.io/devcontainers/features/node:1": {},
         "ghcr.io/devcontainers/features/python:1": {},
         "ghcr.io/devcontainers-extra/features/poetry:2": {},
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/devcontainers/features/nvidia-cuda:2": {}
+    },
+    "hostRequirements": {
+        "gpu": "optional"
     },
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-azuretools.vscode-containers",
-                "humao.rest-client"
+                "humao.rest-client",
+                "donjayamanne.git-extension-pack",
+                "GitHub.copilot-chat"
             ]
         }
     }

@@ -11,7 +11,6 @@ export const videoStatusSchema = z.enum([
 
 export const presignedUrlSchema = z.object({
   filePath: z.string(),
-  bucketName: z.string(),
 });
 
 export const presignedUrlResponseSchema = z.object({
@@ -69,7 +68,6 @@ export const videoEventSchema = z.object({
 })
 export const presignedQuerySchema = z.object({
   "X-MSWA-FilePath": z.string(),
-  "X-MSWA-Bucket": z.string(),
   "X-MSWA-Method": z.string(),
   "X-MSWA-Expires": z.string(),
   "X-MSWA-Signature": z.string()

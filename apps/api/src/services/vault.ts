@@ -1,4 +1,4 @@
-import { ENVIRONMENT, VAULT_URL } from "@src/config/constants";
+import { ENVIRONMENT, STORAGE_BUCKET, VAULT_URL } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import axios, { AxiosInstance } from "axios";
@@ -91,7 +91,6 @@ export class VaultService {
 
       secretRef = secretRef.replace("http://localhost:9311", "");
       secretRef = VAULT_URL + secretRef; // Ensure the secretRef is a full URL
-      logger.debug(secretRef)
 
       await this._kv.hmset(path, { [key]: secretRef });
 
@@ -140,7 +139,7 @@ export class VaultService {
    */
   public async createOtpSecret(userId: string, secret: string) {
     try {
-      await this.upsertSecret(`kv/auth/otp`, userId, secret);
+      await this.upsertSecret(`auth/otp`, userId, secret);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create OTP secret");
     }
@@ -156,7 +155,7 @@ export class VaultService {
    */
   public async getOtpSecretByUserId(userId: string) {
     try {
-      return await this.readSecret(`kv/auth/otp`, userId);
+      return await this.readSecret(`auth/otp`, userId);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, e, "TOTP does not exist");
     }
@@ -164,15 +163,14 @@ export class VaultService {
 
   /**
    * Creates and stores an encryption key in Vault for object encryption
-   * @param bucketName - The name of the storage bucket
    * @param path - The path within the bucket where the object will be stored
    * @returns A hexadecimal string representing the generated 256-bit encryption key
    * @throws {HTTPError} If the encryption key cannot be stored in Vault
    */
-  public async createObjectEncryptionKey(bucketName: string, path: string) {
+  public async createObjectEncryptionKey(path: string) {
     const secret = crypto.randomBytes(32).toString("hex"); // 32 bytes = 256 bits for AES-256 encryption
     try {
-      await this.upsertSecret(`kv/storage/${bucketName}`, path, secret);
+      await this.upsertSecret(`storage/${STORAGE_BUCKET}`, path, secret);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create encryption key");
     }
@@ -181,14 +179,13 @@ export class VaultService {
 
   /**
    * Retrieves an encryption key for a specified object from Vault.
-   * @param bucketName - The name of the bucket where the object is stored
    * @param path - The path to the object within the bucket
    * @returns A promise that resolves to the encryption key as a string
    * @throws {HTTPError} With status 404 if the encryption key does not exist in Vault
    */
-  public async getObjectEncryptionKey(bucketName: string, path: string) {
+  public async getObjectEncryptionKey( path: string) {
     try {
-      return await this.readSecret(`kv/storage/${bucketName}`, path);
+      return await this.readSecret(`storage/${STORAGE_BUCKET}`, path);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, "Encryption key does not exist");
     }
@@ -233,7 +230,7 @@ export class VaultService {
       }
 
       parsedSecret.used = true;
-      await this.upsertSecret(`kv/auth/password-reset`, userId, JSON.stringify(parsedSecret));
+      await this.upsertSecret(`auth/password-reset`, userId, JSON.stringify(parsedSecret));
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to mark password reset token as used");
     }

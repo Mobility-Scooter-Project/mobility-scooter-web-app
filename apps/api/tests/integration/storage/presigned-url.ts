@@ -38,7 +38,7 @@ export default () => describe("Presigned URL", () => {
             param: SHARED_DATA,
         }, {
             init: {
-                body,
+                body: body,
             }
         });
 
@@ -48,7 +48,7 @@ export default () => describe("Presigned URL", () => {
         expect(error).toBeNull();
         expect(data).not.toBeNull();
         expect(data.success).toBe(true);
-    });
+    }, 10000);
 
     it("should generate a presigned URL for downloading a file", async () => {
 

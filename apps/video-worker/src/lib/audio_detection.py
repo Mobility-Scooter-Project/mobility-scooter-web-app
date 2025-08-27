@@ -18,7 +18,10 @@ from lib.format_time import format_time
 from lib.db import DBActor
 import json
 
-@ray.remote(num_gpus=0.25)
+num_gpus = 0.5 if torch.cuda.is_available() else 0
+logger.debug(f"Audio detection using {num_gpus} GPUs")
+
+@ray.remote(num_gpus=num_gpus)
 class AudioDetection:
   def __init__(self):
     load_dotenv()
