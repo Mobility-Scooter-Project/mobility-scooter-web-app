@@ -19,11 +19,11 @@ WORKDIR /usr/src/mswa/apps/api
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
 
-FROM nvidia/cuda:12.8.0-base-ubuntu22.04 AS worker
+FROM nvidia/cuda:12.8.0-base-ubuntu24.04 AS worker-build
 
 RUN apt-get update \
  && apt-get install --no-install-recommends -y \
-      python3 python3-pip python3-dev python-is-python3 curl \
+      python3 python3-pip python3-dev curl \
       libpq-dev build-essential \
       libgl1 libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/*
@@ -37,6 +37,8 @@ WORKDIR /worker
 
 COPY ./apps/video-worker/ /worker/
 RUN poetry config virtualenvs.in-project false \
- && poetry install --no-interaction --no-ansi
+ && poetry install --no-interaction --no-ansi --with gpu
 
+FROM worker-build AS worker
+WORKDIR /worker
 CMD ["poetry", "run", "python", "src/main.py"]
