@@ -17,7 +17,7 @@ spec:
           name: mswa-web
           replicas: 1
           image:
-            repository: ghcr.io/mobility-scooter-project/web
+            repository: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web
             tag: develop
             pullPolicy: IfNotPresent
 
