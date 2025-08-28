@@ -20,6 +20,7 @@ spec:
             repository: myrepository
             tag: latest
             pullPolicy: IfNotPresent
+
           resources:
             requests:
               cpu: "100m"
@@ -27,6 +28,10 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+          
+          ingress:
+            enabled: true
+            subdomain: mswa.api
 
           database:
             enabled: true
