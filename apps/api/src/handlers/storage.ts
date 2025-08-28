@@ -15,7 +15,7 @@ import { stream } from "hono/streaming";
 
 const app = new Hono<{ Variables: Variables }>()
   .put(
-    "/:bucketName/:filePath",
+    "/:filePath{.*}",
     describeRoute({
       summary: "Upload a file to storage",
       tags: ["storage"],
@@ -27,17 +27,11 @@ const app = new Hono<{ Variables: Variables }>()
       const storageService = await c.get("container").getAsync(StorageService);
 
       const uploadedAt = new Date();
-      const bucketName = c.req.param("bucketName");
       const filePath = decodeURIComponent(c.req.param("filePath"));
       const uploadStream = c.req.raw.body!;
-      c.header("Content-Type", "video/mp4");
-
-      const userId = c.get("userId")!;
 
       await storageService.putObjectStream(
         filePath,
-        userId,
-        bucketName,
         uploadStream,
         uploadedAt,
       );
@@ -58,13 +52,10 @@ const app = new Hono<{ Variables: Variables }>()
     async (c) => {
       const storageService = await c.get("container").getAsync(StorageService);
 
-      const { filePath, bucketName } = c.req.valid("json");
-      const userId = c.get("userId")!;
+      const { filePath } = c.req.valid("json");
 
       const data = await storageService.generatePresignedGetUrl(
         filePath,
-        bucketName,
-        userId,
       );
 
       return c.json({
@@ -97,27 +88,24 @@ const app = new Hono<{ Variables: Variables }>()
       const storageService = await c.get("container").getAsync(StorageService);
       
       const filePath = c.req.valid("query")["X-MSWA-FilePath"];
-      const bucketName = c.req.valid("query")["X-MSWA-Bucket"];
       const method = c.req.valid("query")["X-MSWA-Method"];
       const expires = c.req.valid("query")["X-MSWA-Expires"];
       const signature = c.req.valid("query")["X-MSWA-Signature"];
 
       await storageService.validatePresignedUrl(
         filePath,
-        bucketName,
         method,
         expires,
         signature,
       );
 
-      const data = await storageService.getObjectStream(bucketName, filePath);
+      const data = await storageService.getObjectStream(filePath);
 
       // Assuming data is a ReadableStream<Uint8Array> or similar
       if (!data || !data.stream) {
         return c.notFound();
       }
 
-      c.header("Content-Type", "video/mp4");
       c.header("Accept-Ranges", "bytes");
 
       return stream(c, async (stream) => {

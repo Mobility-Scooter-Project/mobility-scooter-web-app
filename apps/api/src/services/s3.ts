@@ -3,7 +3,8 @@ import {
   STORAGE_PORT,
   STORAGE_SECRET,
   STORAGE_SECRET_KEY,
-  STORAGE_URL,
+  STORAGE_HOSTNAME,
+  STORAGE_BUCKET,
 } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
@@ -14,10 +15,12 @@ import {
   CompleteMultipartUploadCommand,
   CreateBucketCommand,
   CreateMultipartUploadCommand,
+  CreateMultipartUploadCommandInput,
   GetObjectCommand,
   HeadBucketCommand,
   PutObjectCommand,
   S3Client,
+  S3ClientConfig,
   UploadPartCommand,
   waitUntilObjectExists,
 } from "@aws-sdk/client-s3";
@@ -62,20 +65,24 @@ export class S3Service {
     if (!S3Service.instance) {
       S3Service.connectionPromise = new Promise((resolve) => {
         try {
-          S3Service.instance = new S3Client({
-            endpoint: {
-              protocol: "https:",
-              hostname: STORAGE_URL,
-              port: Number(STORAGE_PORT),
-              path: "/",
-            },
+          const endpoint = `https://${STORAGE_HOSTNAME}:${STORAGE_PORT}/`
+          const config:S3ClientConfig = {
+            endpoint,
             region: "us-east-1",
             credentials: {
               accessKeyId: STORAGE_ACCESS_KEY,
               secretAccessKey: STORAGE_SECRET_KEY,
             },
             forcePathStyle: true,
-          });
+            logger: {
+              info: (msg) => logger.info(msg),
+              debug: (msg) => logger.debug(msg),
+              warn: (msg) => logger.warn(msg),
+              trace: (msg) => logger.trace(msg),
+              error: (msg) => logger.error(msg),
+            }
+          }
+          S3Service.instance = new S3Client(config);
 
           resolve(true);
         } catch (error) {
@@ -98,14 +105,12 @@ export class S3Service {
       await S3Service.instance.send(command);
       return true;
     } catch (error) {
-      logger.debug(`Bucket "${bucketName}" does not exist or is inaccessible.`);
-      logger.debug(error);
+      logger.error(error);
       return false;
     }
   }
 
   public async makeBucket(bucketName: string) {
-    await this.bucketExists(bucketName);
     try {
       const createBucketCommand = new CreateBucketCommand({
         Bucket: bucketName,
@@ -114,13 +119,14 @@ export class S3Service {
       if (res.$metadata.httpStatusCode !== 200) {
         throw new HTTPError(
           HTTP_CODES.INTERNAL_SERVER_ERROR,
-          "Failed to create bucket",
+          `Failed to create bucket`,
         );
       }
     } catch (error) {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
-        error,
+        // @ts-ignore
+        JSON.stringify(error.$response),
         "Failed to create bucket",
       );
     }
@@ -149,27 +155,18 @@ export class S3Service {
 
   /**
    * Retrieves an object from the specified bucket in the storage.
-   * @param bucketName - The name of the bucket containing the object.
    * @param objectName - The name/path of the object to retrieve.
-   * @param encryptionKey - The encryption key used to encrypt the object.
    * @returns A Promise that resolves with the retrieved object.
    * @throws {HTTPException} When the object retrieval fails with a 500 Internal Server Error.
    */
   public async getObject(
-    bucketName: string,
     objectName: string,
-    encryptionKey: string,
   ) {
-    const { encryptionKeyBase64, encryptionKeyMd5Base64 } =
-      cryptoUtils.getEncryptionHeaders(encryptionKey);
 
     try {
       const getObjectCommand = new GetObjectCommand({
-        Bucket: bucketName,
+        Bucket: STORAGE_BUCKET,
         Key: objectName,
-        SSECustomerAlgorithm: "AES256",
-        SSECustomerKey: encryptionKeyBase64,
-        SSECustomerKeyMD5: encryptionKeyMd5Base64,
       });
       const res = await S3Service.instance.send(getObjectCommand);
 
@@ -187,7 +184,6 @@ export class S3Service {
    * Generates a pre-signed URL for performing operations on objects in a specified bucket.
    *
    * @param method - The HTTP method to be allowed on the pre-signed URL (e.g., 'GET', 'PUT')
-   * @param bucketName - The name of the bucket containing the object
    * @param objectName - The name/path of the object in the bucket
    * @param expires - The number of seconds until the pre-signed URL expires
    * @param reqParams - Optional parameters for the pre-signed URL request
@@ -197,7 +193,6 @@ export class S3Service {
    */
   public async presignedUrl(
     method: "GET" | "PUT",
-    bucketName: string,
     objectName: string,
     expires: number,
     reqParams?: {
@@ -210,7 +205,7 @@ export class S3Service {
     try {
       let command;
       let baseRequest = {
-        Bucket: bucketName,
+        Bucket: STORAGE_BUCKET,
         Key: objectName,
         SSECustomerAlgorithm: reqParams?.SSECustomerAlgorithm,
         SSECustomerKey: reqParams?.SSECustomerKey,
@@ -248,20 +243,14 @@ export class S3Service {
    */
   public async multipartUpload(
     objectStream: ReadableStream<any>,
-    bucketName: string,
     objectName: string,
-    encryptionKey: string,
   ) {
-    const { encryptionKeyBase64, encryptionKeyMd5Base64 } =
-      cryptoUtils.getEncryptionHeaders(encryptionKey);
-
-    const commonHeaders = {
-      Bucket: bucketName,
+    const commonHeaders: CreateMultipartUploadCommandInput = {
+      Bucket: STORAGE_BUCKET,
       Key: objectName,
-      SSECustomerAlgorithm: "AES256",
-      SSECustomerKey: encryptionKeyBase64,
-      SSECustomerKeyMD5: encryptionKeyMd5Base64,
     };
+
+    logger.info(commonHeaders)
 
     let UploadId = "";
     let PartNumber = 1;
@@ -273,130 +262,134 @@ export class S3Service {
       ...commonHeaders,
     });
 
-    const writableStream = new WritableStream({
-      start: async (controller) => {
-        try {
-          const res = await S3Service.instance.send(
-            createMultipartUploadCommand,
-          );
-          UploadId = res.UploadId!;
-          logger.info(`Multipart upload initiated with ID: ${UploadId}`);
-        } catch (error) {
-          controller.error(`Failed to create multipart upload: ${error}`);
-        }
-      },
-      write: async (chunk: Uint8Array, controller) => {
-        if (chunk.length === 0) {
-          return;
-        }
-
-        const newBuffer = new Uint8Array(uploadBuffer.length + chunk.length);
-        newBuffer.set(uploadBuffer, 0);
-        newBuffer.set(chunk, uploadBuffer.length);
-        uploadBuffer = newBuffer;
-
-        try {
-          while (uploadBuffer.length >= partSize) {
-            const uploadPartCommand = new UploadPartCommand({
-              ...commonHeaders,
-              PartNumber: PartNumber,
-              UploadId: UploadId,
-              Body: uploadBuffer.slice(0, partSize),
-            });
-
-            const res = await S3Service.instance.send(uploadPartCommand);
-
-            Parts.push({
-              ...res,
-              PartNumber: PartNumber,
-            });
-
-            logger.debug(`Uploaded part ${PartNumber} successfully.`);
-            PartNumber++;
-            uploadBuffer = uploadBuffer.slice(partSize);
-          }
-        } catch (error) {
-          controller.error(`Failed to upload part: ${error}`);
-        }
-      },
-      close: async () => {
-        logger.debug(`All parts uploaded. Uploading last part...`);
-        if (uploadBuffer.length > 0) {
+    try {
+      const writableStream = new WritableStream({
+        start: async (controller) => {
           try {
-            const uploadPartCommand = new UploadPartCommand({
-              ...commonHeaders,
-              PartNumber,
-              UploadId: UploadId,
-              Body: uploadBuffer,
-            });
+            const res = await S3Service.instance.send(
+              createMultipartUploadCommand,
+            );
+            UploadId = res.UploadId!;
+            logger.info(`Multipart upload initiated with ID: ${UploadId}`);
+          } catch (error) {
+            controller.error(`Failed to create multipart upload: ${error}`);
+          }
+        },
+        write: async (chunk: Uint8Array, controller) => {
+          if (chunk.length === 0) {
+            return;
+          }
 
-            const res = await S3Service.instance.send(uploadPartCommand);
+          const newBuffer = new Uint8Array(uploadBuffer.length + chunk.length);
+          newBuffer.set(uploadBuffer, 0);
+          newBuffer.set(chunk, uploadBuffer.length);
+          uploadBuffer = newBuffer;
 
-            Parts.push({
-              ...res,
-              PartNumber: PartNumber,
-            });
+          try {
+            while (uploadBuffer.length >= partSize) {
+              const uploadPartCommand = new UploadPartCommand({
+                ...commonHeaders,
+                PartNumber: PartNumber,
+                UploadId: UploadId,
+                Body: uploadBuffer.slice(0, partSize),
+              });
+
+              const res = await S3Service.instance.send(uploadPartCommand);
+
+              Parts.push({
+                ...res,
+                PartNumber: PartNumber,
+              });
+
+              logger.debug(`Uploaded part ${PartNumber} successfully.`);
+              PartNumber++;
+              uploadBuffer = uploadBuffer.slice(partSize);
+            }
+          } catch (error) {
+            controller.error(`Failed to upload part: ${error}`);
+          }
+        },
+        close: async () => {
+          logger.debug(`All parts uploaded. Uploading last part...`);
+          if (uploadBuffer.length > 0) {
+            try {
+              const uploadPartCommand = new UploadPartCommand({
+                ...commonHeaders,
+                PartNumber,
+                UploadId: UploadId,
+                Body: uploadBuffer,
+              });
+
+              const res = await S3Service.instance.send(uploadPartCommand);
+
+              Parts.push({
+                ...res,
+                PartNumber: PartNumber,
+              });
+            } catch (error) {
+              throw new HTTPError(
+                HTTP_CODES.INTERNAL_SERVER_ERROR,
+                error,
+                "Failed to upload last part",
+              );
+            }
+          }
+
+          logger.debug(
+            `All parts uploaded successfully. Completing multipart upload...`,
+          );
+
+          try {
+            const completeMultipartUploadCommand =
+              new CompleteMultipartUploadCommand({
+                ...commonHeaders,
+                UploadId: UploadId,
+                MultipartUpload: {
+                  Parts: Parts,
+                },
+              });
+            await S3Service.instance.send(completeMultipartUploadCommand);
           } catch (error) {
             throw new HTTPError(
               HTTP_CODES.INTERNAL_SERVER_ERROR,
               error,
-              "Failed to upload last part",
+              "Failed to complete multipart upload",
             );
           }
-        }
 
-        logger.debug(
-          `All parts uploaded successfully. Completing multipart upload...`,
-        );
-
-        try {
-          const completeMultipartUploadCommand =
-            new CompleteMultipartUploadCommand({
+          logger.info(`Multipart upload completed successfully.`);
+        },
+        abort: async () => {
+          logger.error(`Multipart upload aborted.`);
+          try {
+            const abortMultipartUploadCommand = new AbortMultipartUploadCommand({
               ...commonHeaders,
               UploadId: UploadId,
-              MultipartUpload: {
-                Parts: Parts,
-              },
             });
-          await S3Service.instance.send(completeMultipartUploadCommand);
-        } catch (error) {
-          throw new HTTPError(
-            HTTP_CODES.INTERNAL_SERVER_ERROR,
-            error,
-            "Failed to complete multipart upload",
-          );
-        }
+            await S3Service.instance.send(abortMultipartUploadCommand);
+          } catch (error) {
+            throw new HTTPError(
+              HTTP_CODES.INTERNAL_SERVER_ERROR,
+              error,
+              "Failed to abort multipart upload",
+            );
+          }
+        },
+      });
 
-        logger.info(`Multipart upload completed successfully.`);
-      },
-      abort: async () => {
-        logger.error(`Multipart upload aborted.`);
-        try {
-          const abortMultipartUploadCommand = new AbortMultipartUploadCommand({
-            ...commonHeaders,
-            UploadId: UploadId,
-          });
-          await S3Service.instance.send(abortMultipartUploadCommand);
-        } catch (error) {
-          throw new HTTPError(
-            HTTP_CODES.INTERNAL_SERVER_ERROR,
-            error,
-            "Failed to abort multipart upload",
-          );
-        }
-      },
-    });
-
-    objectStream.pipeTo(writableStream);
+      await objectStream.pipeTo(writableStream);
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        "Failed to perform multipart upload",
+      );
+    }
   }
 
   public waitUntilObjectExists(
-    bucketName: string,
     objectName: string,
-    encryptionKey: string,
   ): Promise<WaiterResult> {
-    const { encryptionKeyBase64, encryptionKeyMd5Base64 } =
-      cryptoUtils.getEncryptionHeaders(encryptionKey);
 
     try {
       return waitUntilObjectExists(
@@ -407,11 +400,8 @@ export class S3Service {
           maxWaitTime: 30,
         },
         {
-          Bucket: bucketName,
+          Bucket: STORAGE_BUCKET,
           Key: objectName,
-          SSECustomerAlgorithm: "AES256",
-          SSECustomerKey: encryptionKeyBase64,
-          SSECustomerKeyMD5: encryptionKeyMd5Base64,
         },
       );
     } catch (error) {
@@ -427,7 +417,6 @@ export class S3Service {
    * Validates a presigned URL by checking its signature, expiration, and bucket existence
    *
    * @param filePath - The path to the file in the storage bucket
-   * @param bucketName - The name of the storage bucket
    * @param method - The HTTP method for the presigned URL
    * @param expires - The expiration timestamp in seconds since epoch
    * @param signature - The signature to validate against
@@ -440,7 +429,6 @@ export class S3Service {
    */
   public async validatePresignedUrl(
     filePath: string,
-    bucketName: string,
     method: string,
     expires: string,
     signature: string,
@@ -450,7 +438,7 @@ export class S3Service {
 
     const expectedSignature = crypto
       .createHmac("sha256", STORAGE_SECRET)
-      .update(`${method}\n${expires}\n${filePath}\n${bucketName}`)
+      .update(`${method}\n${expires}\n${filePath}`)
       .digest("hex");
 
     if (signature !== expectedSignature) {
@@ -460,9 +448,6 @@ export class S3Service {
     if (expiresDate < date) {
       throw new HTTPError(HTTP_CODES.UNAUTHORIZED, "URL has expired");
     }
-
-    await storage.bucketExists(bucketName);
   }
 }
 
-export const storage = new S3Service();

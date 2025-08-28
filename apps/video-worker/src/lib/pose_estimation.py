@@ -15,7 +15,10 @@ from ray.experimental.tqdm_ray import tqdm
 from utils.logger import logger
 from lib.db import DBActor
 
-@ray.remote(num_gpus=0.75)
+num_gpus = 0.5 if torch.cuda.is_available() else 0
+logger.debug(f"Pose estimation using {num_gpus} GPUs")
+
+@ray.remote(num_gpus=num_gpus)
 class PoseEstimator:
   def __init__(self):
     """

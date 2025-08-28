@@ -17,9 +17,7 @@ X-User: {{login.response.body.data.token}}
 Content-Type: application/json
 
 {
-  "filePath": "videos/sample.mp4",
-  "patientId": "http-client",
-  "bucketName": "http-client"
+  "filePath": "123456/sample.txt"
 }
 
 ### Download Video

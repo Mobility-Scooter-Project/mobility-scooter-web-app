@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mswa-api
+  namespace: argocd
+spec:
+  destination:
+    namespace: mswa
+    server: 'https://kubernetes.default.svc'
+  project: default
+  sources:
+    - repoURL: 'https://github.com/Mobility-Scooter-Project/mobility-scooter-infra.git'
+      targetRevision: develop
+      path: charts/api
+      helm:
+        values: |
+          name: mswa-api
+          replicas: 1
+          image:
+            repository: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api
+            tag: develop
+            pullPolicy: IfNotPresent
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          
+          ingress:
+            enabled: false
+
+          database:
+            enabled: true
+            name: mswa-prod
+            shouldCreate: true
+            connectionStringEnvVarName: DATABASE_URL
+            shouldMigrate: true
+            migrationCommand: "env && npm run db:migrate"
+            migrationWorkingDir: /usr/src/mswa/apps/api
+
+          kv:
+            enabled: true
+            connectionStringEnvVarName: KV_URL
+
+          queue:
+            enabled: false
+            connectionStringEnvVarName: BROKER_URL
+
+          service:
+            port: 3000
+            targetPort: 3000
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -240,15 +240,7 @@ export class AuthService {
 
     const { userId } = payload as { userId: string };
 
-    await this.vault.markPasswordResetTokenUsed(token, userId);
-    try {
       await userRepository.updatePassword(postgresDB, userId, password);
-    } catch (e) {
-      throw new HTTPError(
-        HTTP_CODES.INTERNAL_SERVER_ERROR,
-        e,
-        "Failed to update password",
-      );
-    }
+      await this.vault.markPasswordResetTokenUsed(token, userId);
   }
 }
