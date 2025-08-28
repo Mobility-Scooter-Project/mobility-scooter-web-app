@@ -11,10 +11,10 @@ spec:
   sources:
     - repoURL: 'https://github.com/Mobility-Scooter-Project/mobility-scooter-infra.git'
       targetRevision: bryan/devpod
-      path: charts/api
+      path: charts/worker
       helm:
         values: |
-          name: mswa-web
+          name: mswa-worker
           replicas: 1
           image:
             repository: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/worker
@@ -26,11 +26,11 @@ spec:
 
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
               cpu: "500m"
-              memory: "512Mi"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
           
           database:
             enabled: true
