@@ -30,8 +30,7 @@ spec:
               memory: "512Mi"
           
           ingress:
-            enabled: true
-            subdomain: mswa.api
+            enabled: false
 
           database:
             enabled: true
