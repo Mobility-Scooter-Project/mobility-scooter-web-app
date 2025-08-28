@@ -19,13 +19,12 @@ WORKDIR /usr/src/mswa/apps/api
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
 
-FROM nvidia/cuda:12.8.0-cudnn-runtime-ubuntu24.04 AS worker
+FROM python:3.12-slim AS worker-builder
 
-RUN apt-get update \
- && apt-get install --no-install-recommends -y \
-      python3 python3-pip python3-dev python-is-python3 curl \
-      libpq-dev build-essential \
-      libgl1 libglib2.0-0 \
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    curl \
+    build-essential \
+    libpq-dev \
  && rm -rf /var/lib/apt/lists/*
 
 ARG POETRY_VERSION=2.1.2
@@ -33,10 +32,28 @@ ENV POETRY_HOME=/opt/poetry
 ENV PATH="$POETRY_HOME/bin:$PATH"
 RUN curl -sSL https://install.python-poetry.org | python3 - --version $POETRY_VERSION
 
-WORKDIR /worker
+WORKDIR /app
+COPY ./apps/video-worker/pyproject.toml ./apps/video-worker/poetry.lock* ./
+RUN poetry config virtualenvs.in-project true && \
+    poetry install --no-root --no-interaction --no-ansi --with gpu
 
-COPY ./apps/video-worker/ /worker/
-RUN poetry config virtualenvs.in-project false \
- && poetry install --no-interaction --no-ansi
+COPY ./apps/video-worker/ /app/
 
-CMD ["poetry", "run", "python", "src/main.py"]
+FROM python:3.12-slim AS worker
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    libpq5 \
+    libgl1 \
+    libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+WORKDIR /home/appuser/app
+
+COPY --from=worker-builder --chown=appuser:appuser /app/.venv ./.venv
+COPY --from=worker-builder --chown=appuser:appuser /app/src ./src
+
+ENV PATH="/home/appuser/app/.venv/bin:$PATH"
+
+CMD ["python", "src/main.py"]

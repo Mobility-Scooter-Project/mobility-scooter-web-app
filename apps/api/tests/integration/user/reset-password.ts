@@ -15,7 +15,26 @@ export default () => describe("Reset Password", () => {
         });
 
         expect(response.status).toBe(HTTP_CODES.OK);
-        resetToken = (await response.json()).data.token;
+    });
+
+    it("should reset the password", async () => {
+        const tokenResponse = await client.api.v1.auth.emailpass["reset-password"].token.$post({
+            json: { email: SHARED_DATA.EMAIL }
+        });
+
+        resetToken = (await tokenResponse.json()).data.token;
+        expect(tokenResponse.status).toBe(HTTP_CODES.OK);
+
+        const json = {
+            email: SHARED_DATA.EMAIL,
+            password: SHARED_DATA.PASSWORD + "1",
+            token: resetToken,
+        }
+
+        const response = await client.api.v1.auth.emailpass["reset-password"].$post({
+            json
+        });
+        expect(response.status).toBe(HTTP_CODES.OK);
     });
 
     it("should return 404 when the email is incorrect", async () => {
@@ -26,20 +45,6 @@ export default () => describe("Reset Password", () => {
         });
 
         expect(response.status).toBe(HTTP_CODES.NOT_FOUND);
-    });
-
-    it("should reset the password", async () => {
-        const json = {
-            email: SHARED_DATA.EMAIL,
-            password: SHARED_DATA.PASSWORD,
-            token: resetToken,
-        }
-
-        const response = await client.api.v1.auth.emailpass["reset-password"].$post({
-            json
-        });
-
-        expect(response.status).toBe(HTTP_CODES.OK);
     });
 
     it("should return 401 when the token is invalid", async () => {

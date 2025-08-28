@@ -1,6 +1,10 @@
-node_modules
-.venv
-__pycache__
-build
-dist
+node_modules/
+.venv/
+build/
+dist/
 .env.*
+.git/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class

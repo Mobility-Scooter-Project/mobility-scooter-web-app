@@ -1,29 +1,23 @@
 services:
-  cert-generator:
-    image: alpine/curl
-    working_dir: /certs
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
     volumes:
-      - certs:/certs
-    command: >-
-      sh -c '
-        curl -L https://github.com/minio/certgen/releases/latest/download/certgen-linux-amd64 \
-          -o /usr/local/bin/certgen &&
-        chmod +x /usr/local/bin/certgen &&
-        certgen --host "localhost,127.0.0.1,storage" &&
-        chown -R 1001:0 /certs
-      '
+      - ../:/workspaces:cached
+    command: sleep infinity
+    network_mode: host
+    
   db:
-    build: ./packages/docker/postgres
+    build: ./docker/postgres
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "postgres"
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - db:/var/lib/postgresql/data
   kv:
-    image: bitnami/valkey:latest
+    image: valkey/valkey:latest
     ports:
       - "6379:6379"
     environment:
@@ -31,7 +25,7 @@ services:
   kafka:
     image: bitnami/kafka:latest
     ports:
-      - 9092:9092
+      - "127.0.0.1:9092:9092"
     volumes:
       - kafka:/bitnami/kafka
     environment:
@@ -44,44 +38,7 @@ services:
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
 
-  vault:
-    image: hashicorp/vault:latest
-    user: root
-    volumes:
-      - vault:/vault/file
-      - ./packages/docker/vault/init.sh:/init.sh
-    entrypoint: sh /init.sh
-    ports:
-      - 8200:8200
-    environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=root
-      - VAULT_ADDR=http://0.0.0.0:8200
-    cap_add:
-      - IPC_LOCK # Needed for vault
-  storage:
-    image: bitnami/minio:latest
-    ports:
-      - 9000:9000
-      - 9001:9001
-    depends_on:
-      cert-generator:
-        condition: service_completed_successfully # Ensure certs are generated
-    environment:
-      MINIO_ROOT_USER: "minioadmin"
-      MINIO_ROOT_PASSWORD: "minioadmin"
-      MINIO_SCHEME: "https"
-    entrypoint: |
-      sh -c '
-        chown -R 1001:0 /certs &&
-        exec /opt/bitnami/scripts/minio/run.sh
-      '
-    volumes:
-      - storage:/bitnami/data
-      - certs:/certs # Mount the shared certificate volume
-
 volumes:
   db:
-  storage:
   kafka:
-  vault:
   certs: # Define the shared volume for certificates

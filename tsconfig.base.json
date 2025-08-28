@@ -10,8 +10,5 @@
     "strict": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "paths": {
-      "@shared/*": ["packages/shared/src/*"]
-    }
   }
 }

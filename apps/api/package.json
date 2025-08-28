@@ -3,19 +3,17 @@
   "type": "module",
   "private": "true",
   "scripts": {
-    "dev": "export ENVIRONMENT=development && tsx watch src/index.ts .env",
+    "dev": "export ENVIRONMENT=development && tsx watch src/index.ts --include .env --include src/**/*.ts",
     "start": "node dist/index.js",
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --packages=external",
     "lint": "eslint --fix .",
     "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'",
-    "db:migrate": "sleep 2 && drizzle-kit migrate",
+    "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
     "db:drop": "drizzle-kit drop",
-    "db:seed": "sleep 2 && tsx scripts/seed.ts",
-    "db:up": "docker compose up db",
-    "populate-api-key": "sleep 2 && tsx scripts/populate-api-key.ts",
-    "compose:up": "docker compose --compatibility up --remove-orphans"
+    "db:seed": "tsx scripts/seed.ts",
+    "populate-api-key": "tsx scripts/populate-api-key.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",
@@ -25,6 +23,7 @@
     "@hono/zod-validator": "^0.4.3",
     "@mia-platform/kafkajs-pino-logger": "^2.0.1",
     "@scalar/hono-api-reference": "^0.7.2",
+    "axios": "^1.11.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
     "eslint": "^9.22.0",

@@ -9,24 +9,10 @@ Content-Type: application/json
   "password": "testing124"
 }
 
-### Get Video Presigned URL
-# @name getPresignedUrl
-POST http://localhost:3000/api/v1/storage/presigned-url
-Authorization: Bearer {{$dotenv TESTING_API_KEY}}
-X-User: {{login.response.body.data.token}}
-Content-Type: application/json
-
-{
-  "filePath": "videos/sample.mp4",
-  "patientId": "http-client",
-  "bucketName": "http-client"
-}
-
 ### Upload Video
 # @name uploadVideo
-POST {{getPresignedUrl.response.body.data.url}}
+PUT http://localhost:3000/api/v1/storage/123456/sample.txt
+X-User: {{login.response.body.data.token}}
 Content-Type: video/mp4
 
---TestBoundary
-< ./sample.mp4
--- TestBoundary--
+< ./sample.txt

@@ -1,8 +1,14 @@
-import { VAULT_ADDR, VAULT_TOKEN } from "@src/config/constants";
+import { ENVIRONMENT, STORAGE_BUCKET, VAULT_URL } from "@src/config/constants";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import VaultClient from "node-vault-client";
+import axios, { AxiosInstance } from "axios";
+import { inject, injectable } from "inversify";
 import * as crypto from "node:crypto";
+import { KeystoneService } from "./auth/keystone";
+import { KVSymbol } from "@src/lib/container";
+import { KVService } from "./kv";
+import Redis from "ioredis";
+import logger from "@src/lib/logger";
 
 /**
  * A singleton class that handles interactions with HashiCorp Vault for secret management.
@@ -23,29 +29,96 @@ import * as crypto from "node:crypto";
  * await vault.createOtpSecret('userId', 'secretValue');
  * ```
  */
+@injectable()
 export class VaultService {
-  private static instance: VaultClient;
+  private _client?: AxiosInstance;
+  private _keystone: KeystoneService;
+  private _kv: Redis;
 
-  public constructor() {
-    if (!VaultService.instance) {
-      try {
-        VaultService.instance = VaultClient.boot("main", {
-          api: {
-            url: VAULT_ADDR,
-          },
-          auth: {
-            type: "token",
-            config: {
-              token: VAULT_TOKEN,
-            },
-          },
-        });
-      } catch (error) {
-        console.error("Failed to initialize Vault client:", error);
-      }
+  private constructor(
+    @inject(KeystoneService) keystone: KeystoneService,
+    @inject(KVSymbol) private readonly kv: Redis
+  ) {
+    this._keystone = keystone;
+    this._kv = kv;
+  }
+
+  private async _lazyInit() {
+    if (!this._client) {
+      const token = await this._keystone.getAuthToken();
+      this._client = axios.create({
+        baseURL: VAULT_URL,
+        headers: {
+          'X-Auth-Token': token,
+          'Content-Type': 'application/json',
+          'Accept': '*/*',
+        },
+      });
     }
   }
 
+  public async upsertSecret(path: string, key: string, secret: string) {
+    await this._lazyInit();
+    secret = Buffer.from(secret, 'utf8').toString('base64'); // Encode secret to base64
+      const response = await this._client!.post('/v1/secrets', JSON.stringify({
+        payload: secret,
+        secret_type: 'symmetric',
+        payload_content_type: 'application/octet-stream',
+        payload_content_encoding: 'base64',
+      }));
+
+      if (response.status == 401) {
+        this._client!.defaults.headers['X-Auth-Token'] = await this._keystone.getAuthToken();
+        const retryResponse = await this._client!.post('/v1/secrets', JSON.stringify({
+          payload: secret,
+          secret_type: 'symmetric',
+          payload_content_type: 'application/octet-stream',
+          payload_content_encoding: 'base64',
+        }));
+
+        if (!retryResponse.status.toString().includes('20')) {
+          throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, retryResponse.data, `Failed to upsert secret at ${path}`);
+        }
+      } else if (!response.status.toString().includes('20')) {
+        throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, response.data, `Failed to upsert secret at ${path}`);
+      }
+
+      let secretRef = await response.data["secret_ref"] + "/payload";
+      if (!secretRef) {
+        throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, "No secret reference returned from Vault");
+      }
+
+      secretRef = secretRef.replace("http://localhost:9311", "");
+      secretRef = VAULT_URL + secretRef; // Ensure the secretRef is a full URL
+
+      await this._kv.hmset(path, { [key]: secretRef });
+  }
+
+  public async readSecret(path: string, key: string) {
+    await this._lazyInit();
+    const secretRef = await this._kv.hget(path, key);
+
+    // TODO: handle refresh from Barbican if needed
+    if (!secretRef) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, `Secret not found at ${path}`);
+    }
+
+    const response = await this._client!.get(secretRef);
+
+    if (response.status === 401) {
+      this._client!.defaults.headers['X-Auth-Token'] = await this._keystone.getAuthToken();
+      const retryResponse = await this._client!.get(secretRef);
+      if (!retryResponse.status.toString().includes('20')) {
+        throw new HTTPError(HTTP_CODES.NOT_FOUND, retryResponse.data, `Secret not found at ${path}`);
+      }
+      return retryResponse.data as string;
+    }
+
+    if (!response.status.toString().includes('20')) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, response.data, `Secret not found at ${path}`);
+    }
+    return response.data as string;
+  }
 
   /**
    * Creates a one-time password (OTP) secret for a user in the Vault.
@@ -57,7 +130,7 @@ export class VaultService {
    */
   public async createOtpSecret(userId: string, secret: string) {
     try {
-      await VaultService.instance.write(`kv/auth/otp/${userId}`, { secret });
+      await this.upsertSecret(`auth/otp`, userId, secret);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create OTP secret");
     }
@@ -73,25 +146,22 @@ export class VaultService {
    */
   public async getOtpSecretByUserId(userId: string) {
     try {
-      const secret = await VaultService.instance.read(`kv/auth/otp/${userId}`);
-      return secret.getData().secret as string;
+      return await this.readSecret(`auth/otp`, userId);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, e, "TOTP does not exist");
     }
   };
 
-
   /**
    * Creates and stores an encryption key in Vault for object encryption
-   * @param bucketName - The name of the storage bucket
    * @param path - The path within the bucket where the object will be stored
    * @returns A hexadecimal string representing the generated 256-bit encryption key
    * @throws {HTTPError} If the encryption key cannot be stored in Vault
    */
-  public async createObjectEncryptionKey(bucketName: string, path: string) {
+  public async createObjectEncryptionKey(path: string) {
     const secret = crypto.randomBytes(32).toString("hex"); // 32 bytes = 256 bits for AES-256 encryption
     try {
-      await VaultService.instance.write(`kv/storage/${bucketName}/${path}`, { secret });
+      await this.upsertSecret(`storage/${STORAGE_BUCKET}`, path, secret);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create encryption key");
     }
@@ -100,15 +170,13 @@ export class VaultService {
 
   /**
    * Retrieves an encryption key for a specified object from Vault.
-   * @param bucketName - The name of the bucket where the object is stored
    * @param path - The path to the object within the bucket
    * @returns A promise that resolves to the encryption key as a string
    * @throws {HTTPError} With status 404 if the encryption key does not exist in Vault
    */
-  public async getObjectEncryptionKey(bucketName: string, path: string) {
+  public async getObjectEncryptionKey(path: string) {
     try {
-      const secret = await VaultService.instance.read(`kv/storage/${bucketName}/${path}`);
-      return secret.getData().secret as string;
+      return await this.readSecret(`storage/${STORAGE_BUCKET}`, path);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.NOT_FOUND, "Encryption key does not exist");
     }
@@ -123,10 +191,7 @@ export class VaultService {
    */
   public async createPasswordResetToken(token: string, userId: string) {
     try {
-      await VaultService.instance.write(`kv/auth/password-reset/${userId}`, {
-        token,
-        used: false,
-      });
+      await this.upsertSecret(`auth/password-reset`, userId, JSON.stringify({ token, used: false }));
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create password reset token");
     }
@@ -143,21 +208,18 @@ export class VaultService {
    *  - INTERNAL_SERVER_ERROR if updating token status fails
    */
   public async markPasswordResetTokenUsed(token: string, userId: string) {
-    const data = (await VaultService.instance.read(`kv/auth/password-reset/${userId}`)).getData();
-    if (!data || data.token !== token) {
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Token not found");
-    }
-    if (data.used) {
-      throw new HTTPError(HTTP_CODES.BAD_REQUEST, "Token already used");
+    const secret = await this.readSecret(`auth/password-reset`, userId);
+    const parsedSecret = JSON.parse(JSON.stringify(secret));
+
+    if (parsedSecret.used) {
+      throw new HTTPError(HTTP_CODES.BAD_REQUEST, "Password reset token has already been used");
     }
 
-    try {
-      await VaultService.instance.write(`kv/auth/password-reset/${userId}`, {
-        token,
-        used: true,
-      });
-    } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to mark token as used");
+    if (parsedSecret.token !== token) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "Password reset token does not match");
     }
-  };
+
+    parsedSecret.used = true;
+    await this.upsertSecret(`auth/password-reset`, userId, JSON.stringify(parsedSecret));
+  }
 }
