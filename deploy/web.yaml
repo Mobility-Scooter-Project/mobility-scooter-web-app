@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: mswa-api
+  name: mswa-web
   namespace: argocd
 spec:
   destination:
@@ -14,10 +14,10 @@ spec:
       path: charts/api
       helm:
         values: |
-          name: mswa-api
+          name: mswa-web
           replicas: 1
           image:
-            repository: ghcr.io/mobility-scooter-project/api
+            repository: ghcr.io/mobility-scooter-project/web
             tag: develop
             pullPolicy: IfNotPresent
 
@@ -30,28 +30,22 @@ spec:
               memory: "512Mi"
           
           ingress:
-            enabled: false
+            enabled: true
+            subdomain: mswa.web
 
           database:
-            enabled: true
+            enabled: false
             name: mswa-prod
-            shouldCreate: true
-            connectionStringEnvVarName: DATABASE_URL
-            shouldMigrate: true
-            migrationCommand: "npm run db:migrate"
-            migrationWorkingDir: /usr/src/apps/api
 
           kv:
-            enabled: true
-            connectionStringEnvVarName: KV_URL
+            enabled: false
 
           queue:
             enabled: false
-            connectionStringEnvVarName: BROKER_URL
 
           service:
-            port: 3000
-            targetPort: 3000
+            port: 80
+            targetPort: 5173
   syncPolicy:
     automated:
       prune: true
