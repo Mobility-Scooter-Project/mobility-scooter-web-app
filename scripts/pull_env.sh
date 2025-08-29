@@ -1,5 +1,5 @@
 #!/bin/bash
 infisical login --domain https://infisical.cis240470.projects.jetstream-cloud.org
-infisical secrets --projectId e3994b3d-5080-48f1-bb0f-c37f3b9793e9 --env dev --plain --tags api > apps/api/.env
+infisical secrets --projectId 7ea0e637-93ef-4c3f-b1e3-4563ed037d64 --env dev --plain > apps/api/.env
 
 echo "Pulled latest .env from Infisical"
