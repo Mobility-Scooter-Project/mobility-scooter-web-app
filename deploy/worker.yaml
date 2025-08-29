@@ -22,7 +22,7 @@ spec:
             pullPolicy: IfNotPresent
 
           gpu:
-            enabled: true
+            enabled: false
 
           resources:
             requests:
