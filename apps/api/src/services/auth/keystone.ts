@@ -16,6 +16,28 @@ export class KeystoneService {
         });
     }
 
+    /**
+     * Retrieves an authentication token from the Keystone service using application credentials.
+     * 
+     * This method authenticates with the Keystone identity service by sending application
+     * credentials (client ID and secret) and returns the X-Subject-Token from the response
+     * headers which can be used for subsequent API calls.
+     * 
+     * @returns {Promise<string>} A promise that resolves to the authentication token string
+     * @throws {Error} Throws an error if the authentication request fails or if the token
+     *                 cannot be retrieved from the response headers
+     * 
+     * @example
+     * ```typescript
+     * const authService = new KeystoneAuthService();
+     * try {
+     *   const token = await authService.getAuthToken();
+     *   console.log('Auth token:', token);
+     * } catch (error) {
+     *   console.error('Authentication failed:', error.message);
+     * }
+     * ```
+     */
     public async getAuthToken() {
         const body = {
             "auth": {

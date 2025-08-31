@@ -57,6 +57,23 @@ export class VaultService {
     }
   }
 
+  /**
+   * Upserts a secret to the vault and stores its reference in Redis.
+   * 
+   * This method encodes the secret as base64, sends it to the vault service,
+   * handles authentication retries if needed, and stores the resulting secret
+   * reference URL in Redis using the provided path and key.
+   * 
+   * @param path - The Redis path where the secret reference will be stored
+   * @param key - The Redis key within the path to store the secret reference
+   * @param secret - The plain text secret to be stored in the vault
+   * 
+   * @throws {HTTPError} When the vault service returns a non-2xx status code
+   * @throws {HTTPError} When no secret reference is returned from the vault
+   * 
+   * @returns A Promise that resolves when the secret is successfully stored
+   *          and its reference is saved to Redis
+   */
   public async upsertSecret(path: string, key: string, secret: string) {
     await this._lazyInit();
     secret = Buffer.from(secret, 'utf8').toString('base64'); // Encode secret to base64
@@ -94,6 +111,20 @@ export class VaultService {
       await this._kv.hmset(path, { [key]: secretRef });
   }
 
+  /**
+   * Reads a secret from the vault using the specified path and key.
+   * 
+   * @param path - The path where the secret is stored in the vault
+   * @param key - The key identifier for the specific secret
+   * @returns A promise that resolves to the secret value as a string
+   * @throws {HTTPError} Throws NOT_FOUND error if the secret is not found at the specified path
+   * @throws {HTTPError} Throws NOT_FOUND error if the vault service returns a non-2xx status code
+   * 
+   * @remarks
+   * This method performs lazy initialization of the vault service and automatically handles
+   * authentication token refresh if a 401 Unauthorized response is received from the vault.
+   * If the initial request fails with 401, it will retry once with a fresh authentication token.
+   */
   public async readSecret(path: string, key: string) {
     await this._lazyInit();
     const secretRef = await this._kv.hget(path, key);
