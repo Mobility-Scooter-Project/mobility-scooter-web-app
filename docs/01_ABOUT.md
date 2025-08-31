@@ -14,3 +14,6 @@ This repo uses [dev containers](https://containers.dev/) to enable a seamless en
 
 ## Infisical
 Not every service can be effeciently replicated locally, which is why we use [Infisical](https://infisical.com/docs/documentation/platform/secrets-mgmt/overview) to store and retrieve our environment variables for Barbican, KeyStone and Swift securely from our Kubernetes cluster. You can request access to the project [here](https://infisical.cis240470.projects.jetstream-cloud.org/), and once approved by an admin you can pull it down with `sh scripts/pull_env.sh`.
+
+## DI
+Typically, dependency injection is not needed for many JavaScript applications, however since we rely on so many integrated services (Valkey, Database, KMS, etc), it becomes useful for ensuring connections to mandatory services. When required, [Inversify](https://inversify.io/) is used to implement DI.
