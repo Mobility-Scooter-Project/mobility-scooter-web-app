@@ -110,6 +110,15 @@ export class S3Service {
     }
   }
 
+  /**
+   * Creates a new S3 bucket with the specified name.
+   * 
+   * @param bucketName - The name of the bucket to create
+   * @throws {HTTPError} Throws an HTTPError with INTERNAL_SERVER_ERROR status code if:
+   *   - The bucket creation fails (non-200 HTTP status)
+   *   - Any other error occurs during the creation process
+   * @returns Promise<void> - Resolves when the bucket is successfully created
+   */
   public async makeBucket(bucketName: string) {
     try {
       const createBucketCommand = new CreateBucketCommand({
@@ -387,6 +396,21 @@ export class S3Service {
     }
   }
 
+  /**
+   * Waits until an object exists in the S3 bucket.
+   * 
+   * @param objectName - The key/name of the object to wait for in the S3 bucket
+   * @returns A Promise that resolves to a WaiterResult when the object exists or the wait times out
+   * @throws {HTTPError} Throws an HTTPError with INTERNAL_SERVER_ERROR status if the wait operation fails
+   * 
+   * @example
+   * ```typescript
+   * const result = await s3Service.waitUntilObjectExists('my-file.txt');
+   * if (result.state === 'SUCCESS') {
+   *   console.log('Object exists!');
+   * }
+   * ```
+   */
   public waitUntilObjectExists(
     objectName: string,
   ): Promise<WaiterResult> {
