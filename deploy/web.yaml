@@ -11,7 +11,7 @@ spec:
   sources:
     - repoURL: 'https://github.com/Mobility-Scooter-Project/mobility-scooter-infra.git'
       targetRevision: main
-      path: main
+      path: charts/api
       helm:
         values: |
           name: mswa-web
