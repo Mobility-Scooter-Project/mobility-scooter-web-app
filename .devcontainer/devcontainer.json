@@ -2,6 +2,8 @@
     // cSpell:disable
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "workspaceFolder": "/workspaces/mobility-scooter-web-app",
+    "postStartCommand": "pnpm i && cd apps/video-worker && poetry install -y",
+    "postAttachCommand": "docker compose up -d",
     "runArgs": [
         "--network=host"
     ],
@@ -9,7 +11,10 @@
         "ghcr.io/devcontainers/features/node:1": {
             "version": "22"
         },
-        "ghcr.io/devcontainers/features/python:1": {},
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12",
+            "toolsToInstall": "black,virtualenv,pytest,pylint"
+        },
         "ghcr.io/devcontainers-extra/features/poetry:2": {},
         "ghcr.io/skriptfabrik/devcontainer-features/infisical-cli:1": {},
         "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {},

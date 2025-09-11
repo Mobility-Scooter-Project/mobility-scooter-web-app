@@ -52,7 +52,7 @@ importers:
         version: 4.7.6
       hono-openapi:
         specifier: ^0.4.6
-        version: 0.4.6(@hono/zod-validator@0.4.3(hono@4.7.6)(zod@3.24.2))(@sinclair/typebox@0.27.8)(hono@4.7.6)(valibot@0.41.0(typescript@5.8.3))(zod-openapi@4.2.4(zod@3.24.2))(zod@3.24.2)
+        version: 0.4.6(@hono/zod-validator@0.4.3(hono@4.7.6)(zod@3.24.2))(hono@4.7.6)(zod-openapi@4.2.4(zod@3.24.2))(zod@3.24.2)
       hono-pino:
         specifier: ^0.8.0
         version: 0.8.0(hono@4.7.6)(pino@9.6.0)
@@ -10109,14 +10109,12 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono-openapi@0.4.6(@hono/zod-validator@0.4.3(hono@4.7.6)(zod@3.24.2))(@sinclair/typebox@0.27.8)(hono@4.7.6)(valibot@0.41.0(typescript@5.8.3))(zod-openapi@4.2.4(zod@3.24.2))(zod@3.24.2):
+  hono-openapi@0.4.6(@hono/zod-validator@0.4.3(hono@4.7.6)(zod@3.24.2))(hono@4.7.6)(zod-openapi@4.2.4(zod@3.24.2))(zod@3.24.2):
     dependencies:
       json-schema-walker: 2.0.0
     optionalDependencies:
       '@hono/zod-validator': 0.4.3(hono@4.7.6)(zod@3.24.2)
-      '@sinclair/typebox': 0.27.8
       hono: 4.7.6
-      valibot: 0.41.0(typescript@5.8.3)
       zod: 3.24.2
       zod-openapi: 4.2.4(zod@3.24.2)
 
