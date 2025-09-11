@@ -2,7 +2,7 @@
     // cSpell:disable
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "workspaceFolder": "/workspaces/mobility-scooter-web-app",
-    "postStartCommand": "pnpm i && cd apps/video-worker && poetry install -y",
+    "postStartCommand": "pnpm i && cd apps/video-worker && poetry install",
     "postAttachCommand": "docker compose up -d",
     "runArgs": [
         "--network=host"
