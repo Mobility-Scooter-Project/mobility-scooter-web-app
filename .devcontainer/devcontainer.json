@@ -1,11 +1,12 @@
 {
-    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "workspaceFolder": "/workspaces/mobility-scooter-web-app",
     "postStartCommand": "pnpm i && cd apps/video-worker && poetry install",
     "features": {
         "ghcr.io/devcontainers/features/node:1": {},
         "ghcr.io/devcontainers/features/python:1": {},
         "ghcr.io/devcontainers-extra/features/poetry:2": {},
+        "ghcr.io/devcontainers/features/docker-outside-of-docker": {},
         "ghcr.io/skriptfabrik/devcontainer-features/infisical-cli:1": {}
     },
     "hostRequirements": {
