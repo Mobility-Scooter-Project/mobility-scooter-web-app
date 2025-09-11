@@ -36,7 +36,7 @@ try {
     return { tenant, unit };
   });
 
-  fs.appendFileSync(".env", `TESTING_UNIT_ID=${unit.id}\n`);
+  fs.appendFileSync(".env", `\nTESTING_UNIT_ID=${unit.id}\n`);
 
   console.log(
     `Successfully wrote unit ID to .env file for tenant ${tenant.id}`,
