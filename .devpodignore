@@ -1,0 +1,16 @@
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+dist/
+build/
+*.log
+.DS_Store
+*.ps1
+*.cmd
+*.bat
+.git/
+.vscode/
+*.tmp
+*.temp
+*.cache
