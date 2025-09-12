@@ -1,15 +1,21 @@
 {
-    "dockerComposeFile": "../compose.yaml",
-    "service": "devcontainer",
+    // cSpell:disable
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
     "workspaceFolder": "/workspaces/mobility-scooter-web-app",
-    "postStartCommand": "pnpm i && cd apps/video-worker && poetry install",
+    "postCreateCommand": "pip install black virtualenv pytest pylint",
+    "postAttachCommand": "docker compose up -d",
+    "runArgs": [
+        "--network=host"
+    ],
     "features": {
-        "ghcr.io/devcontainers/features/node:1": {},
-        "ghcr.io/devcontainers/features/python:1": {},
-        "ghcr.io/devcontainers-extra/features/poetry:2": {},
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-        "ghcr.io/skriptfabrik/devcontainer-features/infisical-cli:1": {}
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22"
         },
+        "ghcr.io/devcontainers-extra/features/poetry:2": {},
+        "ghcr.io/skriptfabrik/devcontainer-features/infisical-cli:1": {},
+        "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker": {}
+    },
     "hostRequirements": {
         "gpu": "optional"
     },
