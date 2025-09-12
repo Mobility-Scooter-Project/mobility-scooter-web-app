@@ -12,7 +12,10 @@
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
     "db:drop": "drizzle-kit drop",
+    "db:push": "drizzle-kit push",
+    "db:update": "drizzle-kit up",
     "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/reset-db.ts",
     "populate-api-key": "tsx scripts/populate-api-key.ts"
   },
   "dependencies": {
@@ -60,7 +63,8 @@
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.11",
     "@types/qrcode": "^1.5.5",
-    "drizzle-kit": "^0.30.5",
+    "drizzle-kit": "^0.30.6",
+    "drizzle-seed": "^0.3.1",
     "esbuild": "^0.25.1",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.3",
