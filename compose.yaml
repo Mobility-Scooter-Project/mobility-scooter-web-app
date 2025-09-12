@@ -1,11 +1,4 @@
 services:
-  devcontainer:
-    image: mcr.microsoft.com/devcontainers/base:ubuntu
-    volumes:
-      - ../:/workspaces:cached
-    command: sleep infinity
-    network_mode: host
-    
   db:
     build: ./docker/postgres
     environment:
@@ -41,4 +34,3 @@ services:
 volumes:
   db:
   kafka:
-  certs: # Define the shared volume for certificates
