@@ -1,6 +1,4 @@
 #!/bin/bash
-ID="${HOSTNAME:-$(hostname)}-mswa"
-ID=$(echo "${ID}" | tr '[:upper:]' '[:lower:]')
+ID="$USER-mswa"
 echo "Starting devpod with ID: ${ID}"
-
 devpod up . --id "${ID}"
