@@ -11,6 +11,7 @@ import { HTTPError } from "./lib/errors";
 import logger from "./lib/logger"
 import container from "./lib/container";
 import { diMiddleware } from "./middleware/di";
+import { unitHandler } from "./handlers/unitHandler";
 
 const startTime = Date.now();
 logger.info("Starting API server...");
@@ -99,3 +100,7 @@ serve(
     logger.info(`OpenAPI Spec: http://localhost:${info.port}/api/v1/openapi`);
   },
 );
+
+app.route("/api", unitHandler);
+
+export default app;

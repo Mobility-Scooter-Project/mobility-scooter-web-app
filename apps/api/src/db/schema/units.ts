@@ -1,4 +1,12 @@
-import { pgTable, serial, varchar, integer, timestamp, primaryKey, uuid } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  varchar,
+  integer,
+  timestamp,
+  primaryKey,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { metadata } from "./tenants";
 import { users } from "./auth";
 
@@ -17,10 +25,10 @@ export const units = pgTable("units", {
 export const unitUsers = pgTable(
   "unit_users",
   {
-    unitId: integer("unit_id") // This references units.id which is serial (integer)
+    unitId: integer("unit_id")
       .notNull()
       .references(() => units.id, { onDelete: "cascade" }),
-    userId: uuid("user_id") // Change this to uuid to match users.id
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
