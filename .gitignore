@@ -5,3 +5,8 @@ dist/
 kubeconfig.yaml
 .pnpm-store/
 .devpod-internal/
+
+# ignore local debug logs
+*.log
+*.zip
+devpod-debug-logs/
