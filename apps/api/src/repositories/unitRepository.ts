@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import pkg from "pg";
+const { Pool } = pkg;
 import { eq, and } from "drizzle-orm";
 import { units, unitUsers } from "../db/schema/units";
 
@@ -12,6 +13,14 @@ const db = drizzle(pool, { schema: { units, unitUsers } });
 // -------------------------
 // Units CRUD
 // -------------------------
+
+/**
+ * Create a new unit for a tenant.
+ *
+ * @param tenantId - UUID of the tenant
+ * @param name - Unit display name
+ * @returns Newly created unit record
+ */
 
 export async function createUnit(tenantId: string, name: string) {
   const [newUnit] = await db

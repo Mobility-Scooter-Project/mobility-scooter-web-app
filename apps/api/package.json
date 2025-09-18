@@ -2,22 +2,24 @@
   "name": "@mswa/api",
   "type": "module",
   "private": "true",
-  "scripts": {
-    "dev": "export ENVIRONMENT=development && tsx watch src/index.ts --include .env --include src/**/*.ts",
-    "start": "node dist/index.js",
-    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --packages=external",
-    "lint": "eslint --fix .",
-    "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:generate": "drizzle-kit generate",
-    "db:drop": "drizzle-kit drop",
-    "db:push": "drizzle-kit push",
-    "db:update": "drizzle-kit up",
-    "db:seed": "tsx scripts/seed.ts",
-    "db:reset": "tsx scripts/reset-db.ts",
-    "populate-api-key": "tsx scripts/populate-api-key.ts"
-  },
+"scripts": {
+  "dev": "export ENVIRONMENT=development && tsx watch src/index.ts --include .env --include src/**/*.ts",
+  "start": "node dist/index.js",
+  "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --packages=external",
+  "lint": "eslint --fix .",
+  "test": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest'",
+  "test:unit": "jest --runInBand src/handlers/tests", 
+  "test:integration": "export ENVIRONMENT=test && pnpm build && start-server-and-test 3000 --expect 404 'jest tests/integration'",
+  "db:migrate": "drizzle-kit migrate",
+  "db:studio": "drizzle-kit studio",
+  "db:generate": "drizzle-kit generate",
+  "db:drop": "drizzle-kit drop",
+  "db:push": "drizzle-kit push",
+  "db:update": "drizzle-kit up",
+  "db:seed": "tsx scripts/seed.ts",
+  "db:reset": "tsx scripts/reset-db.ts",
+  "populate-api-key": "tsx scripts/populate-api-key.ts"
+},
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",
     "@aws-sdk/s3-request-presigner": "^3.800.0",
@@ -80,4 +82,7 @@
   "exports": {
     ".": "./src/index.ts"
   }
+
+  
 }
+
