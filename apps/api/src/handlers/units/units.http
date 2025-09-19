@@ -1,0 +1,27 @@
+@baseUrl = http://localhost:3000
+
+@tenantId = 123e4567-e89b-12d3-a456-426614174000
+@unitId = 11111111-2222-3333-4444-555555555555
+@userId = 99999999-aaaa-bbbb-cccc-dddddddddddd
+
+### Create Unit
+POST {{baseUrl}}/tenant/{{tenantId}}/units
+Content-Type: application/json
+
+{
+  "adminUserId": "{{userId}}"
+}
+
+### Update Unit
+PUT {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}
+Content-Type: application/json
+
+{
+  "adminUserId": "{{userId}}"
+}
+
+### Get Users in Unit
+GET {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users?fields=id,email&limit=10&offset=0
+
+### Remove User from Unit
+DELETE {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users/{{userId}}
