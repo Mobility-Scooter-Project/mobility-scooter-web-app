@@ -66,10 +66,7 @@ const createUser = async (db: DB, newUser: NewUser) => {
       "code" in e &&
       e.code === "23505"
     ) {
-      throw new HTTPError(
-        HTTP_CODES.CONFLICT,
-        "User already exists",
-      );
+      throw new HTTPError(HTTP_CODES.CONFLICT, "User already exists");
     }
 
     throw new HTTPError(
@@ -79,7 +76,6 @@ const createUser = async (db: DB, newUser: NewUser) => {
     );
   }
 };
-
 
 /**
  * Finds a user by their email address in the database.
@@ -103,7 +99,7 @@ export const findUserByEmail = async (db: DB, email: string) => {
 
 /**
  * Finds a user by their email address and verifies the password.
- * 
+ *
  * @param db - The database instance to query
  * @param email - The email address to search for
  * @param password - The password to verify
@@ -138,7 +134,6 @@ export const findUserWithPassword = async (
   }
 };
 
-
 /**
  * Retrieves a user from the database by their unique identifier
  * @param db - The database connection instance
@@ -159,7 +154,6 @@ const findUserById = async (db: DB, id: string) => {
   }
 };
 
-
 /**
  * Updates the password for a specified user in the database
  * @param db - The database instance
@@ -170,12 +164,295 @@ const findUserById = async (db: DB, id: string) => {
 const updatePassword = async (db: DB, userId: string, password: string) => {
   const encryptedPassword = sql`crypt(${password}, gen_salt('bf'))`;
   try {
-    await db.update(users).set({ encryptedPassword }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ encryptedPassword })
+      .where(eq(users.id, userId));
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
       "Failed to update password",
+    );
+  }
+};
+
+/**
+ * Retrieves a user by ID with optional field selection
+ * @param db - The database instance
+ * @param userId - The unique identifier of the user
+ * @param fields - Optional array of fields to select
+ * @returns The user object if found, undefined otherwise
+ * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ */
+const getUserById = async (db: DB, userId: string, fields?: string[]) => {
+  try {
+    if (!userId) {
+      return {
+        status: 400,
+        data: null,
+        error: {
+          code: "BAD_REQUEST",
+          message: "User ID is required",
+        },
+      };
+    }
+
+    const user = await db.query.users.findFirst({
+      where: (u: any, { eq, and, isNull }: any) =>
+        and(eq(u.id, userId), isNull(u.deletedAt)),
+      columns: fields
+        ? {
+            id: fields.includes("id"),
+            unitId: fields.includes("unitId"),
+            permissions: fields.includes("permissions"),
+            lastSignedInAt: fields.includes("lastSignedInAt"),
+            createdAt: fields.includes("createdAt"),
+            updatedAt: fields.includes("updatedAt"),
+            deletedAt: fields.includes("deletedAt"),
+            firstName: fields.includes("firstName"),
+            lastName: fields.includes("lastName"),
+            title: fields.includes("title"),
+            email: fields.includes("email"),
+            city: fields.includes("city"),
+            mobileNumber: fields.includes("mobileNumber"),
+            pfpUrl: fields.includes("pfpUrl"),
+          }
+        : {
+            id: true,
+            unitId: true,
+            permissions: true,
+            lastSignedInAt: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+            firstName: true,
+            lastName: true,
+            title: true,
+            email: true,
+            city: true,
+            mobileNumber: true,
+            pfpUrl: true,
+          },
+    });
+
+    if (!user) {
+      return {
+        status: 404,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      data: user,
+      error: null,
+    };
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to retrieve user",
+    );
+  }
+};
+
+/**
+ * Updates a user's profile information
+ * @param db - The database instance
+ * @param userId - The unique identifier of the user
+ * @param updateData - The data to update
+ * @returns The updated user object
+ * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ */
+const updateUser = async (
+  db: DB,
+  userId: string,
+  updateData: Partial<NewUser>,
+) => {
+  try {
+    const result = await db
+      .update(users)
+      .set({
+        ...updateData,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), sql`deleted_at IS NULL`))
+      .returning({
+        id: users.id,
+        unitId: users.unitId,
+        permissions: users.permissions,
+        lastSignedInAt: users.lastSignedInAt,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        deletedAt: users.deletedAt,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        title: users.title,
+        email: users.email,
+        city: users.city,
+        mobileNumber: users.mobileNumber,
+        pfpUrl: users.pfpUrl,
+      });
+
+    if (result.length === 0) {
+      return {
+        status: 404,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      data: result[0],
+      error: null,
+    };
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to update user",
+    );
+  }
+};
+
+/**
+ * Soft deletes a user by setting the deletedAt timestamp
+ * @param db - The database instance
+ * @param userId - The unique identifier of the user
+ * @returns Success response
+ * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ */
+const softDeleteUser = async (db: DB, userId: string) => {
+  try {
+    const result = await db
+      .update(users)
+      .set({
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), sql`deleted_at IS NULL`))
+      .returning({ id: users.id });
+
+    if (result.length === 0) {
+      return {
+        status: 404,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      data: { success: true },
+      error: null,
+    };
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to delete user",
+    );
+  }
+};
+
+/**
+ * Updates a user's profile picture URL
+ * @param db - The database instance
+ * @param userId - The unique identifier of the user
+ * @param pfpUrl - The new profile picture URL
+ * @returns The updated user object
+ * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ */
+const updatePfp = async (db: DB, userId: string, pfpUrl: string) => {
+  try {
+    const result = await db
+      .update(users)
+      .set({
+        pfpUrl,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), sql`deleted_at IS NULL`))
+      .returning({
+        id: users.id,
+        pfpUrl: users.pfpUrl,
+      });
+
+    if (result.length === 0) {
+      return {
+        status: 404,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      data: result[0],
+      error: null,
+    };
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to update profile picture",
+    );
+  }
+};
+
+/**
+ * Removes a user's profile picture by setting pfpUrl to null
+ * @param db - The database instance
+ * @param userId - The unique identifier of the user
+ * @returns Success response
+ * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ */
+const removePfp = async (db: DB, userId: string) => {
+  try {
+    const result = await db
+      .update(users)
+      .set({
+        pfpUrl: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, userId), sql`deleted_at IS NULL`))
+      .returning({ id: users.id });
+
+    if (result.length === 0) {
+      return {
+        status: 404,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      data: { success: true },
+      error: null,
+    };
+  } catch (e) {
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to remove profile picture",
     );
   }
 };
@@ -186,4 +463,9 @@ export const userRepository = {
   findUserWithPassword,
   findUserById,
   updatePassword,
+  getUserById,
+  updateUser,
+  softDeleteUser,
+  updatePfp,
+  removePfp,
 };
