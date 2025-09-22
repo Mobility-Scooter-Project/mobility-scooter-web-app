@@ -42,13 +42,13 @@ export const users = auth.table(
     updatedAt: timestamp().defaultNow(),
     deletedAt: timestamp(),
 
-    // updated fields (aligned with the scrrenshot)
-    firstName: varchar({ length: 255 }).notNull(), // Mai
-    lastName: varchar({ length: 255 }).notNull(), // Narasaki-Jara
-    title: varchar({ length: 32 }), // "Dr."
-    email: text().notNull().unique(), // MaiNarasaki-Jara@doctor.com
-    city: varchar({ length: 32 }), // United States
-    mobileNumber: varchar({ length: 32 }), // 441-123-1234
+    // updated fields (aligned with the screenshot)
+    firstName: varchar({ length: 255 }).notNull(),
+    lastName: varchar({ length: 255 }).notNull(),
+    title: varchar({ length: 32 }),
+    email: text().notNull().unique(),
+    city: varchar({ length: 32 }),
+    mobileNumber: varchar({ length: 32 }),
     pfpUrl: text(),
   },
   () => [
