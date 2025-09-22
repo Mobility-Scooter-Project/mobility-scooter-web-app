@@ -3,7 +3,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DbService } from './db/db.service';
 import { KvService } from './kv/kv.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { QueueService } from './queue/queue.service';
 import config from './config';
 
 @Module({
@@ -12,6 +13,12 @@ import config from './config';
     load: [config],
   })],
   controllers: [AppController],
-  providers: [AppService, DbService, KvService],
+  providers: [AppService, DbService, KvService, {
+    provide: QueueService,
+    useFactory: async (configService) => {
+      return await QueueService.build(configService);
+    },
+    inject: [ConfigService],
+  }],
 })
 export class AppModule { }
