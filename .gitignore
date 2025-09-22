@@ -10,3 +10,7 @@ kubeconfig.yaml
 *.log
 *.zip
 devpod-debug-logs/
+
+# macOS + local artifacts
+.DS_Store
+scripts/.DS_Store
