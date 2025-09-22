@@ -8,7 +8,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 export class DbService {
     private db: NodePgDatabase<typeof schema>;
 
-    private constructor() {
+    constructor() {
         const pool = new Pool({
             connectionString: process.env.DATABASE_URL,
         });
