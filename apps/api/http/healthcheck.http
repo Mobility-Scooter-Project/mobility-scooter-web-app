@@ -1,0 +1,2 @@
+GET http://localhost:3000/healthcheck
+Authorization: Bearer {{$dotenv TESTING_API_KEY}}
