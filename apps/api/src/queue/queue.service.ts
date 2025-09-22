@@ -21,4 +21,8 @@ export class QueueService {
         await queue.producer.connect();
         return queue;
     }
+
+    public getProducer(): Producer {
+        return this.producer;
+    }
 }
