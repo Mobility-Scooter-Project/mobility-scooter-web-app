@@ -1,0 +1,12 @@
+@userToken = putYourTokenHere
+@baseUrl = http://localhost:3000/api/v1
+
+### Upload/replace profile picture
+POST {{baseUrl}}/users/pfp
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+### Remove profile picture
+DELETE {{baseUrl}}/users/pfp
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
