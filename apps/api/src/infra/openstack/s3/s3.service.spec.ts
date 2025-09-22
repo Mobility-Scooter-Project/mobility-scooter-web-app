@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { S3Service } from './s3.service';
 
-describe('SwiftService', () => {
+describe('S3Service', () => {
   let service: S3Service;
 
   beforeEach(async () => {

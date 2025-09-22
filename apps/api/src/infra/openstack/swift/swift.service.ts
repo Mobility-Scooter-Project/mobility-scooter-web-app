@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { S3Service } from '../s3/s3.service';
 import { BarbicanService } from '../barbican/barbican.service';
-import { QueueService } from 'src/queue/queue.service';
+import { QueueService } from 'src/infra/queue/queue.service';
 import * as crypto from 'crypto';
 import type { WaiterResult } from "@smithy/util-waiter";
 

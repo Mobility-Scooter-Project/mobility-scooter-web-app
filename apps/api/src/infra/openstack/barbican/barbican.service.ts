@@ -2,7 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { KeystoneService } from '../keystone/keystone.service';
-import { KvService } from 'src/kv/kv.service';
+import { KvService } from 'src/infra/kv/kv.service';
 import { HttpService } from '@nestjs/axios';
 import { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
