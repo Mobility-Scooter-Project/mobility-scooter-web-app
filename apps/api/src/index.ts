@@ -11,7 +11,7 @@ import { HTTPError } from "./lib/errors";
 import logger from "./lib/logger"
 import container from "./lib/container";
 import { diMiddleware } from "./middleware/di";
-import { unitHandler } from "./handlers/unitHandler";
+import units from "@src/handlers/units";
 
 const startTime = Date.now();
 logger.info("Starting API server...");
@@ -101,6 +101,6 @@ serve(
   },
 );
 
-app.route("/api", unitHandler);
+app.route("/api/v1", new Hono().route("/", units));
 
 export default app;
