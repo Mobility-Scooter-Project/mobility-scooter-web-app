@@ -35,7 +35,7 @@ export class OtpService {
         return data[0].email;
     }
 
-    public async generateOtp(userId: string): Promise<string> {
+    public async generateOtp(userId: string): Promise<{ url: string, secret: string }> {
         // fetch the user email from the database using userId
         const email = await this._getUserEmailById(userId);
 
@@ -54,7 +54,7 @@ export class OtpService {
             throw new HttpException('Error storing OTP secret', 500);
         }
 
-        return totp.secret.base32;
+        return { url: totp.toString(), secret };
     }
 
     public async verifyOtp(userId: string, token: string): Promise<boolean> {
