@@ -14,3 +14,13 @@ I'm having devpod issues:
 - try deleting the devpod and starting over: `devpod delete` followed by `devpod up .`
 - if your devpod is stuck in "waiting for agent" or something similar, message Bryan. There is a chance our cluster is out of volumes to run your devpod on.
 - try resetting your devpod provider with `devpod delete` and `devpod provider delete kubernetes`, then run the setup script again (see [Setup](./devpod/SETUP.md#prepare-your-devpod-environment))
+
+I'm having devpod issues after a cluster re-roll (connection refused, wrong kubeconfig, esbuild issues, etc):
+- check that Devpod is using the kubeconfig.yaml in the repo root, not ~/.kube/config. Run from the repo root and set `export KUBECONFIG="$(pwd)/kubeconfig.yaml"`
+- if you see "workspace already exists" or "connection refused", delete the workspace by name with `devpod delete --force <workspace-id>` (use `devpod list` to see IDs), then re-run `./scripts/devpod/setup.sh` and `./scripts/devpod/launch.sh`
+- if migrations fail with esbuild errors (e.g. `@esbuild/linux-arm64` vs `@esbuild/linux-x64`), remove all node_modules and reinstall inside Devpod:
+
+`rm -rf node_modules`
+`pnpm -r exec rm -rf node_modules dist .turbo`
+`pnpm install --force`
+`pnpm -r rebuild esbuild`
