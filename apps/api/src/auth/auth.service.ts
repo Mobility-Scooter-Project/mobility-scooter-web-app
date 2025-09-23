@@ -7,6 +7,7 @@ import { identities, refreshTokens, sessions, users } from 'src/infra/db/schema/
 import { BarbicanService } from 'src/infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
 import { runInThisContext } from 'vm';
+import e from 'express';
 
 type NewUser = typeof users.$inferInsert;
 
@@ -124,7 +125,7 @@ export class AuthService {
         return { token, refreshToken };
     }
 
-    private async _revokeRefreshToken(refreshToken: string) {
+    private async _invalidateRefreshToken(refreshToken: string) {
         try {
             await this.db.transaction(async (tx) => {
                 // Need to set the role to postgres to have permission to delete
@@ -140,20 +141,19 @@ export class AuthService {
     }
 
     public async refreshToken(refreshToken: string) {
-        let sessionId;
+        let payload;
         try {
-            sessionId = await this.jwt.verify(refreshToken, {
+            payload = await this.jwt.verify(refreshToken, {
                 secret: this.configService.get('jwtSecret'),
-            }).sessionId;
-
-
+            });
         } catch (e) {
             this.logger.error('Error verifying refresh token', e);
             throw new HttpException('Invalid refresh token', 401);
         }
 
+        let tokenRecord;
         try {
-            const tokenRecord = await this.db.select()
+            tokenRecord = await this.db.select()
                 .from(refreshTokens)
                 .where(and(
                     eq(refreshTokens.token, refreshToken),
@@ -170,23 +170,24 @@ export class AuthService {
             throw new HttpException('Invalid refresh token', 401);
         }
 
-        let record;
+        const newTokens = await this._createUserSession(payload.userId);
+
         try {
-            record = await this.db.select()
-                .from(sessions)
-                .where(eq(sessions.id, sessionId))
-                .limit(1);
+            // update the new refresh token record to have the same expiry as the old one
+            await this.db.transaction(async (tx) => {
+                await tx.execute(sql.raw(`SET ROLE postgres`));
+                await tx.update(refreshTokens)
+                    .set({ expiresAt: tokenRecord[0].expiresAt })
+                    .where(eq(refreshTokens.token, newTokens.refreshToken));
+            });
         } catch (e) {
+            this.logger.error('Error revoking old refresh token', e);
             throw new HttpException('Error refreshing token', 500);
         }
 
-        if (!record[0]) {
-            this.logger.error(`No session with id ${sessionId} found for refresh token`);
-            throw new HttpException('Invalid refresh token', 401);
-        }
+        await this._invalidateRefreshToken(refreshToken);
 
-        await this._revokeRefreshToken(refreshToken);
-        return this._createUserSession(record[0].userId);
+        return newTokens;
     }
 
     public async signInWithPassword(email: string, password: string) {
