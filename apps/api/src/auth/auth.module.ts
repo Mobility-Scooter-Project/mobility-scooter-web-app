@@ -4,9 +4,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { InfraModule } from 'src/infra/infra.module';
+import { OtpService } from './otp/otp.service';
 
 @Module({
-  providers: [AuthService],
+  providers: [AuthService, OtpService],
   imports: [
     JwtModule.registerAsync({
       imports: [ConfigModule],
