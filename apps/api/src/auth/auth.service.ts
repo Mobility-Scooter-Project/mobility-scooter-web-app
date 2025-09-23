@@ -6,8 +6,6 @@ import { DB, DbService } from 'src/infra/db/db.service';
 import { identities, refreshTokens, sessions, users } from 'src/infra/db/schema/auth';
 import { BarbicanService } from 'src/infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
-import { runInThisContext } from 'vm';
-import e from 'express';
 
 type NewUser = typeof users.$inferInsert;
 
@@ -93,7 +91,7 @@ export class AuthService {
         const token = await this.jwt.signAsync({
             userId: userId,
             sessionId: session[0].id,
-            exp: 60 * 15, // 15 minutes
+            exp: Number(Date.now() + 1000 * 60 * 15), // 15 minutes
             iat: Number(new Date().toISOString()),
         });
 
@@ -262,7 +260,9 @@ export class AuthService {
         let payload;
 
         try {
-            payload = this.jwt.verify(token);
+            payload = this.jwt.verify(token, {
+                secret: this.configService.get('jwtSecret'),
+            });
         } catch (e) {
             throw new HttpException('Invalid or expired token', 401);
         }

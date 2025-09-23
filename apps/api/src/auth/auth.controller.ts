@@ -1,15 +1,19 @@
-import { Body, Controller, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
 import { EmailBodyDto, NewPasswordDto, SignInWithEmailDto, TokenDto } from './auth.validators';
 import { AuthService } from './auth.service';
+import { OtpService } from './otp/otp.service';
 
 @Controller('auth')
 export class AuthController {
     private auth: AuthService;
+    private otp: OtpService;
 
     constructor(
-        private readonly authService: AuthService
+        private readonly authService: AuthService,
+        private readonly otpService: OtpService
     ) {
         this.auth = authService;
+        this.otp = otpService;
     }
 
     @Post('email')
@@ -31,4 +35,5 @@ export class AuthController {
     async resetPassword(@Body() body: NewPasswordDto) {
         return await this.auth.resetPassword(body.token, body.newPassword);
     }
+
 }
