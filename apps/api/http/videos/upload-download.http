@@ -1,0 +1,34 @@
+### Login
+# @name login
+POST http://localhost:3000/api/v1/auth/email
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "testing124"
+}
+
+### Create Video Metadata
+# @name createVideoMetadata
+POST http://localhost:3000/api/v1/videos/upload
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "patientId": "123e4567-e89b-12d3-a456-426614174000",
+  "sessionId": "123",
+  "fileName": "sample.txt"
+}
+
+### Upload Video
+# @name uploadVideo
+POST http://localhost:3000/api/v1/videos/{{createVideoMetadata.response.body.id}}/upload
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Type: text/plain
+Content-Disposition: form-data; name="file"; filename="sample.txt"
+
+< ./sample.txt
+------Boundary--

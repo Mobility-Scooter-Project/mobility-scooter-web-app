@@ -41,13 +41,7 @@ import { DbService } from './db/db.service';
     },
 
     // S3 service with factory
-    {
-      provide: S3Service,
-      useFactory: async (configService: ConfigService) => {
-        return await S3Service.build(configService);
-      },
-      inject: [ConfigService],
-    },
+    S3Service,
 
     // Barbican service with factory
     {

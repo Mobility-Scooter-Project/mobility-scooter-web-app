@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UnitsModule } from './units/units.module';
 import { OrgsModule } from './orgs/orgs.module';
 import { MeModule } from './me/me.module';
+import { VideosModule } from './videos/videos.module';
 import config from '../config';
 
 @Module({
@@ -19,7 +20,8 @@ import config from '../config';
     AuthModule,
     UnitsModule,
     OrgsModule,
-    MeModule
+    MeModule,
+    VideosModule
   ],
   controllers: [AppController],
   providers: [AppService],

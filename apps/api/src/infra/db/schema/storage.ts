@@ -23,7 +23,7 @@ export const videoStatus = pgEnum("video_status", [
 
 export const fileMetadata = storage.table("metadata", {
   id: uuid().primaryKey().defaultRandom(),
-  patientId: varchar({ length: 30 }).notNull(), // TODO: add foreign key constraint once we know more about the patients table
+  patientId: varchar({ length: 255 }).notNull(), // TODO: add foreign key constraint once we know more about the patients table
   statusEventId: uuid()
     .references(() => events.id)
     .notNull(),
