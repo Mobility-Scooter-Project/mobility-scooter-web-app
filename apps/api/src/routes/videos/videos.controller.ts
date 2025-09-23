@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Logger, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Put, Redirect, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { VideosService } from './videos.service';
 import { VideoMetadataDto } from './videos.validators';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -29,6 +29,6 @@ export class VideosController {
 
     @Get(':videoId/download')
     async getPresignedUrl(@Param('videoId') videoId: string) {
-        return await this.videos.getVideoPresignedUrl(videoId);
+        return await this.videosService.getVideoPresignedUrl(videoId);
     }
 }

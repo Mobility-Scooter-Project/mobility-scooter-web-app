@@ -32,3 +32,8 @@ Content-Disposition: form-data; name="file"; filename="sample.txt"
 
 < ./sample.txt
 ------Boundary--
+
+### Download Video
+# @name downloadVideo
+GET http://localhost:3000/api/v1/videos/{{createVideoMetadata.response.body.id}}/download
+Authorization: Bearer {{login.response.body.token}}

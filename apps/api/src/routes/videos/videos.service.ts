@@ -136,6 +136,10 @@ export class VideosService {
 
         const objectFilePath = `${video[0].patientId}/${video[0].path}`;
 
-        return await this.objectStorage.generatePresignedGetUrl(objectFilePath);
+        return await this.s3.presignedUrl(
+            "GET",
+            objectFilePath,
+            60 * 60 * 24, // 24 hours
+        )
     }
 }
