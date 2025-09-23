@@ -139,3 +139,32 @@ export const resetPasswordRateLimiter = rateLimiter({
   store: sharedStore,
   skip: () => ENVIRONMENT === "development",
 });
+
+/**
+ * Rate limiter middleware for unit management operations.
+ * Limits the frequency of unit-related operations per IP address to prevent abuse.
+ * 
+ * @remarks
+ * - Window: 1 hour
+ * - Limit: 100 operations per window
+ * - Applies to: Unit creation, updates, and user management
+ * - Key: IP address of the requester
+ * - Store: Uses shared store for rate limiting data
+ * - Development: Rate limiting is skipped in development environment
+ * 
+ * @example
+ * ```typescript
+ * app.post('/tenant/:tenantId/units', unitRateLimiter, createUnitHandler);
+ * ```
+ */
+export const unitRateLimiter = rateLimiter({
+  windowMs: 1000 * 60 * 60, // 1 hour
+  limit: 100, // 100 operations per hour
+  keyGenerator: (c) => {
+    const connInfo = getConnInfo(c);
+    return `unit:${connInfo.remote.address}`;
+  },
+  //@ts-expect-error - The store is not defined in the rateLimiter function
+  store: sharedStore,
+  skip: () => ENVIRONMENT === "development",
+});

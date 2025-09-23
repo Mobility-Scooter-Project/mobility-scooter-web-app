@@ -33,7 +33,8 @@ export const users = auth.table(
   {
     id: uuid().primaryKey().defaultRandom(),
     unitId: uuid()
-      .references(() => units.id),
+      .references(() => units.id)
+      .notNull(),
     email: text().notNull().unique(),
     encryptedPassword: text(),
     permissions: jsonb().default({}),

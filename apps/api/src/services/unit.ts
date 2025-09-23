@@ -52,9 +52,9 @@ export class UnitService {
   /**
    * Remove a user from a unit
    */
-  async removeUser(userId: string) {
+  async removeUser(userId: string, defaultUnitId: string) {
     try {
-      return await unitRepository.removeUserFromUnit(this.db, userId);
+      return await unitRepository.removeUserFromUnit(this.db, userId, defaultUnitId);
     } catch (e) {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to remove user from unit");
     }

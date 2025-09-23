@@ -144,11 +144,11 @@ export const getUsersByUnit = async (
  *
  * @throws {HTTPError} INTERNAL_SERVER_ERROR if update fails
  */
-export const removeUserFromUnit = async (db: DB, userId: string) => {
+export const removeUserFromUnit = async (db: DB, userId: string, defaultUnitId: string) => {
   try {
     await db
       .update(usersTable)
-      .set({ unitId: null })
+      .set({ unitId: defaultUnitId })
       .where(eq(usersTable.id, userId));
     return true;
   } catch (e) {

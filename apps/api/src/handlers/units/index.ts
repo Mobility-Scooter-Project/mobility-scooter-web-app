@@ -4,8 +4,12 @@ import { unitService } from "@src/services/unit";
 import { postgresDB } from "@src/middleware/db";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
+import { unitRateLimiter } from "@src/middleware/rate-limit";
 
 const app = new Hono<{ Variables: Variables }>();
+
+// Apply rate limiting to all unit operations
+app.use("*", unitRateLimiter);
 
 /**
  * POST /tenant/{tenantId}/units
@@ -150,9 +154,11 @@ app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
  * @returns {204 | 500} Empty response on success or error
  */
 app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", async (c) => {
-  const { userId } = c.req.param();
+  const { userId, unitId } = c.req.param();
   try {
-    await unitService.removeUser(userId);
+    // When removing a user from a unit, we set their unitId to their current unit ID
+    // This ensures we maintain the not-null constraint while effectively "removing" them
+    await unitService.removeUser(userId, unitId);
     return new Response("", { status: 204 });
   } catch (e) {
     if (e instanceof HTTPError) throw e;

@@ -7,6 +7,7 @@ export const SHARED_DATA = {
     FIRST_NAME: "John",
     LAST_NAME: "Doe",
     TESTING_UNIT_ID: process.env.TESTING_UNIT_ID!,
+    TEST_USER_ID: process.env.TEST_USER_ID!,
 };
 
 export const SHARED_LOGIN = {
