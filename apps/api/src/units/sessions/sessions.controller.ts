@@ -31,4 +31,14 @@ export class SessionsController {
     async deleteSession() {
         // TODO
     }
+
+    @Get(':sessionId/videos/:videoId/labels')
+    async getVideoLabels() {
+        // TODO
+    }
+
+    @Get(':sessionId/videos/:videoId/keypoints')
+    async getVideoKeypoints() {
+        // TODO
+    }
 }
