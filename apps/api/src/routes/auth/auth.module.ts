@@ -6,7 +6,7 @@ import { AppConfig } from 'src/config';
 import { InfraModule } from 'src/infra/infra.module';
 import { OtpService } from './otp/otp.service';
 import { AuthController } from './auth.controller';
-import { JwtMiddleware } from 'src/jwt/jwt.middleware';
+import { JwtMiddleware } from 'src/middleware/jwt/jwt.middleware';
 import { OtpController } from './otp/otp.controller';
 
 @Module({
