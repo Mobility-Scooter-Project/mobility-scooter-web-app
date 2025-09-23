@@ -5,6 +5,8 @@ import { ConfigModule } from '@nestjs/config';
 import { InfraModule } from './infra/infra.module';
 import { AuthModule } from './auth/auth.module';
 import { UnitsModule } from './units/units.module';
+import { OrgsModule } from './orgs/orgs.module';
+import { MeModule } from './me/me.module';
 import config from './config';
 
 @Module({
@@ -15,7 +17,9 @@ import config from './config';
     }),
     InfraModule,
     AuthModule,
-    UnitsModule
+    UnitsModule,
+    OrgsModule,
+    MeModule
   ],
   controllers: [AppController],
   providers: [AppService],
