@@ -10,3 +10,8 @@ export class SignInWithEmailDto extends EmailBodyDto {
     password: string;
 }
 
+export class TokenDto {
+    @IsNotEmpty()
+    token: string;
+}
+
