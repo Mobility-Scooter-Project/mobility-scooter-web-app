@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { sql, eq, and } from 'drizzle-orm';
 import { AppConfig } from 'src/config';
@@ -14,6 +14,7 @@ export class AuthService {
     private vault: BarbicanService;
     private db: DB;
     private jwt: JwtService;
+    private readonly logger = new Logger(AuthService.name);
 
     constructor(
         private readonly configService: ConfigService<AppConfig>,
@@ -79,17 +80,16 @@ export class AuthService {
                 })
                 .returning({ id: sessions.id });
         } catch (error) {
+            this.logger.error('Error creating session: ', error);
             throw new HttpException('Error creating session', 500);
         }
 
-        const expiresAt = new Date();
-        expiresAt.setTime(expiresAt.getTime() + 1000 * 60 * 15); // 15 minutes
 
         const token = await this.jwt.signAsync({
             userId: userId,
             sessionId: session.id,
-            exp: expiresAt,
-            iat: new Date(),
+            exp: 60 * 15, // 15 minutes
+            iat: Number(new Date().toISOString()),
         });
 
         let refreshToken;
@@ -97,11 +97,12 @@ export class AuthService {
             refreshToken = await this.jwt.signAsync({
                 userId: userId,
                 sessionId: session.id,
-                exp: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 30), // 30 days
-                iat: new Date(),
+                exp: 60 * 60 * 24 * 30, // 30 days
+                iat: Number(new Date().toISOString()),
             });
         }
         catch (error) {
+            this.logger.error('Error creating refresh token', error);
             throw new HttpException('Error creating refresh token', 500);
         }
 
@@ -158,7 +159,7 @@ export class AuthService {
 
         try {
             await this.db.transaction(async (tx) => {
-                await tx.execute(sql.raw(`SET SESSION app.user_id = '${user.id}'`));
+                await tx.execute(sql.raw(`SET SESSION app.user_id = '${user[0].id}'`));
                 await tx.execute(sql`SET ROLE authenticated_user`);
             });
         } catch (error) {
@@ -207,7 +208,7 @@ export class AuthService {
 
     public async resetPassword(token: string, newPassword: string) {
         let payload;
-        
+
         try {
             payload = this.jwt.verify(token);
         } catch (e) {
