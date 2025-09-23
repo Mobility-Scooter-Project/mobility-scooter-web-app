@@ -1,20 +1,11 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { S3Service } from '../s3/s3.service';
 import { BarbicanService } from '../barbican/barbican.service';
 import { QueueService } from 'src/infra/queue/queue.service';
 import * as crypto from 'crypto';
-import type { WaiterResult } from "@smithy/util-waiter";
-
-const FILE_TYPES = {
-    VIDEO: 'video',
-    TRANSCRIPT: 'transcript'
-} as const;
-
-const TOPICS = {
-    VIDEOS: 'videos'
-} as const;
+import { Readable } from 'stream';
 
 /**
  * SwiftService provides a high-level interface for storage operations,
@@ -31,6 +22,7 @@ export class SwiftService {
     private storageBucket: string;
     private storageSecret: string;
     private baseUrl: string;
+    private logger = new Logger(SwiftService.name);
 
     public constructor(
         private readonly S3Service: S3Service,
@@ -81,14 +73,10 @@ export class SwiftService {
      */
     public async putObjectStream(
         filePath: string,
-        uploadStream: ReadableStream<any>,
+        uploadStream: Readable,
         uploadedAt: Date,
-        fileType = FILE_TYPES.VIDEO,
+        fileType = 'video',
     ): Promise<void> {
-        // TODO: check if user has access to patientId
-
-        // each patient gets their own bucket to attempt to isolate their data
-        const expires = 60 * 60 * 24;
         const startTime = new Date();
 
         await this.s3.getOrCreateBucket(this.storageBucket);
@@ -98,54 +86,7 @@ export class SwiftService {
             filePath,
         );
 
-        if (fileType === FILE_TYPES.VIDEO) {
-            const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
-            const videoDataPromise = this.generatePresignedGetUrl(filePath);
-
-            const transcriptPutUrlPromise = this.s3.presignedUrl(
-                "PUT",
-                transcriptPath,
-                expires,
-            );
-
-            const videoMetadataPromise = this.createVideoMetadata(
-                this.storageBucket,
-                filePath,
-                uploadedAt,
-            );
-
-            const [videoData, transcriptPutUrl, videoMetadata] = await Promise.all([
-                videoDataPromise,
-                transcriptPutUrlPromise,
-                videoMetadataPromise,
-            ]);
-
-            let uploadState = await this.s3.waitUntilObjectExists(filePath);
-
-            while (uploadState.state !== 'SUCCESS') {
-                if (uploadState.state === 'FAILURE') {
-                    throw new HttpException("Failed to upload video file", HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-                uploadState = await this.s3.waitUntilObjectExists(filePath);
-            }
-
-            await this.queue.getProducer().send({
-                topic: TOPICS.VIDEOS,
-                messages: [{
-                    key: videoMetadata.id,
-                    value: JSON.stringify({
-                        id: videoMetadata.id,
-                        url: videoData.url,
-                        filename: filePath,
-                        transcriptPutUrl,
-                    }),
-                }],
-            });
-
-            console.log(`Published video event to queue: ${videoMetadata.id} - ${filePath}`);
-        }
-
-        console.log(`Uploaded file ${filePath} to bucket ${this.storageBucket} in ${new Date().getTime() - startTime.getTime()} ms`);
+        this.logger.log(`Uploaded file ${filePath} to bucket ${this.storageBucket} in ${new Date().getTime() - startTime.getTime()} ms`);
     }
 
     /**
@@ -164,7 +105,7 @@ export class SwiftService {
      * - X-MSWA-Bucket: The provided bucket name
      * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
      */
-    public async generatePresignedGetUrl(filePath: string): Promise<{ url: string }> {
+    public async generatePresignedGetUrl(filePath: string): Promise<string> {
         const date = new Date();
         const expires = new Date(date.getTime() + 60 * 60 * 24 * 1000);
         const method = "GET";
@@ -183,8 +124,8 @@ export class SwiftService {
 
         params.append("X-MSWA-Signature", signature);
 
-        const url = `${this.baseUrl}/api/v1/storage/presigned-url?${params.toString()}`;
-        return { url };
+        const url = `${this.baseUrl}/api/v1/uploads/presigned-url?${params.toString()}`;
+        return url;
     }
 
     /**
@@ -223,33 +164,5 @@ export class SwiftService {
             expires,
             signature,
         );
-    }
-
-    /**
-     * Stores video metadata in the database and creates a video event
-     *
-     * @param patientId - ID associated with a patient
-     * @param path - Path of the video file
-     * @param uploadedAt - Date of the video
-     * @returns String
-     *  - ID of the video metadata
-     *
-     * @remarks
-     * This function will create an event ID and store the video metadata in the database.
-     * The event ID is used to track the status of the video.
-     */
-    public async createVideoMetadata(
-        patientId: string,
-        path: string,
-        uploadedAt: Date,
-    ) {
-        // TODO: Implement video repository integration
-        // For now, return a mock object that matches the expected interface
-        return {
-            id: crypto.randomUUID(),
-            patientId,
-            path,
-            uploadedAt,
-        };
     }
 }

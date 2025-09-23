@@ -7,10 +7,16 @@ if (!process.env.DATABASE_URL) {
 
 export default defineConfig({
   dialect: "postgresql",
-  schema: "./src/db/schema/*",
-  out: "./src/db/migrations",
+  schema: "./src/infra/db/schema/*",
+  schemaFilter: ["auth", "storage", "tenants", "public"],
+  out: "./src/infra/db/migrations",
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
   casing: "snake_case",
+  entities: {
+    roles: {
+      exclude: ["pg_database_owner"]
+    }
+  }
 });
