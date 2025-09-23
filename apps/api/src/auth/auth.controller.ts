@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { EmailBodyDto, SignInWithEmailDto } from './auth.validators';
+import { EmailBodyDto, SignInWithEmailDto, TokenDto } from './auth.validators';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -15,6 +15,11 @@ export class AuthController {
     @Post('email')
     async signInWithEmail(@Body() body: SignInWithEmailDto) {
         return await this.auth.signInWithPassword(body.email, body.password);
+    }
+
+    @Post('refresh-token')
+    async refreshToken(@Body() body: TokenDto) {
+        return await this.auth.refreshToken(body.token);
     }
 
     @Post('email/reset-password/token')

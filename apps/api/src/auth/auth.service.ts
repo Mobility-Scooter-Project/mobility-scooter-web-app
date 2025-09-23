@@ -6,6 +6,7 @@ import { DB, DbService } from 'src/infra/db/db.service';
 import { identities, refreshTokens, sessions, users } from 'src/infra/db/schema/auth';
 import { BarbicanService } from 'src/infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
+import { runInThisContext } from 'vm';
 
 type NewUser = typeof users.$inferInsert;
 
@@ -43,7 +44,6 @@ export class AuthService {
                     .returning({ id: users.id });
 
                 await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`));
-                await tx.execute(sql`SET ROLE authenticated_user`);
 
                 const identity = await tx
                     .select()
@@ -84,10 +84,14 @@ export class AuthService {
             throw new HttpException('Error creating session', 500);
         }
 
+        if (!session[0]) {
+            this.logger.error('No session created');
+            throw new HttpException('Error creating session', 500);
+        }
 
         const token = await this.jwt.signAsync({
             userId: userId,
-            sessionId: session.id,
+            sessionId: session[0].id,
             exp: 60 * 15, // 15 minutes
             iat: Number(new Date().toISOString()),
         });
@@ -96,12 +100,23 @@ export class AuthService {
         try {
             refreshToken = await this.jwt.signAsync({
                 userId: userId,
-                sessionId: session.id,
-                exp: 60 * 60 * 24 * 30, // 30 days
+                sessionId: session[0].id,
+                exp: Number(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
                 iat: Number(new Date().toISOString()),
             });
-        }
-        catch (error) {
+
+            await this.db
+                .insert(refreshTokens)
+                .values({
+                    userId,
+                    token: refreshToken,
+                    sessionId: session[0].id,
+                    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    revoked: false,
+                });
+        } catch (error) {
             this.logger.error('Error creating refresh token', error);
             throw new HttpException('Error creating refresh token', 500);
         }
@@ -111,19 +126,51 @@ export class AuthService {
 
     private async _revokeRefreshToken(refreshToken: string) {
         try {
-            await this.db
-                .update(refreshTokens)
-                .set({ revoked: true })
-                .where(eq(refreshTokens.token, refreshToken));
+            await this.db.transaction(async (tx) => {
+                // Need to set the role to postgres to have permission to delete
+                await tx.execute(sql.raw(`SET ROLE postgres`));
+                await tx
+                    .delete(refreshTokens)
+                    .where(eq(refreshTokens.token, refreshToken));
+            });
         } catch (e) {
+            this.logger.error('Error revoking refresh token', e);
             throw new HttpException('Error revoking refresh token', 500);
         }
     }
 
-    private async _refreshToken(refreshToken: string) {
-        let record;
-        const sessionId = this.jwt.decode(refreshToken)['sessionId'];
+    public async refreshToken(refreshToken: string) {
+        let sessionId;
+        try {
+            sessionId = await this.jwt.verify(refreshToken, {
+                secret: this.configService.get('jwtSecret'),
+            }).sessionId;
 
+
+        } catch (e) {
+            this.logger.error('Error verifying refresh token', e);
+            throw new HttpException('Invalid refresh token', 401);
+        }
+
+        try {
+            const tokenRecord = await this.db.select()
+                .from(refreshTokens)
+                .where(and(
+                    eq(refreshTokens.token, refreshToken),
+                    eq(refreshTokens.revoked, false),
+                    sql`expires_at > now()`
+                ))
+                .limit(1);
+
+            if (!tokenRecord[0]) {
+                this.logger.error(`Refresh token not found or revoked: ${refreshToken}`);
+                throw new HttpException('Invalid refresh token', 401);
+            }
+        } catch (e) {
+            throw new HttpException('Invalid refresh token', 401);
+        }
+
+        let record;
         try {
             record = await this.db.select()
                 .from(sessions)
@@ -134,6 +181,7 @@ export class AuthService {
         }
 
         if (!record[0]) {
+            this.logger.error(`No session with id ${sessionId} found for refresh token`);
             throw new HttpException('Invalid refresh token', 401);
         }
 
@@ -160,7 +208,6 @@ export class AuthService {
         try {
             await this.db.transaction(async (tx) => {
                 await tx.execute(sql.raw(`SET SESSION app.user_id = '${user[0].id}'`));
-                await tx.execute(sql`SET ROLE authenticated_user`);
             });
         } catch (error) {
             throw new HttpException('Error setting user context', 500);
@@ -186,7 +233,10 @@ export class AuthService {
 
         const { id } = data;
 
-        const payload = { userId: id, exp: Date.now() + 1000 * 60 * 60 * 24 };
+        const payload = {
+            userId: id,
+            exp: Number(Date.now() + 1000 * 60 * 60 * 24)
+        };
 
         let token;
 
