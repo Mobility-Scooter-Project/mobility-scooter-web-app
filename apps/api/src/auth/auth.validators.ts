@@ -15,3 +15,8 @@ export class TokenDto {
     token: string;
 }
 
+
+export class NewPasswordDto extends TokenDto {
+    @IsNotEmpty()
+    newPassword: string;
+}
