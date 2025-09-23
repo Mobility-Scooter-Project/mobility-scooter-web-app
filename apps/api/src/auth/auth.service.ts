@@ -228,11 +228,12 @@ export class AuthService {
             throw new HttpException('Error generating reset password token', 500);
         }
 
+        // If no user found, we don't reveal that to the requester for security reasons
         if (!data[0]) {
-            throw new HttpException('User not found', 404);
+            throw new HttpException('Error generating reset password token', 500);
         }
 
-        const { id } = data;
+        const { id } = data[0];
 
         const payload = {
             userId: id,
@@ -253,8 +254,8 @@ export class AuthService {
             throw new HttpException('Error storing reset password token', 500);
         }
 
-        // NOTE: In prod this should send an email but we are ignoring that for now.
-        return token;
+        // NOTE: In prod this should send an email but we are ignoring that for now and returning the token instaed.
+        return { token };
     }
 
     public async resetPassword(token: string, newPassword: string) {

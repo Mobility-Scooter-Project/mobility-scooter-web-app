@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { KeystoneService } from '../keystone/keystone.service';
@@ -15,6 +15,7 @@ export class BarbicanService {
     private vaultUrl: string;
     private storageBucket: string = 'default'; // Default bucket name
     private client: AxiosInstance;
+    private readonly logger = new Logger(BarbicanService.name);
 
     private constructor(
         private readonly KeystoneService: KeystoneService,
@@ -64,6 +65,11 @@ export class BarbicanService {
      * @throws {HttpException} Throws with status 500 if the secret cannot be stored
      */
     public async upsertSecret(path: string, key: string, secret: string) {
+        if (!key) {
+            this.logger.error("Key is required to upsert secret");
+            throw new HttpException("Key is required to upsert secret", HttpStatus.BAD_REQUEST);
+        }
+
         secret = Buffer.from(secret, 'utf8').toString('base64'); // Encode secret to base64
 
         const response = await this.client.post('/v1/secrets', JSON.stringify({
@@ -73,19 +79,7 @@ export class BarbicanService {
             payload_content_encoding: 'base64',
         }));
 
-        if (response.status == 401) {
-            this.client.defaults.headers['X-Auth-Token'] = await this.keystone.getToken();
-            const retryResponse = await this.client.post('/v1/secrets', JSON.stringify({
-                payload: secret,
-                secret_type: 'symmetric',
-                payload_content_type: 'application/octet-stream',
-                payload_content_encoding: 'base64',
-            }));
-
-            if (!retryResponse.status.toString().includes('20')) {
-                throw new HttpException(`Failed to upsert secret at ${path}`, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        } else if (!response.status.toString().includes('20')) {
+        if (!response.status.toString().includes('20')) {
             throw new HttpException(`Failed to upsert secret at ${path}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
@@ -119,19 +113,11 @@ export class BarbicanService {
 
         // TODO: handle refresh from Barbican if needed
         if (!secretRef) {
-            throw new HttpException(`Secret not found at ${path}`, HttpStatus.NOT_FOUND);
+            this.logger.warn(`Secret not found in KV store at path: ${path} with key: ${key}`);
+            throw new HttpException(`Secret not found ${path}`, HttpStatus.NOT_FOUND);
         }
 
         const response = await this.client.get(secretRef);
-
-        if (response.status === 401) {
-            this.client.defaults.headers['X-Auth-Token'] = await this.keystone.getToken();
-            const retryResponse = await this.client.get(secretRef);
-            if (!retryResponse.status.toString().includes('20')) {
-                throw new HttpException(`Secret not found at ${path}`, HttpStatus.NOT_FOUND);
-            }
-            return retryResponse.data as string;
-        }
 
         if (!response.status.toString().includes('20')) {
             throw new HttpException(`Secret not found at ${path}`, HttpStatus.NOT_FOUND);
