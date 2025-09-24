@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -10,6 +10,7 @@ export class KeystoneService {
     private BASE_URL: string;
 
     private client: HttpService;
+    private readonly logger = new Logger(KeystoneService.name);
 
     constructor(
         private readonly configService: ConfigService<AppConfig>,
@@ -36,6 +37,21 @@ export class KeystoneService {
         this.client = httpService;
     }
 
+    /**
+     * Retrieves an authentication token from the Keystone identity service.
+     * 
+     * Makes a POST request to the Keystone auth endpoint with the configured credentials
+     * and extracts the token from the response headers.
+     * 
+     * @returns A Promise that resolves to the authentication token string
+     * @throws {HttpException} Throws an HttpException with status 500 if the token request fails
+     * 
+     * @example
+     * ```typescript
+     * const token = await keystoneService.getToken();
+     * console.log('Token:', token);
+     * ```
+     */
     public async getToken(): Promise<string> {
         try {
             const response = await firstValueFrom(
@@ -45,16 +61,16 @@ export class KeystoneService {
                     }
                 }).pipe(
                     catchError((error) => {
-                        console.error('Error in KeystoneService getToken:', error);
-                        throw new Error('Failed to fetch token from Keystone');
+                        this.logger.error('Error in KeystoneService getToken:', error);
+                        throw new HttpException('Failed to fetch token from Keystone', 500);
                     })
                 )
             );
 
             return response.headers['x-subject-token'];
         } catch (error) {
-            console.error('Error fetching token from Keystone:', error);
-            throw new Error('Failed to fetch token from Keystone');
+            this.logger.error('Error fetching token from Keystone:', error);
+            throw new HttpException('Failed to fetch token from Keystone', 500);
         }
     }
 }

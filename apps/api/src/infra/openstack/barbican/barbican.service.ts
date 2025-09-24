@@ -2,7 +2,7 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { KeystoneService } from '../keystone/keystone.service';
-import { KvService } from 'src/infra/kv/kv.service';
+import { KvService } from '../../kv/kv.service';
 import { HttpService } from '@nestjs/axios';
 import { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
@@ -17,7 +17,7 @@ export class BarbicanService {
     private client: AxiosInstance;
     private readonly logger = new Logger(BarbicanService.name);
 
-    private constructor(
+    constructor(
         private readonly KeystoneService: KeystoneService,
         private readonly KVService: KvService,
     ) {
@@ -53,18 +53,24 @@ export class BarbicanService {
 
         return barbican;
     }
-
-
-
+   
     /**
-     * Creates or updates a secret in the Barbican vault.
+     * Upserts a secret by storing it in Barbican and caching the reference in Redis.
      * 
-     * @param path - The path where the secret should be stored
-     * @param key - The key identifier for the secret
-     * @param secret - The secret value to store (will be base64 encoded)
-     * @throws {HttpException} Throws with status 500 if the secret cannot be stored
+     * This method encodes the secret as base64, stores it in OpenStack Barbican as a symmetric secret,
+     * and then caches the secret reference URL in Redis using the provided path and key.
+     * 
+     * @param path - The Redis hash key path where the secret reference will be stored
+     * @param key - The field name within the Redis hash for this specific secret
+     * @param secret - The plain text secret value to be stored (will be base64 encoded)
+     * 
+     * @throws {HttpException} When key is missing (400 Bad Request)
+     * @throws {HttpException} When Barbican API call fails (500 Internal Server Error) 
+     * @throws {HttpException} When no secret reference is returned from Barbican (500 Internal Server Error)
+     * 
+     * @returns Promise that resolves when the secret is successfully stored and cached
      */
-    public async upsertSecret(path: string, key: string, secret: string) {
+    public async upsertSecret(path: string, key: string, secret: string): Promise<void> {
         if (!key) {
             this.logger.error("Key is required to upsert secret");
             throw new HttpException("Key is required to upsert secret", HttpStatus.BAD_REQUEST);

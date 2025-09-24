@@ -8,7 +8,7 @@ export class QueueService {
     private client: Kafka;
     private producer: Producer;
 
-    private constructor(private readonly configService: ConfigService<AppConfig>) {
+    constructor(private readonly configService: ConfigService<AppConfig>) {
         this.client = new Kafka({
             clientId: 'api',
             brokers: [this.configService.get("broker").url],
