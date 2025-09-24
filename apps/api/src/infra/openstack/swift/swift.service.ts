@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppConfig } from 'src/config';
 import { S3Service } from '../s3/s3.service';
 import { BarbicanService } from '../barbican/barbican.service';
-import { QueueService } from 'src/infra/queue/queue.service';
+import { QueueService } from '../../queue/queue.service';
 import * as crypto from 'crypto';
 import { Readable } from 'stream';
 
@@ -126,43 +126,5 @@ export class SwiftService {
 
         const url = `${this.baseUrl}/api/v1/uploads/presigned-url?${params.toString()}`;
         return url;
-    }
-
-    /**
-     * Retrieves an object stream from storage with encryption.
-     * 
-     * @param filePath - The file path of the object within the bucket
-     * @returns A promise that resolves to an object containing the stream
-     * @throws {HttpException} If the bucket does not exist or if there's an issue retrieving the encryption key
-     */
-    public async getObjectStream(filePath: string): Promise<{ stream: any }> {
-        const object = await this.s3.getObject(filePath);
-
-        return {
-            stream: object,
-        };
-    }
-
-    /**
-     * Validates a pre-signed URL for storage operations
-     * @param filePath - The path to the file in storage
-     * @param method - The HTTP method for the pre-signed URL
-     * @param expires - The expiration timestamp of the pre-signed URL
-     * @param signature - The signature of the pre-signed URL for validation
-     * @throws {HttpException} If the pre-signed URL validation fails
-     * @returns {Promise<void>}
-     */
-    public async validatePresignedUrl(
-        filePath: string,
-        method: string,
-        expires: string,
-        signature: string,
-    ): Promise<void> {
-        await this.s3.validatePresignedUrl(
-            filePath,
-            method,
-            expires,
-            signature,
-        );
     }
 }

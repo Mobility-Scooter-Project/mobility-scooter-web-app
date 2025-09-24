@@ -134,35 +134,22 @@ export class S3Service {
     }
 
     /**
-     * Retrieves an object from the specified bucket in the storage.
-     * @param objectName - The name/path of the object to retrieve.
-     * @returns A Promise that resolves with the retrieved object.
-     * @throws {HttpException} When the object retrieval fails with a 500 Internal Server Error.
-     */
-    public async getObject(objectName: string) {
-        try {
-            const getObjectCommand = new GetObjectCommand({
-                Bucket: this.storageBucket,
-                Key: objectName,
-            });
-            const res = await this.client.send(getObjectCommand);
-
-            return res.Body?.transformToWebStream();
-        } catch (error) {
-            throw new HttpException(`Failed to get object`, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Generates a pre-signed URL for performing operations on objects in a specified bucket.
-     *
-     * @param method - The HTTP method to be allowed on the pre-signed URL (e.g., 'GET', 'PUT')
+     *  Generates a presigned URL for accessing an object in the S3 bucket.
+     * 
+     * @param method - The HTTP method for the presigned URL ("GET" or "PUT")
      * @param objectName - The name/path of the object in the bucket
-     * @param expires - The number of seconds until the pre-signed URL expires
-     * @param reqParams - Optional parameters for the pre-signed URL request
-     * @param requestDate - Optional date to be used for request signing
-     * @returns Promise containing the generated pre-signed URL
-     * @throws {HttpException} When URL generation fails with HTTP 500 error
+     * @param expires - The expiration time from the current time in seconds
+     * @param reqParams - Optional request parameters for server-side encryption
+     * @param requestDate - Optional specific date for signing the URL
+     * @returns Promise<string> - The generated presigned URL
+     * 
+     * @throws {HttpException} - Throws an HttpException with INTERNAL_SERVER_ERROR status code if URL generation fails
+     * 
+     * @example
+     * ```typescript
+     * const url = await s3Service.presignedUrl("GET", "my-object.txt", 3600);
+     * console.log(url); // Outputs the presigned URL valid for 1 hour
+     * ```
      */
     public async presignedUrl(
         method: "GET" | "PUT",
@@ -199,6 +186,7 @@ export class S3Service {
                 signingDate: requestDate,
             });
         } catch (error) {
+            this.logger.error(error);
             throw new HttpException(`Failed to generate pre-signed URL`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -228,8 +216,6 @@ export class S3Service {
             Bucket: this.storageBucket,
             Key: objectName,
         };
-
-        this.logger.log(commonHeaders);
 
         let UploadId = "";
         let PartNumber = 1;
@@ -331,76 +317,6 @@ export class S3Service {
             }
 
             throw new HttpException(`Failed to perform multipart upload`, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Waits until an object exists in the S3 bucket.
-     * 
-     * @param objectName - The key/name of the object to wait for in the S3 bucket
-     * @returns A Promise that resolves to a WaiterResult when the object exists or the wait times out
-     * @throws {HttpException} Throws an HttpException with INTERNAL_SERVER_ERROR status if the wait operation fails
-     * 
-     * @example
-     * ```typescript
-     * const result = await s3Service.waitUntilObjectExists('my-file.txt');
-     * if (result.state === 'SUCCESS') {
-     *   console.log('Object exists!');
-     * }
-     * ```
-     */
-    public waitUntilObjectExists(objectName: string): Promise<WaiterResult> {
-        try {
-            return waitUntilObjectExists(
-                {
-                    client: this.client,
-                    minDelay: 1,
-                    maxDelay: 5,
-                    maxWaitTime: 30,
-                },
-                {
-                    Bucket: this.storageBucket,
-                    Key: objectName,
-                },
-            );
-        } catch (error) {
-            throw new HttpException(`Failed to retrieve object waiter`, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Validates a presigned URL by checking its signature, expiration, and bucket existence
-     *
-     * @param filePath - The path to the file in the storage bucket
-     * @param method - The HTTP method for the presigned URL
-     * @param expires - The expiration timestamp in seconds since epoch
-     * @param signature - The signature to validate against
-     *
-     * @throws {HttpException} With status 401 if signature is invalid
-     * @throws {HttpException} With status 401 if URL has expired
-     *
-     * @returns {Promise<void>} Resolves if validation is successful
-     */
-    public async validatePresignedUrl(
-        filePath: string,
-        method: string,
-        expires: string,
-        signature: string,
-    ): Promise<void> {
-        const date = new Date();
-        const expiresDate = new Date(parseInt(expires) * 1000);
-
-        const expectedSignature = crypto
-            .createHmac("sha256", this.storageSecret)
-            .update(`${method}\n${expires}\n${filePath}`)
-            .digest("hex");
-
-        if (signature !== expectedSignature) {
-            throw new HttpException("Invalid signature", HttpStatus.UNAUTHORIZED);
-        }
-
-        if (expiresDate < date) {
-            throw new HttpException("URL has expired", HttpStatus.UNAUTHORIZED);
         }
     }
 }
