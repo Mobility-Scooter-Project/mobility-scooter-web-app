@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Logger, Param, Post, Put, Redirect, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { VideosService } from './videos.service';
-import { VideoMetadataDto } from './videos.validators';
+import { VideoMetadataDto } from './videos.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('videos')

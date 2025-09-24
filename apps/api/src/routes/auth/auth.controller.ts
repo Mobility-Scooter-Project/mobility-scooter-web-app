@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
-import { EmailBodyDto, NewPasswordDto, SignInWithEmailDto, TokenDto } from './auth.validators';
+import { EmailBodyDto, NewPasswordDto, SignInWithEmailDto, TokenDto } from './auth.dto';
 import { AuthService } from './auth.service';
 import { OtpService } from './otp/otp.service';
 

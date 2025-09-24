@@ -1,5 +1,5 @@
 import { Get, Req, Post, Body, Controller } from "@nestjs/common";
-import { TokenDto } from "../auth.validators";
+import { TokenDto } from "../auth.dto";
 import { OtpService } from "./otp.service";
 
 @Controller('auth/mfa')
