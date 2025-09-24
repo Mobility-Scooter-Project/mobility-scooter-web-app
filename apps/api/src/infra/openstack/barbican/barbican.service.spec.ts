@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BarbicanService } from './barbican.service';
 import { KeystoneService } from '../keystone/keystone.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from '../../../config';
 import { KvService } from '../../kv/kv.service';
-import { HttpModule } from '@nestjs/axios';
+import { HttpModule, HttpService } from '@nestjs/axios';
 
 describe('BarbicanService', () => {
   let service: BarbicanService;
@@ -15,11 +15,26 @@ describe('BarbicanService', () => {
         isGlobal: true,
         load: [config]
       }), HttpModule],
-      providers: [BarbicanService, KeystoneService, KvService],
+      providers: [KeystoneService, KvService, {
+        provide: BarbicanService,
+        useFactory: async (
+          configService: ConfigService,
+          keystone: KeystoneService,
+          kv: KvService,
+          httpService: HttpService
+        ) => await BarbicanService.build(
+          configService,
+          keystone,
+          kv,
+          httpService
+        ),
+        inject: [ConfigService, KeystoneService, KvService, HttpService]
+      }]
+
     }).useMocker((token) => {
-      if(token === BarbicanService) {
+      if (token === BarbicanService) {
         return {
-          
+
         }
       }
     }).compile();
@@ -31,7 +46,15 @@ describe('BarbicanService', () => {
     expect(service).toBeDefined();
   });
 
+  // These tests are technically integration tests since they hit real OpenStack services, but mocking HTTP calls is too complex for now.
   it('should upsert a secret', async () => {
-    const result = await service.upsertSecret("test/path", "test-key", "test-secret");
+    await service.upsertSecret("test/path", "test-key", "test-secret");
   })
+
+  it('should get a secret', async () => {
+    const secret = await service.readSecret("test/path", "test-key");
+    expect(secret).toBe("test-secret");
+  })
+
+  // The other methods are ommitted as they are wrappers around the above methods.
 });
