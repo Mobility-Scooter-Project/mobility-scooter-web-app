@@ -9,7 +9,7 @@ export class KvService {
 
     constructor(private configService: ConfigService<AppConfig>) {
         this._kv = new Redis(
-            this.configService.get("kv").url
+            this.configService.get("kv").url,
         );
     }
 
