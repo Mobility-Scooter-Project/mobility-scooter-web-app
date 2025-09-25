@@ -5,7 +5,7 @@ import { CreateUpdateDeleteFields } from "../shared";
 import { Department } from "./department";
 
 @Entity({ schema: SCHEMAS.ORGS })
-export class OrgMetadata {
+export class Org {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
