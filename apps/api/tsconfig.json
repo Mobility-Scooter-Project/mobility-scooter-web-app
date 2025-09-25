@@ -1,4 +1,9 @@
 {
+  "ts-node": {
+    "require": [
+      "tsconfig-paths/register"
+    ]
+  },
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -29,7 +34,7 @@
         "src/infra/*"
       ],
       "@db/*": [
-        "src/infra/db/dto/*"
+        "src/infra/db/entity/*"
       ],
     }
   }

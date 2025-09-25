@@ -1,6 +1,6 @@
 import { SCHEMAS } from "@src/config/schemas";
 import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { OrgMetadata } from "./metadata.dto";
+import { OrgMetadata } from "./metadata";
 
 @Entity({ schema: SCHEMAS.ORGS })
 export class Department {
