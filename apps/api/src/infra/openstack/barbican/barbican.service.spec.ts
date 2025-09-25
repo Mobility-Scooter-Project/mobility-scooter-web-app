@@ -11,33 +11,40 @@ describe('BarbicanService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({
-        isGlobal: true,
-        load: [config]
-      }), HttpModule],
-      providers: [KeystoneService, KvService, {
-        provide: BarbicanService,
-        useFactory: async (
-          configService: ConfigService,
-          keystone: KeystoneService,
-          kv: KvService,
-          httpService: HttpService
-        ) => await BarbicanService.build(
-          configService,
-          keystone,
-          kv,
-          httpService
-        ),
-        inject: [ConfigService, KeystoneService, KvService, HttpService]
-      }]
-
-    }).useMocker((token) => {
-      if (token === BarbicanService) {
-        return {
-
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [config],
+        }),
+        HttpModule,
+      ],
+      providers: [
+        KeystoneService,
+        KvService,
+        {
+          provide: BarbicanService,
+          useFactory: async (
+            configService: ConfigService,
+            keystone: KeystoneService,
+            kv: KvService,
+            httpService: HttpService,
+          ) =>
+            await BarbicanService.build(
+              configService,
+              keystone,
+              kv,
+              httpService,
+            ),
+          inject: [ConfigService, KeystoneService, KvService, HttpService],
+        },
+      ],
+    })
+      .useMocker((token) => {
+        if (token === BarbicanService) {
+          return {};
         }
-      }
-    }).compile();
+      })
+      .compile();
 
     service = module.get<BarbicanService>(BarbicanService);
   });
@@ -48,13 +55,13 @@ describe('BarbicanService', () => {
 
   // These tests are technically integration tests since they hit real OpenStack services, but mocking HTTP calls is too complex for now.
   it('should upsert a secret', async () => {
-    await service.upsertSecret("test/path", "test-key", "test-secret");
-  })
+    await service.upsertSecret('test/path', 'test-key', 'test-secret');
+  });
 
   it('should get a secret', async () => {
-    const secret = await service.readSecret("test/path", "test-key");
-    expect(secret).toBe("test-secret");
-  })
+    const secret = await service.readSecret('test/path', 'test-key');
+    expect(secret).toBe('test-secret');
+  });
 
   // The other methods are ommitted as they are wrappers around the above methods.
 });

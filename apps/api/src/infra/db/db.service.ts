@@ -8,22 +8,21 @@ export type DB = NodePgDatabase<typeof schema>;
 
 @Injectable()
 export class DbService {
-    private _db: DB;
+  private _db: DB;
 
-    constructor() {
-        const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-        });
+  constructor() {
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
 
-        this._db = drizzle({
-            client: pool,
-            casing: 'snake_case',
-            schema
-        });
-    }
+    this._db = drizzle({
+      client: pool,
+      casing: 'snake_case',
+      schema,
+    });
+  }
 
-    get db(): NodePgDatabase<typeof schema> {
-        return this._db;
-    }
-
+  get db(): NodePgDatabase<typeof schema> {
+    return this._db;
+  }
 }

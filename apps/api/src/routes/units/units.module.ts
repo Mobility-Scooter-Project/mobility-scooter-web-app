@@ -5,6 +5,11 @@ import { InvitesController } from './invites/invites.controller';
 import { AssignmentsController } from './assignments/assignments.controller';
 
 @Module({
-  controllers: [UnitsController, SessionsController, InvitesController, AssignmentsController]
+  controllers: [
+    UnitsController,
+    SessionsController,
+    InvitesController,
+    AssignmentsController,
+  ],
 })
 export class UnitsModule {}

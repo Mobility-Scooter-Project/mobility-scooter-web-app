@@ -21,9 +21,9 @@ import config from '../config';
     UnitsModule,
     OrgsModule,
     MeModule,
-    VideosModule
+    VideosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

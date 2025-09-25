@@ -10,10 +10,13 @@ describe('S3Service', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({
-        isGlobal: true,
-        load: [config]
-      }), HttpModule],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [config],
+        }),
+        HttpModule,
+      ],
       providers: [S3Service],
     }).compile();
 
@@ -27,7 +30,9 @@ describe('S3Service', () => {
   // again, these are technically integration tests since they hit real OpenStack services, but mocking the S3 client is also out of scope for now.
   describe('bucketExists', () => {
     it('should return false for a non-existent bucket', async () => {
-      const exists = await service.bucketExists('this-bucket-should-not-exist-12345');
+      const exists = await service.bucketExists(
+        'this-bucket-should-not-exist-12345',
+      );
       expect(exists).toBe(false);
     });
 
@@ -35,7 +40,7 @@ describe('S3Service', () => {
       const exists = await service.bucketExists('dev');
       expect(exists).toBe(true);
     });
-  })
+  });
 
   // makeBucket is omitted as there are only 2 buckets, dev and prod, and deleting buckets is not an actual function of the s3 service.
 
@@ -45,7 +50,7 @@ describe('S3Service', () => {
       const status = await service.bucketExists('dev');
       expect(status).toBe(true);
     });
-  })
+  });
 
   describe('presignendUrl', () => {
     let url: string;
@@ -54,7 +59,7 @@ describe('S3Service', () => {
       expect(url).toBeDefined();
       expect(url).toContain('http');
     });
-  })
+  });
 
   // multipart upload and waitUntilObjectExists are not tested as it requires a real object to upload, which is out of scope for now.
 });

@@ -9,10 +9,13 @@ describe('QueueService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({
-        isGlobal: true,
-        load: [config]
-      }), HttpModule],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [config],
+        }),
+        HttpModule,
+      ],
       providers: [QueueService],
     }).compile();
 

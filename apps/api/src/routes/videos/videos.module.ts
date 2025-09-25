@@ -12,8 +12,6 @@ import { JwtModule } from '@nestjs/jwt';
 })
 export class VideosModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(JwtMiddleware)
-      .forRoutes(VideosController);
+    consumer.apply(JwtMiddleware).forRoutes(VideosController);
   }
 }
