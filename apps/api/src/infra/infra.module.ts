@@ -29,9 +29,13 @@ import { DbService } from './db/db.service';
     // Basic services
     KeystoneService,
     KvService,
-    DbService,
-
-    // Queue service with factory
+    {
+      provide: DbService,
+      useFactory: async (configService: ConfigService) => {
+        return await DbService.build(configService);
+      },
+      inject: [ConfigService],
+    },
     {
       provide: QueueService,
       useFactory: async (configService: ConfigService) => {
@@ -39,11 +43,7 @@ import { DbService } from './db/db.service';
       },
       inject: [ConfigService],
     },
-
-    // S3 service with factory
     S3Service,
-
-    // Barbican service with factory
     {
       provide: BarbicanService,
       useFactory: async (
@@ -61,8 +61,6 @@ import { DbService } from './db/db.service';
       },
       inject: [ConfigService, KeystoneService, KvService, HttpService],
     },
-
-    // Swift service with factory
     {
       provide: SwiftService,
       useFactory: async (
@@ -94,4 +92,4 @@ import { DbService } from './db/db.service';
     QueueService,
   ],
 })
-export class InfraModule {}
+export class InfraModule { }
