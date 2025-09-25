@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OtpService } from './otp.service';
 import { ConfigModule } from '@nestjs/config';
-import config from '@/config';
-import { InfraModule } from '@/infra/infra.module';
+import config from '@src/config';
+import { InfraModule } from '@infra/infra.module';
 import { createMock } from '@golevelup/ts-jest';
-import { BarbicanService } from '@/infra/openstack/barbican/barbican.service';
+import { BarbicanService } from '@infra/openstack/barbican/barbican.service';
 
 describe('OtpService', () => {
   let service: OtpService;

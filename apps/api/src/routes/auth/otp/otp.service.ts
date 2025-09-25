@@ -1,40 +1,41 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { DB, DbService } from '@/infra/db/db.service';
-import { users } from '@/infra/db/schema/auth';
-import { BarbicanService } from '@/infra/openstack/barbican/barbican.service';
+import { DbService } from '@infra/db/db.service';
+import { BarbicanService } from '@infra/openstack/barbican/barbican.service';
 import * as OTPAuth from 'otpauth';
+import { Repository } from 'typeorm';
+import { User } from '@src/infra/db/entity/user/user';
 
 @Injectable()
 export class OtpService {
   private vault: BarbicanService;
-  private db: DB;
+  private db: DbService;
+
+  public userRepository: Repository<User>;
 
   constructor(
     private readonly dbService: DbService,
     private readonly BarbicanService: BarbicanService,
   ) {
     this.vault = BarbicanService;
-    this.db = dbService.db;
+    this.db = dbService;
   }
 
   private async _getUserEmailById(userId: string): Promise<string> {
     let data;
     try {
-      data = await this.db
-        .select({ email: users.email })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+      data = await this.userRepository.findOne({
+        where: { id: userId },
+        select: ['email'],
+      });
     } catch (error) {
       throw new HttpException('Error fetching user email', 500);
     }
 
-    if (!data[0] || !data[0].email) {
+    if (!data || !data.email) {
       throw new HttpException('User email not found', 404);
     }
 
-    return data[0].email;
+    return data.email;
   }
 
   public async generateOtp(
