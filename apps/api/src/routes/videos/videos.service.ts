@@ -1,10 +1,10 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { DB, DbService } from 'src/infra/db/db.service';
-import { events, fileMetadata } from 'src/infra/db/schema/storage';
-import { S3Service } from 'src/infra/openstack/s3/s3.service';
-import { SwiftService } from 'src/infra/openstack/swift/swift.service';
-import { QueueService } from 'src/infra/queue/queue.service';
+import { DB, DbService } from '@/infra/db/db.service';
+import { events, fileMetadata } from '@/infra/db/schema/storage';
+import { S3Service } from '@/infra/openstack/s3/s3.service';
+import { SwiftService } from '@/infra/openstack/swift/swift.service';
+import { QueueService } from '@/infra/queue/queue.service';
 import { Readable } from 'stream';
 
 @Injectable()
@@ -107,15 +107,6 @@ export class VideosService {
       videoDataPromise,
       transcriptPutUrlPromise,
     ]);
-
-    /*let uploadState = await this.s3.waitUntilObjectExists(filePath);
-
-        while (uploadState.state !== 'SUCCESS') {
-            if (uploadState.state === 'FAILURE') {
-                throw new HttpException("Failed to upload video file", 500);
-            }
-            uploadState = await this.s3.waitUntilObjectExists(filePath);
-        }*/
 
     await this.queue.getProducer().send({
       topic: 'videos',

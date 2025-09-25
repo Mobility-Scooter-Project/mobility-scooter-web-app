@@ -1,28 +1,29 @@
+import { AppConfig } from '@src/config';
 import { Injectable } from '@nestjs/common';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import * as schema from './schema';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-
-export type DB = NodePgDatabase<typeof schema>;
+import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class DbService {
-  private _db: DB;
+  public db: DataSource;
 
-  constructor() {
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
-
-    this._db = drizzle({
-      client: pool,
-      casing: 'snake_case',
-      schema,
-    });
+  constructor(
+    private readonly configService: ConfigService<AppConfig>
+  ) {
+    this.db = new DataSource({
+      type: 'postgres',
+      host: this.configService.get('database').host,
+      port: this.configService.get('database').port,
+      username: this.configService.get('database').user,
+      password: this.configService.get('database').password,
+      database: this.configService.get('database').database,
+      synchronize: true,
+    })
   }
 
-  get db(): NodePgDatabase<typeof schema> {
-    return this._db;
+  public static async build(configService: ConfigService<AppConfig>) {
+    const dbService = new DbService(configService);
+    dbService.db = await dbService.db.initialize();
+    return dbService;
   }
 }

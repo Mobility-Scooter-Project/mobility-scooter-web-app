@@ -22,9 +22,15 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@/*": [
+      "@src/*": [
         "src/*"
-      ]
+      ],
+      "@infra/*": [
+        "src/infra/*"
+      ],
+      "@db/*": [
+        "src/infra/db/dto/*"
+      ],
     }
   }
 }

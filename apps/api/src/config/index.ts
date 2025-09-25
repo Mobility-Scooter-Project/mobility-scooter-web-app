@@ -3,9 +3,12 @@ const config = () => ({
   baseUrl: process.env.BASE_URL || 'missing BASE_URL',
   environment: process.env.ENVIRONMENT || 'development',
 
-  // Services
   database: {
-    url: process.env.DATABASE_URL || 'missing DATABASE_URL',
+    host: process.env.DATABASE_HOST || 'missing DATABASE_HOST',
+    port: Number(process.env.DATABASE_PORT) || 5432,
+    user: process.env.DATABASE_USER || 'missing DATABASE_USER',
+    password: process.env.DATABASE_PASSWORD || 'missing DATABASE_PASSWORD',
+    database: process.env.DATABASE_NAME || 'missing DATABASE_NAME',
   },
 
   kv: {
