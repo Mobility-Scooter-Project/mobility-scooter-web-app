@@ -31,7 +31,7 @@ export class JwtMiddleware implements NestMiddleware {
     try {
       payload = await this.jwt.verify(token, {
         secret: this.config.get('jwtSecret'),
-      })
+      });
     } catch (error) {
       this.logger.warn(`JWT verification failed: ${error.message}`);
       return res.status(401).json({ message: 'Invalid token' });

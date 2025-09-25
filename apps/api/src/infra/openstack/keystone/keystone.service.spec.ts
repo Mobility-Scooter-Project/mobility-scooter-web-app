@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KeystoneService } from './keystone.service';
-import {  HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { of } from 'rxjs';
 
@@ -16,10 +16,10 @@ describe('KeystoneService', () => {
           status: 201,
           statusText: 'Created',
           headers: {
-            'x-subject-token': 'mocked-token-12345'
+            'x-subject-token': 'mocked-token-12345',
           },
-          config: {}
-        })
+          config: {},
+        }),
       ),
     };
 
@@ -27,21 +27,23 @@ describe('KeystoneService', () => {
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
-          load: [() => ({
-            keystone: {
-              url: 'http://test-keystone-url',
-              clientId: 'test-client-id',
-              clientSecret: 'test-client-secret'
-            }
-          })]
-        })
+          load: [
+            () => ({
+              keystone: {
+                url: 'http://test-keystone-url',
+                clientId: 'test-client-id',
+                clientSecret: 'test-client-secret',
+              },
+            }),
+          ],
+        }),
       ],
       providers: [
         KeystoneService,
         {
           provide: HttpService,
-          useValue: mockHttpService
-        }
+          useValue: mockHttpService,
+        },
       ],
     }).compile();
 

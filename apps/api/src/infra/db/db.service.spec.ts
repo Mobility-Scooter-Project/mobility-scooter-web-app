@@ -8,12 +8,13 @@ describe('DbService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({
-        isGlobal: true,
-        load: [config]
-      })],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [config],
+        }),
+      ],
       providers: [DbService],
-
     }).compile();
 
     service = module.get<DbService>(DbService);

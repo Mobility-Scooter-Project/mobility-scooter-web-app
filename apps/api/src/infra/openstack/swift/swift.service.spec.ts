@@ -14,24 +14,40 @@ describe('SwiftService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({
-        isGlobal: true,
-        load: [config]
-      }), HttpModule],
-      providers: [S3Service, BarbicanService, QueueService, KvService, KeystoneService, {
-        provide: SwiftService,
-        useFactory: async (
-          configService: ConfigService,
-          KvService: KvService,
-          KeystoneService: KeystoneService
-        ) => {
-          const s3 = new S3Service(configService);
-          const barbican = new BarbicanService(KeystoneService, KvService);
-          const queue = new QueueService(configService);
-          return SwiftService.build(configService, s3, barbican, queue);
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [config],
+        }),
+        HttpModule,
+      ],
+      providers: [
+        S3Service,
+        BarbicanService,
+        QueueService,
+        KvService,
+        KeystoneService,
+        {
+          provide: SwiftService,
+          useFactory: async (
+            configService: ConfigService,
+            KvService: KvService,
+            KeystoneService: KeystoneService,
+          ) => {
+            const s3 = new S3Service(configService);
+            const barbican = new BarbicanService(KeystoneService, KvService);
+            const queue = new QueueService(configService);
+            return SwiftService.build(configService, s3, barbican, queue);
+          },
+          inject: [
+            ConfigService,
+            BarbicanService,
+            QueueService,
+            KvService,
+            KeystoneService,
+          ],
         },
-        inject: [ConfigService, BarbicanService, QueueService, KvService, KeystoneService]
-      }],
+      ],
     }).compile();
 
     service = module.get<SwiftService>(SwiftService);
@@ -50,5 +66,5 @@ describe('SwiftService', () => {
       expect(url).toBeDefined();
       expect(url).toContain('http');
     });
-  })
+  });
 });

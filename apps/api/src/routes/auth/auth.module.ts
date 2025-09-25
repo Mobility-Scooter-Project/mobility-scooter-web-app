@@ -15,19 +15,16 @@ import { OtpController } from './otp/otp.controller';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService<AppConfig>) => ({
-        secret: configService.get("jwtSecret"),
+        secret: configService.get('jwtSecret'),
       }),
       inject: [ConfigService],
     }),
-    InfraModule
+    InfraModule,
   ],
-  controllers: [AuthController, OtpController]
+  controllers: [AuthController, OtpController],
 })
-
 export class AuthModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(JwtMiddleware)
-      .forRoutes(OtpController);
+    consumer.apply(JwtMiddleware).forRoutes(OtpController);
   }
 }

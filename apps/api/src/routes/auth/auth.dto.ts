@@ -1,22 +1,21 @@
 import { IsEmail, IsNotEmpty } from 'class-validator';
 
 export class EmailBodyDto {
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 }
 
 export class SignInWithEmailDto extends EmailBodyDto {
-    @IsNotEmpty()
-    password: string;
+  @IsNotEmpty()
+  password: string;
 }
 
 export class TokenDto {
-    @IsNotEmpty()
-    token: string;
+  @IsNotEmpty()
+  token: string;
 }
 
-
 export class NewPasswordDto extends TokenDto {
-    @IsNotEmpty()
-    newPassword: string;
+  @IsNotEmpty()
+  newPassword: string;
 }

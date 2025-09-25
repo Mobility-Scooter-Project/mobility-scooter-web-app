@@ -19,7 +19,7 @@ import { DbService } from './db/db.service';
  * - Database service (PostgreSQL)
  * - Key-Value store (Redis)
  * - Message Queue (Kafka)
- * 
+ *
  * This module consolidates what were previously separate modules (OpenstackModule, KvModule)
  * and includes queue and database services for a unified infrastructure layer.
  */
@@ -50,13 +50,13 @@ import { DbService } from './db/db.service';
         configService: ConfigService,
         keystoneService: KeystoneService,
         kvService: KvService,
-        httpService: HttpService
+        httpService: HttpService,
       ) => {
         return await BarbicanService.build(
           configService,
           keystoneService,
           kvService,
-          httpService
+          httpService,
         );
       },
       inject: [ConfigService, KeystoneService, KvService, HttpService],
@@ -75,7 +75,7 @@ import { DbService } from './db/db.service';
           configService,
           s3Service,
           barbicanService,
-          queueService
+          queueService,
         );
       },
       inject: [ConfigService, S3Service, BarbicanService, QueueService],
@@ -94,4 +94,4 @@ import { DbService } from './db/db.service';
     QueueService,
   ],
 })
-export class InfraModule { }
+export class InfraModule {}

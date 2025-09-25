@@ -1,8 +1,8 @@
-import { pgSchema, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgSchema, uuid, text, timestamp } from 'drizzle-orm/pg-core';
 
-export const tenants = pgSchema("tenants");
+export const tenants = pgSchema('tenants');
 
-export const metadata = tenants.table("metadata", {
+export const metadata = tenants.table('metadata', {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull(),
   createdAt: timestamp().defaultNow(),
@@ -10,7 +10,7 @@ export const metadata = tenants.table("metadata", {
   deletedAt: timestamp(),
 });
 
-export const units = tenants.table("units", {
+export const units = tenants.table('units', {
   id: uuid().primaryKey().defaultRandom(),
   tenantId: uuid()
     .references(() => metadata.id)

@@ -5,24 +5,26 @@ import { AppConfig } from 'src/config';
 
 @Injectable()
 export class QueueService {
-    private client: Kafka;
-    private producer: Producer;
+  private client: Kafka;
+  private producer: Producer;
 
-    constructor(private readonly configService: ConfigService<AppConfig>) {
-        this.client = new Kafka({
-            clientId: 'api',
-            brokers: [this.configService.get("broker").url],
-        });
-        this.producer = this.client.producer();
-    }
+  constructor(private readonly configService: ConfigService<AppConfig>) {
+    this.client = new Kafka({
+      clientId: 'api',
+      brokers: [this.configService.get('broker').url],
+    });
+    this.producer = this.client.producer();
+  }
 
-    public static async build(configService: ConfigService<AppConfig>): Promise<QueueService> {
-        const queue = new QueueService(configService);
-        await queue.producer.connect();
-        return queue;
-    }
+  public static async build(
+    configService: ConfigService<AppConfig>,
+  ): Promise<QueueService> {
+    const queue = new QueueService(configService);
+    await queue.producer.connect();
+    return queue;
+  }
 
-    public getProducer(): Producer {
-        return this.producer;
-    }
+  public getProducer(): Producer {
+    return this.producer;
+  }
 }
