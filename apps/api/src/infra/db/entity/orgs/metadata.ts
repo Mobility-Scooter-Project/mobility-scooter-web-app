@@ -1,8 +1,8 @@
 import { SCHEMAS } from "@src/config/schemas";
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Application } from "./application.dto";
+import { Application } from "./application";
 import { CreateUpdateDeleteFields } from "../shared";
-import { Department } from "./department.dto";
+import { Department } from "./department";
 
 @Entity({ schema: SCHEMAS.ORGS })
 export class OrgMetadata {
