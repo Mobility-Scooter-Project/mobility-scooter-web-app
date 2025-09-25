@@ -1,25 +1,27 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { sql, eq, and } from 'drizzle-orm';
 import { AppConfig } from '../../config';
-import { DB, DbService } from '../../infra/db/db.service';
-import {
-  identities,
-  refreshTokens,
-  sessions,
-  users,
-} from '../../infra/db/schema/auth';
+import { DbService } from '../../infra/db/db.service';
+
 import { BarbicanService } from '../../infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
-
-type NewUser = typeof users.$inferInsert;
+import { User } from '@src/infra/db/entity/user/user';
+import { DataSource, MoreThan, Repository } from 'typeorm';
+import { UserIdentity } from '@src/infra/db/entity/user/identity';
+import { UserSession } from '@src/infra/db/entity/user/session';
+import { IDENTITY_PROVIDERS } from '@src/infra/db/entity/user/enums';
+import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
 
 @Injectable()
 export class AuthService {
   private vault: BarbicanService;
-  private db: DB;
+  private db: DataSource;
   private jwt: JwtService;
   private readonly logger = new Logger(AuthService.name);
+
+  public userRepository: Repository<User>;
+  public refreshTokenRepository: Repository<RefreshToken>;
+  service: jest.Mock<any, any, any>;
 
   constructor(
     private readonly configService: ConfigService<AppConfig>,
@@ -28,73 +30,85 @@ export class AuthService {
     private readonly JwtService: JwtService,
   ) {
     this.vault = barbicanService;
-    this.db = dbService.db;
+    this.db = dbService.dataSource;
     this.jwt = JwtService;
+
+    this.userRepository = this.db.getRepository(User);
+    this.refreshTokenRepository = this.db.getRepository(RefreshToken);
   }
 
-  public async createUserWithPassword(email: string, newUser: NewUser) {
-    const encryptedPassword = sql`crypt(${newUser.encryptedPassword}, gen_salt('bf'))`;
+  public async createUserWithPassword(email: string, password: string, newUser: Partial<User>) {
+    const result = await this.db.query(
+      `SELECT crypt($1, gen_salt('bf')) as hash`,
+      [password]
+    );
 
+    const passwordHash = result[0].hash;
+    newUser.email = email;
+    newUser.passwordHash = passwordHash;
+
+    const userExists = await this.userRepository.findOne({ where: { email } });
+
+    if (userExists) {
+      throw new HttpException('User already exists', 400);
+    }
+
+    let user;
     try {
-      const data = await this.db.transaction(async (tx) => {
-        const data = await tx
-          .insert(users)
-          .values({
-            ...newUser,
-            encryptedPassword,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning({ id: users.id });
+      user = await this.db.transaction(async (tx) => {
+        const createdUser = await tx.save(newUser);
 
-        await tx.execute(sql.raw(`SET SESSION app.user_id = '${data[0].id}'`));
+        const newIdentity = tx.create(UserIdentity, {
+          user: createdUser,
+        });
 
-        const identity = await tx
-          .select()
-          .from(identities)
-          .where(eq(identities.userId, data[0].id));
+        await tx.save(newIdentity);
 
-        if (!identity[0]) {
-          await tx.insert(identities).values({
-            userId: data[0].id,
-            provider: 'emailpass',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-
-        return data;
+        return createdUser;
       });
-      return data[0];
     } catch (error) {
+      this.logger.error('Error creating user: ', error);
       throw new HttpException('Error creating user', 500);
     }
+
+    return user;
   }
 
-  private async _createUserSession(userId: string) {
+  private async _createUserSession(userId: string, identity = IDENTITY_PROVIDERS.email) {
     let session;
     try {
-      session = await this.db
-        .insert(sessions)
-        .values({
-          userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning({ id: sessions.id });
+      session = await this.db.transaction(async (tx) => {
+        const identityRecord = await tx.getRepository(UserIdentity).findOne({
+          where: {
+            user: { id: userId },
+            provider: identity
+          }
+        });
+
+        if (!identityRecord) {
+          throw new HttpException('No identity found for user', 400);
+        }
+
+        const newSession = tx.create(UserSession, {
+          identity: identityRecord
+        });
+
+        const createdSession = await tx.save(newSession);
+        return createdSession;
+      });
     } catch (error) {
       this.logger.error('Error creating session: ', error);
       throw new HttpException('Error creating session', 500);
     }
 
-    if (!session[0]) {
+    if (!session) {
       this.logger.error('No session created');
       throw new HttpException('Error creating session', 500);
     }
 
     const token = await this.jwt.signAsync({
       userId: userId,
-      sessionId: session[0].id,
+      sessionId: session.id,
       exp: Number(Date.now() + 1000 * 60 * 15), // 15 minutes
       iat: Number(new Date().toISOString()),
     });
@@ -103,20 +117,17 @@ export class AuthService {
     try {
       refreshToken = await this.jwt.signAsync({
         userId: userId,
-        sessionId: session[0].id,
+        sessionId: session.id,
         exp: Number(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
         iat: Number(new Date().toISOString()),
       });
 
-      await this.db.insert(refreshTokens).values({
-        userId,
+      const newRefreshToken = this.refreshTokenRepository.create({
         token: refreshToken,
-        sessionId: session[0].id,
+        session: { id: session.id },
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        revoked: false,
       });
+      await this.refreshTokenRepository.save(newRefreshToken);
     } catch (error) {
       this.logger.error('Error creating refresh token', error);
       throw new HttpException('Error creating refresh token', 500);
@@ -129,10 +140,17 @@ export class AuthService {
     try {
       await this.db.transaction(async (tx) => {
         // Need to set the role to postgres to have permission to delete
-        await tx.execute(sql.raw(`SET ROLE postgres`));
-        await tx
-          .delete(refreshTokens)
-          .where(eq(refreshTokens.token, refreshToken));
+        await tx.query(`SET ROLE postgres`);
+
+        const tokenRecord = await this.refreshTokenRepository.findOne({
+          where: { token: refreshToken }
+        });
+
+        if (!tokenRecord) {
+          throw new HttpException('Refresh token not found', 404);
+        }
+
+        await this.refreshTokenRepository.remove(tokenRecord);
       });
     } catch (e) {
       this.logger.error('Error revoking refresh token', e);
@@ -153,25 +171,21 @@ export class AuthService {
 
     let tokenRecord;
     try {
-      tokenRecord = await this.db
-        .select()
-        .from(refreshTokens)
-        .where(
-          and(
-            eq(refreshTokens.token, refreshToken),
-            eq(refreshTokens.revoked, false),
-            sql`expires_at > now()`,
-          ),
-        )
-        .limit(1);
-
-      if (!tokenRecord[0]) {
-        this.logger.error(
-          `Refresh token not found or revoked: ${refreshToken}`,
-        );
-        throw new HttpException('Invalid refresh token', 401);
-      }
+      tokenRecord = await this.refreshTokenRepository.findOne({
+        where: {
+          token: refreshToken,
+          expiresAt: MoreThan(new Date())
+        }
+      });
     } catch (e) {
+      this.logger.error('Error finding refresh token', e);
+      throw new HttpException('Invalid refresh token', 401);
+    }
+
+    if (!tokenRecord) {
+      this.logger.error(
+        `Refresh token not found or revoked: ${refreshToken}`,
+      );
       throw new HttpException('Invalid refresh token', 401);
     }
 
@@ -180,11 +194,22 @@ export class AuthService {
     try {
       // update the new refresh token record to have the same expiry as the old one
       await this.db.transaction(async (tx) => {
-        await tx.execute(sql.raw(`SET ROLE postgres`));
-        await tx
-          .update(refreshTokens)
-          .set({ expiresAt: tokenRecord[0].expiresAt })
-          .where(eq(refreshTokens.token, newTokens.refreshToken));
+        await tx.query(`SET ROLE postgres`);
+
+        tokenRecord = await this.refreshTokenRepository.findOne({
+          where: { token: refreshToken }
+        });
+
+        if (!tokenRecord) {
+          this.logger.error(
+            `Refresh token not found or revoked during refresh: ${refreshToken}`,
+          );
+          throw new HttpException('Invalid refresh token', 401);
+        }
+
+        tokenRecord.token = newTokens.refreshToken;
+        tokenRecord.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
+        await this.refreshTokenRepository.save(tokenRecord);
       });
     } catch (e) {
       this.logger.error('Error revoking old refresh token', e);
@@ -198,54 +223,48 @@ export class AuthService {
 
   public async signInWithPassword(email: string, password: string) {
     let user;
-    try {
-      user = await this.db
-        .select()
-        .from(users)
-        .where(
-          and(
-            eq(users.email, email),
-            sql`encrypted_password = crypt(${password}, encrypted_password)`,
-          ),
-        )
-        .limit(1);
-    } catch (error) {
-      throw new HttpException('Error signing in', 500);
-    }
 
-    if (!user[0]) {
+    try {
+      // Get the user by email first
+      user = await this.userRepository.findOne({ where: { email } });
+    } catch (e) {
+      this.logger.error('Error finding user by email', e);
       throw new HttpException('Invalid email or password', 401);
     }
 
-    try {
-      await this.db.transaction(async (tx) => {
-        await tx.execute(sql.raw(`SET SESSION app.user_id = '${user[0].id}'`));
-      });
-    } catch (error) {
-      throw new HttpException('Error setting user context', 500);
+    if (!user) {
+      throw new HttpException('Invalid email or password', 401);
     }
 
-    return this._createUserSession(user[0].id);
+    // Check password using the database crypt function
+    const result = await this.db.query(
+      `SELECT crypt($1, $2) as hash`,
+      [password, user.passwordHash]
+    );
+    const hashedInputPassword = result[0].hash;
+
+    if (hashedInputPassword !== user.passwordHash) {
+      throw new HttpException('Invalid email or password', 401);
+    }
+
+    return this._createUserSession(user.id);
   }
 
   public async generateResetPasswordToken(email: string) {
     let data;
     try {
-      data = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
+      data = await this.userRepository.findOne({ where: { email } }
+      );
     } catch (e) {
       throw new HttpException('Error generating reset password token', 500);
     }
 
     // If no user found, we don't reveal that to the requester for security reasons
-    if (!data[0]) {
+    if (!data) {
       throw new HttpException('Error generating reset password token', 500);
     }
 
-    const { id } = data[0];
+    const { id } = data;
 
     const payload = {
       userId: id,
@@ -255,7 +274,7 @@ export class AuthService {
     let token;
 
     try {
-      token = await this.jwt.signAsync(payload);
+      token = await this.jwt.sign(payload);
     } catch (e) {
       throw new HttpException('Error generating reset password token', 500);
     }
@@ -283,14 +302,14 @@ export class AuthService {
     const { userId } = payload;
 
     try {
-      await this.db
-        .update(users)
-        .set({
-          encryptedPassword: sql`crypt(${newPassword}, gen_salt('bf'))`,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, userId));
+      const hashedPasswordResult = await this.db.query(
+        `SELECT crypt($1, gen_salt('bf')) as hash`,
+        [newPassword]
+      );
+      const newHashedPassword = hashedPasswordResult[0].hash;
+      await this.userRepository.update({ id: userId }, { passwordHash: newHashedPassword });
     } catch (e) {
+      this.logger.error('Error resetting password: ', e);
       throw new HttpException('Error resetting password', 500);
     }
 

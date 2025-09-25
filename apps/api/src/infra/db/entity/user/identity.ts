@@ -1,7 +1,8 @@
 import { SCHEMAS } from "@src/config/schemas";
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { IDENTITY_PROVIDERS } from "./enums";
 import { CreateUpdateDeleteFields } from "../shared";
+import { User } from "./user";
 
 @Entity({ schema: SCHEMAS.USERS })
 export class UserIdentity {
@@ -23,4 +24,7 @@ export class UserIdentity {
 
     @Column(() => CreateUpdateDeleteFields)
     cud: CreateUpdateDeleteFields
+
+    @ManyToOne(() => User, (user) => user.id)
+    user: User
 }
