@@ -4,3 +4,8 @@ export enum USER_ROLES {
     TRAINEE = 'trainee',
     ADMIN = 'admin',
 }
+
+export enum IDENTITY_PROVIDERS {
+    email = 'email',
+    idp = 'idp',
+}
