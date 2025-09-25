@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DbService } from './db.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from '../../config';
+import { User } from './entity/user/user';
 
 describe('DbService', () => {
   let service: DbService;
@@ -14,7 +15,11 @@ describe('DbService', () => {
           load: [config],
         }),
       ],
-      providers: [DbService],
+      providers: [{
+        provide: DbService,
+        useFactory: async (configService: ConfigService) => await DbService.build(configService),
+        inject: [ConfigService],
+      }, ConfigService],
     }).compile();
 
     service = module.get<DbService>(DbService);
@@ -24,7 +29,8 @@ describe('DbService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should have a db property', () => {
-    expect(service.db).toBeDefined();
+  it('should get repository', () => {
+    const repo = service.getRepository(User);
+    expect(repo).toBeDefined();
   });
 });
