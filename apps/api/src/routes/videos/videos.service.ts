@@ -8,9 +8,9 @@ import { File } from '@infra/db/entity/unit/file';
 import { Video } from '@infra/db/entity/video/video';
 import { InjectRepository } from '@nestjs/typeorm';
 
-interface VideoMetadataOutput {
+type VideoMetadataOutput = {
   id: string;
-}
+};
 
 @Injectable()
 export class VideosService {
