@@ -6,6 +6,6 @@ export enum USER_ROLES {
 }
 
 export enum IDENTITY_PROVIDERS {
-  email = 'email',
-  idp = 'idp',
+  EMAIL = 'email',
+  IDP = 'idp',
 }

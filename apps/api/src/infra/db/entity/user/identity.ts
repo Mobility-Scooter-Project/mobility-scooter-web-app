@@ -12,7 +12,7 @@ export class UserIdentity {
   @Column({
     type: 'enum',
     enum: IDENTITY_PROVIDERS,
-    default: IDENTITY_PROVIDERS.email,
+    default: IDENTITY_PROVIDERS.EMAIL,
   })
   provider: IDENTITY_PROVIDERS;
 

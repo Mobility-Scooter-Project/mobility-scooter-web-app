@@ -3,7 +3,6 @@ import {
   Column,
   Entity,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
@@ -14,7 +13,10 @@ export class Unit {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+    length: 255,
+  })
   name: string;
 
   @Column(() => CreateUpdateDeleteFields)

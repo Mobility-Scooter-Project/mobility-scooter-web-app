@@ -1,24 +1,21 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import { DbService } from '@infra/db/db.service';
+import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { BarbicanService } from '@infra/openstack/barbican/barbican.service';
 import * as OTPAuth from 'otpauth';
 import { Repository } from 'typeorm';
 import { User } from '@src/infra/db/entity/user/user';
+import { DataSource } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class OtpService {
-  private vault: BarbicanService;
-  private db: DbService;
-
-  public userRepository: Repository<User>;
+  private logger = new Logger(OtpService.name);
 
   constructor(
-    private readonly dbService: DbService,
-    private readonly BarbicanService: BarbicanService,
-  ) {
-    this.vault = BarbicanService;
-    this.db = dbService;
-  }
+    private readonly db: DataSource,
+    private readonly vault: BarbicanService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) { }
 
   private async _getUserEmailById(userId: string): Promise<string> {
     let data;
@@ -28,6 +25,7 @@ export class OtpService {
         select: ['email'],
       });
     } catch (error) {
+      this.logger.error(`Error fetching user email for userId ${userId}: ${error.message}`);
       throw new HttpException('Error fetching user email', 500);
     }
 

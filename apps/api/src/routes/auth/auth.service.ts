@@ -1,7 +1,6 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../../config';
-import { DbService } from '../../infra/db/db.service';
 
 import { BarbicanService } from '../../infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
@@ -11,31 +10,22 @@ import { UserIdentity } from '@src/infra/db/entity/user/identity';
 import { UserSession } from '@src/infra/db/entity/user/session';
 import { IDENTITY_PROVIDERS } from '@src/infra/db/entity/user/enums';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
-  private vault: BarbicanService;
-  private db: DataSource;
-  private jwt: JwtService;
   private readonly logger = new Logger(AuthService.name);
-
-  public userRepository: Repository<User>;
-  public refreshTokenRepository: Repository<RefreshToken>;
-  service: jest.Mock<any, any, any>;
 
   constructor(
     private readonly configService: ConfigService<AppConfig>,
-    private readonly dbService: DbService,
-    private readonly barbicanService: BarbicanService,
-    private readonly JwtService: JwtService,
-  ) {
-    this.vault = barbicanService;
-    this.db = dbService.dataSource;
-    this.jwt = JwtService;
-
-    this.userRepository = this.db.getRepository(User);
-    this.refreshTokenRepository = this.db.getRepository(RefreshToken);
-  }
+    private readonly db: DataSource,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
+    private readonly vault: BarbicanService,
+    private readonly jwt: JwtService,
+  ) { }
 
   public async createUserWithPassword(
     email: string,
@@ -80,7 +70,7 @@ export class AuthService {
 
   private async _createUserSession(
     userId: string,
-    identity = IDENTITY_PROVIDERS.email,
+    identity = IDENTITY_PROVIDERS.EMAIL,
   ) {
     let session;
     try {
