@@ -31,10 +31,12 @@ describe('VideosService', () => {
         }),
         InfraModule,
         JwtModule,
-        TypeOrmModule.forFeature([File, Video])
+        TypeOrmModule.forFeature([File, Video]),
       ],
       providers: [VideosService],
-    }).useMocker(createMock).compile();
+    })
+      .useMocker(createMock)
+      .compile();
 
     service = module.get<VideosService>(VideosService);
     s3 = module.get<S3Service>(S3Service);
@@ -55,17 +57,27 @@ describe('VideosService', () => {
       const sessionId = 'test-session-id';
       const fileName = 'test-video.mp4';
 
-      jest.spyOn(fileRepository, 'create').mockImplementation((file) => file as any);
-      jest.spyOn(fileRepository, 'save').mockImplementation(async (file) => ({
-        id: 'file-id',
-        ...file,
-      } as any));
+      jest
+        .spyOn(fileRepository, 'create')
+        .mockImplementation((file) => file as any);
+      jest.spyOn(fileRepository, 'save').mockImplementation(
+        async (file) =>
+          ({
+            id: 'file-id',
+            ...file,
+          }) as any,
+      );
 
-      jest.spyOn(videoRepository, 'create').mockImplementation((video) => video as any);
-      jest.spyOn(videoRepository, 'save').mockImplementation(async (video) => ({
-        id: 'video-id',
-        ...video,
-      } as any));
+      jest
+        .spyOn(videoRepository, 'create')
+        .mockImplementation((video) => video as any);
+      jest.spyOn(videoRepository, 'save').mockImplementation(
+        async (video) =>
+          ({
+            id: 'video-id',
+            ...video,
+          }) as any,
+      );
 
       const result = await service.createVideoMetadata(
         patientId,
@@ -86,7 +98,9 @@ describe('VideosService', () => {
 
       jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
         id: videoId,
-        file: { path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4' },
+        file: {
+          path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
+        },
         session: { patient: { id: 'test-patient-id' } },
       } as any);
 

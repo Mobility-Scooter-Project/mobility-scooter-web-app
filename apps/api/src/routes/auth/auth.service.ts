@@ -25,7 +25,7 @@ export class AuthService {
     private readonly refreshTokenRepository: Repository<RefreshToken>,
     private readonly vault: BarbicanService,
     private readonly jwt: JwtService,
-  ) { }
+  ) {}
 
   public async createUserWithPassword(
     email: string,

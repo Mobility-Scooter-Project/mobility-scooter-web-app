@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { ConfigModule, } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import config from '@src/config';
 import { InfraModule } from '@infra/infra.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -36,7 +36,7 @@ describe('AuthService', () => {
         }),
         InfraModule,
         JwtModule,
-        TypeOrmModule.forFeature([User, RefreshToken])
+        TypeOrmModule.forFeature([User, RefreshToken]),
       ],
       providers: [AuthService],
     })
@@ -48,7 +48,9 @@ describe('AuthService', () => {
     jwt = module.get<JwtService>(JwtService);
     vault = module.get<BarbicanService>(BarbicanService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    refreshTokenRepository = module.get<Repository<RefreshToken>>(getRepositoryToken(RefreshToken));
+    refreshTokenRepository = module.get<Repository<RefreshToken>>(
+      getRepositoryToken(RefreshToken),
+    );
     unit = db.getRepository(Unit).create({ name: 'Test Unit' });
 
     jest.spyOn(jwt, 'sign').mockReturnValue('signed-token');
@@ -65,20 +67,18 @@ describe('AuthService', () => {
 
   describe('createUserWithPassword', () => {
     it('should create a user with password', async () => {
-      jest.spyOn(userRepository, "findOne").mockResolvedValue(null);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
-      jest
-        .spyOn(db, 'transaction')
-        .mockImplementation(async (cb) => {
-          return {
-            id: 'user-id',
-            email: mockUser.email,
-            givenName: 'Test',
-            surname: 'User',
-            role: USER_ROLES.RESEARCHER,
-            unit,
-          };
-        });
+      jest.spyOn(db, 'transaction').mockImplementation(async (cb) => {
+        return {
+          id: 'user-id',
+          email: mockUser.email,
+          givenName: 'Test',
+          surname: 'User',
+          role: USER_ROLES.RESEARCHER,
+          unit,
+        };
+      });
 
       const newUser = await service.createUserWithPassword(
         mockUser.email,
@@ -98,12 +98,23 @@ describe('AuthService', () => {
 
   describe('refreshToken', () => {
     it('should refresh a token', async () => {
-      jest.spyOn(refreshTokenRepository, "findOne").mockResolvedValue({
-        user: { id: 'test-user-id' }
+      jest.spyOn(refreshTokenRepository, 'findOne').mockResolvedValue({
+        user: { id: 'test-user-id' },
       } as any);
-      jest.spyOn(refreshTokenRepository, "save").mockResolvedValue({ token: 'refreshToken' } as any);
-      jest.spyOn(refreshTokenRepository, "remove").mockResolvedValue(true as any);
-      jest.spyOn(userRepository, "findOne").mockResolvedValue({ id: 'test-user-id', email: 'test@example.com', givenName: 'Test', surname: 'User', role: USER_ROLES.RESEARCHER, unit } as any);
+      jest
+        .spyOn(refreshTokenRepository, 'save')
+        .mockResolvedValue({ token: 'refreshToken' } as any);
+      jest
+        .spyOn(refreshTokenRepository, 'remove')
+        .mockResolvedValue(true as any);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        id: 'test-user-id',
+        email: 'test@example.com',
+        givenName: 'Test',
+        surname: 'User',
+        role: USER_ROLES.RESEARCHER,
+        unit,
+      } as any);
 
       const result = await service.refreshToken('valid-refresh-token');
       expect(result).toEqual({ token: 'token', refreshToken: 'refreshToken' });
@@ -115,7 +126,7 @@ describe('AuthService', () => {
       const passwordHash =
         '$2b$12$KIXQJ4WZ5y3E6b8u1rOeUuG8Fh8Hf8Hf8Hf8Hf8Hf8Hf8Hf8Hf8Hf8H'; // bcrypt hash for 'securePassword123'
 
-      jest.spyOn(userRepository, "findOne").mockResolvedValue({
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: 'user-id',
         email: mockUser.email,
         passwordHash,
@@ -125,9 +136,7 @@ describe('AuthService', () => {
         unit,
       } as any);
 
-      db.query = jest
-        .fn()
-        .mockResolvedValue([{ hash: passwordHash }]);
+      db.query = jest.fn().mockResolvedValue([{ hash: passwordHash }]);
 
       const result = await service.signInWithPassword(
         mockUser.email,
@@ -142,7 +151,7 @@ describe('AuthService', () => {
       const passwordHash =
         '$2b$12$KIXQJ4WZ5y3E6b8u1rOeUuG8Fh8Hf8Hf8Hf8Hf8Hf8Hf8Hf8Hf8Hf8H'; // bcrypt hash for 'securePassword123'
 
-      jest.spyOn(userRepository, "findOne").mockResolvedValue({
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: 'user-id',
         email: mockUser.email,
         passwordHash,
@@ -163,7 +172,7 @@ describe('AuthService', () => {
       const passwordHash =
         '$2b$12$KIXQJ4WZ5y3E6b8u1rOeUuG8Fh8Hf8Hf8Hf8Hf8Hf8Hf8Hf8Hf8Hf8H'; // bcrypt hash for 'securePassword123'
 
-      jest.spyOn(userRepository, "findOne").mockResolvedValue({
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: 'user-id',
         email: mockUser.email,
         passwordHash,
@@ -173,14 +182,12 @@ describe('AuthService', () => {
         unit,
       } as any);
 
-      jest.spyOn(userRepository, "save").mockResolvedValue(true as any);
-      jest.spyOn(userRepository, "update").mockResolvedValue(true as any);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(true as any);
+      jest.spyOn(userRepository, 'update').mockResolvedValue(true as any);
 
-      jest
-        .spyOn(db, 'transaction')
-        .mockImplementation(async (cb) => {
-          return true;
-        });
+      jest.spyOn(db, 'transaction').mockImplementation(async (cb) => {
+        return true;
+      });
 
       jest.spyOn(vault, 'markPasswordResetTokenUsed').mockResolvedValue();
 

@@ -1,10 +1,5 @@
 import { SCHEMAS } from '@src/config/schemas';
-import {
-  Column,
-  Entity,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Department } from '../org/department';
 

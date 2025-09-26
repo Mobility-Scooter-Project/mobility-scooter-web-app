@@ -15,35 +15,35 @@ export class QueueService implements OnApplicationShutdown {
       brokers: [this.configService.get('broker').url],
       logCreator:
         () =>
-          ({ namespace, level, label, log }) => {
-            switch (level) {
-              case 1:
-                this.logger.error(
-                  `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
-                );
-                break;
-              case 2:
-                this.logger.warn(
-                  `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
-                );
-                break;
-              case 4:
-                this.logger.debug(
-                  `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
-                );
-                break;
-              case 5:
-                this.logger.verbose(
-                  `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
-                );
-                break;
-              default:
-                this.logger.log(
-                  `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
-                );
-                break;
-            }
-          },
+        ({ namespace, level, label, log }) => {
+          switch (level) {
+            case 1:
+              this.logger.error(
+                `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
+              );
+              break;
+            case 2:
+              this.logger.warn(
+                `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
+              );
+              break;
+            case 4:
+              this.logger.debug(
+                `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
+              );
+              break;
+            case 5:
+              this.logger.verbose(
+                `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
+              );
+              break;
+            default:
+              this.logger.log(
+                `[${label}] ${log.message} ${JSON.stringify(log.payload)}`,
+              );
+              break;
+          }
+        },
     });
 
     this.producer = this.client.producer();
