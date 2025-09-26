@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
-import { AppConfig } from 'src/config';
+import { AppConfig } from '@config/constants';
 
 @Injectable()
 export class QueueService implements OnApplicationShutdown {
@@ -57,10 +57,19 @@ export class QueueService implements OnApplicationShutdown {
     return queue;
   }
 
+  /**
+   *  Get the Kafka producer instance
+   * @returns The Kafka producer instance
+   */
   public getProducer(): Producer {
     return this.producer;
   }
 
+  /**
+   *  Handle application shutdown to gracefully disconnect the Kafka producer
+   *
+   * @param signal The shutdown signal
+   */
   async onApplicationShutdown(signal?: string) {
     this.logger.log(`Shutdown signal received: ${signal}`);
     if (this.producer) {
