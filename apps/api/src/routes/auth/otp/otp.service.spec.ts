@@ -5,6 +5,8 @@ import config from '@src/config';
 import { InfraModule } from '@infra/infra.module';
 import { createMock } from '@golevelup/ts-jest';
 import { BarbicanService } from '@infra/openstack/barbican/barbican.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from '@src/infra/db/entity/user/user';
 
 describe('OtpService', () => {
   let service: OtpService;
@@ -17,6 +19,7 @@ describe('OtpService', () => {
           load: [config],
         }),
         InfraModule,
+        TypeOrmModule.forFeature([User])
       ],
       providers: [OtpService],
     })
