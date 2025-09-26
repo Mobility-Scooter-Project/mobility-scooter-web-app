@@ -7,7 +7,7 @@ import { UnitsModule } from './units/units.module';
 import { OrgsModule } from './orgs/orgs.module';
 import { MeModule } from './me/me.module';
 import { VideosModule } from './videos/videos.module';
-import config, { AppConfig } from '../config';
+import config, { AppConfig } from '@config/constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({

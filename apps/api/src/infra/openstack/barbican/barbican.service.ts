@@ -8,6 +8,9 @@ import { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
 import Redis from 'ioredis';
 
+/**
+ * BarbicanService provides methods to interact with OpenStack Barbican for secret management.
+ */
 @Injectable()
 export class BarbicanService {
   private kv: Redis;
@@ -124,7 +127,7 @@ export class BarbicanService {
    * authentication token refresh if a 401 Unauthorized response is received from the vault.
    * If the initial request fails with 401, it will retry once with a fresh authentication token.
    */
-  public async readSecret(path: string, key: string) {
+  public async readSecret(path: string, key: string): Promise<string> {
     const secretRef = await this.kv.hget(path, key);
 
     // TODO: handle refresh from Barbican if needed
@@ -154,7 +157,7 @@ export class BarbicanService {
    * @throws {HttpException} With status 500 if the secret creation fails
    * @returns {Promise<void>}
    */
-  public async createOtpSecret(userId: string, secret: string) {
+  public async createOtpSecret(userId: string, secret: string): Promise<void> {
     try {
       await this.upsertSecret(`auth/otp`, userId, secret);
     } catch (e) {
@@ -172,7 +175,7 @@ export class BarbicanService {
    * @returns A Promise that resolves to the user's TOTP secret as a string
    * @throws {HttpException} When the TOTP secret is not found in the Vault with status code 404
    */
-  public async getOtpSecretByUserId(userId: string) {
+  public async getOtpSecretByUserId(userId: string): Promise<string> {
     try {
       return await this.readSecret(`auth/otp`, userId);
     } catch (e) {
@@ -186,7 +189,7 @@ export class BarbicanService {
    * @returns A hexadecimal string representing the generated 256-bit encryption key
    * @throws {HttpException} If the encryption key cannot be stored in Vault
    */
-  public async createObjectEncryptionKey(path: string) {
+  public async createObjectEncryptionKey(path: string): Promise<string> {
     const secret = crypto.randomBytes(32).toString('hex'); // 32 bytes = 256 bits for AES-256 encryption
     try {
       await this.upsertSecret(`storage/${this.storageBucket}`, path, secret);
