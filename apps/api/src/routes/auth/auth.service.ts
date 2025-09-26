@@ -135,23 +135,10 @@ export class AuthService {
 
   private async _invalidateRefreshToken(refreshToken: string) {
     try {
-      await this.db.transaction(async (tx) => {
-        // Need to set the role to postgres to have permission to delete
-        await tx.query(`SET ROLE postgres`);
-
-        const tokenRecord = await this.refreshTokenRepository.findOne({
-          where: { token: refreshToken },
-        });
-
-        if (!tokenRecord) {
-          throw new HttpException('Refresh token not found', 404);
-        }
-
-        await this.refreshTokenRepository.remove(tokenRecord);
-      });
+      await this.refreshTokenRepository.delete({ token: refreshToken });
     } catch (e) {
       this.logger.error('Error revoking refresh token', e);
-      throw new HttpException('Error revoking refresh token', 500);
+      throw new HttpException('Error revoking refresh token', e.status || 500);
     }
   }
 
@@ -253,12 +240,7 @@ export class AuthService {
       throw new HttpException('Error generating reset password token', 500);
     }
 
-    // If no user found, we don't reveal that to the requester for security reasons
-    if (!data) {
-      throw new HttpException('Error generating reset password token', 500);
-    }
-
-    const { id } = data;
+    const { id } = data ? data : { id: '' };
 
     const payload = {
       userId: id,
@@ -266,17 +248,18 @@ export class AuthService {
     };
 
     let token;
-
     try {
       token = await this.jwt.sign(payload);
     } catch (e) {
       throw new HttpException('Error generating reset password token', 500);
     }
 
-    try {
-      await this.vault.createPasswordResetToken(token, id);
-    } catch (e) {
-      throw new HttpException('Error storing reset password token', 500);
+    if (data) {
+      try {
+        await this.vault.createPasswordResetToken(token, id);
+      } catch (e) {
+        throw new HttpException('Error storing reset password token', 500);
+      }
     }
 
     // NOTE: In prod this should send an email but we are ignoring that for now and returning the token instaed.
