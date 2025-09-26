@@ -1,12 +1,12 @@
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AppConfig } from 'src/config';
-import { InfraModule } from 'src/infra/infra.module';
+import { AppConfig } from '@src/config';
+import { InfraModule } from '@src/infra/infra.module';
 import { OtpService } from './otp/otp.service';
 import { AuthController } from './auth.controller';
-import { JwtMiddleware } from 'src/middleware/jwt/jwt.middleware';
+import { JwtMiddleware } from '@src/middleware/jwt/jwt.middleware';
 import { OtpController } from './otp/otp.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@src/infra/db/entity/user/user';
