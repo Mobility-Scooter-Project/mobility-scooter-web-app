@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import { AppConfig } from 'src/config';
 
 @Injectable()
-export class QueueService {
+export class QueueService implements OnApplicationShutdown {
   private client: Kafka;
   private producer: Producer;
   private readonly logger = new Logger(QueueService.name);
@@ -45,18 +45,27 @@ export class QueueService {
             }
           },
     });
+
+    this.producer = this.client.producer();
   }
 
   public static async build(
     configService: ConfigService<AppConfig>,
   ): Promise<QueueService> {
     const queue = new QueueService(configService);
-    queue.producer = queue.client.producer();
     await queue.producer.connect();
     return queue;
   }
 
   public getProducer(): Producer {
     return this.producer;
+  }
+
+  async onApplicationShutdown(signal?: string) {
+    this.logger.log(`Shutdown signal received: ${signal}`);
+    if (this.producer) {
+      await this.producer.disconnect();
+      this.logger.log('Kafka producer disconnected');
+    }
   }
 }
