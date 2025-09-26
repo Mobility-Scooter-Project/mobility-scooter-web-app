@@ -3,7 +3,7 @@ import { S3Service } from '@infra/openstack/s3/s3.service';
 import { SwiftService } from '@infra/openstack/swift/swift.service';
 import { QueueService } from '@infra/queue/queue.service';
 import { Readable } from 'stream';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { File } from '@src/infra/db/entity/unit/file';
 import { Video } from '@src/infra/db/entity/video/video';
 import { InjectRepository } from '@nestjs/typeorm';

@@ -4,17 +4,23 @@ import { InfraModule } from '@infra/infra.module';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import config from '@src/config';
-import { DbService } from '@src/infra/db/db.service';
 import { S3Service } from '@src/infra/openstack/s3/s3.service';
 import { SwiftService } from '@src/infra/openstack/swift/swift.service';
 import { QueueService } from '@src/infra/queue/queue.service';
+import { DataSource, Repository } from 'typeorm';
+import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
+import { File } from '@src/infra/db/entity/unit/file';
+import { Video } from '@src/infra/db/entity/video/video';
+import { createMock } from '@golevelup/ts-jest';
 
 describe('VideosService', () => {
   let service: VideosService;
-  let db: DbService;
   let s3: S3Service;
   let swift: SwiftService;
   let queue: QueueService;
+
+  let fileRepository: Repository<File>;
+  let videoRepository: Repository<Video>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,15 +31,18 @@ describe('VideosService', () => {
         }),
         InfraModule,
         JwtModule,
+        TypeOrmModule.forFeature([File, Video])
       ],
       providers: [VideosService],
-    }).compile();
+    }).useMocker(createMock).compile();
 
     service = module.get<VideosService>(VideosService);
-    db = module.get<DbService>(DbService);
     s3 = module.get<S3Service>(S3Service);
     swift = module.get<SwiftService>(SwiftService);
     queue = module.get<QueueService>(QueueService);
+
+    fileRepository = module.get<Repository<File>>(getRepositoryToken(File));
+    videoRepository = module.get<Repository<Video>>(getRepositoryToken(Video));
   });
 
   it('should be defined', () => {
@@ -46,39 +55,17 @@ describe('VideosService', () => {
       const sessionId = 'test-session-id';
       const fileName = 'test-video.mp4';
 
-      service.fileRepository = {
-        create: jest
-          .fn()
-          .mockReturnValue({
-            name: fileName,
-            type: 'video/mp4',
-            path: `patients/${patientId}/sessions/${sessionId}/${fileName}`,
-          }),
-        save: jest
-          .fn()
-          .mockResolvedValue({
-            id: 'file-id',
-            name: fileName,
-            type: 'video/mp4',
-            path: `patients/${patientId}/sessions/${sessionId}/${fileName}`,
-          }),
-      } as any;
+      jest.spyOn(fileRepository, 'create').mockImplementation((file) => file as any);
+      jest.spyOn(fileRepository, 'save').mockImplementation(async (file) => ({
+        id: 'file-id',
+        ...file,
+      } as any));
 
-      service.videoRepository = {
-        create: jest
-          .fn()
-          .mockReturnValue({
-            session: { id: sessionId },
-            file: { id: 'file-id' },
-          }),
-        save: jest
-          .fn()
-          .mockResolvedValue({
-            id: 'video-id',
-            session: { id: sessionId },
-            file: { id: 'file-id' },
-          }),
-      } as any;
+      jest.spyOn(videoRepository, 'create').mockImplementation((video) => video as any);
+      jest.spyOn(videoRepository, 'save').mockImplementation(async (video) => ({
+        id: 'video-id',
+        ...video,
+      } as any));
 
       const result = await service.createVideoMetadata(
         patientId,
@@ -97,15 +84,11 @@ describe('VideosService', () => {
         buffer: Buffer.from('test video content'),
       } as Express.Multer.File;
 
-      service.videoRepository = {
-        findOne: jest.fn().mockResolvedValue({
-          id: videoId,
-          file: {
-            path: `patients/test-patient-id/sessions/test-session-id/test-video.mp4`,
-          },
-          session: { patient: { id: 'test-patient-id' } },
-        }),
-      } as any;
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
+        id: videoId,
+        file: { path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4' },
+        session: { patient: { id: 'test-patient-id' } },
+      } as any);
 
       jest.spyOn(swift, 'putObjectStream').mockResolvedValue();
       jest.spyOn(s3, 'presignedUrl').mockResolvedValue('http://presigned-url');
