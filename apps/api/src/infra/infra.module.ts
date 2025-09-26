@@ -80,16 +80,13 @@ import { DbService } from './db/db.service';
     },
   ],
   exports: [
-    // OpenStack services
     KeystoneService,
     BarbicanService,
     S3Service,
     SwiftService,
-
-    // Infrastructure services
     DbService,
     KvService,
     QueueService,
   ],
 })
-export class InfraModule { }
+export class InfraModule {}

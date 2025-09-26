@@ -24,7 +24,7 @@ describe('VideosService', () => {
           load: [config],
         }),
         InfraModule,
-        JwtModule
+        JwtModule,
       ],
       providers: [VideosService],
     }).compile();
@@ -47,16 +47,44 @@ describe('VideosService', () => {
       const fileName = 'test-video.mp4';
 
       service.fileRepository = {
-        create: jest.fn().mockReturnValue({ name: fileName, type: 'video/mp4', path: `patients/${patientId}/sessions/${sessionId}/${fileName}` }),
-        save: jest.fn().mockResolvedValue({ id: 'file-id', name: fileName, type: 'video/mp4', path: `patients/${patientId}/sessions/${sessionId}/${fileName}` }),
+        create: jest
+          .fn()
+          .mockReturnValue({
+            name: fileName,
+            type: 'video/mp4',
+            path: `patients/${patientId}/sessions/${sessionId}/${fileName}`,
+          }),
+        save: jest
+          .fn()
+          .mockResolvedValue({
+            id: 'file-id',
+            name: fileName,
+            type: 'video/mp4',
+            path: `patients/${patientId}/sessions/${sessionId}/${fileName}`,
+          }),
       } as any;
 
       service.videoRepository = {
-        create: jest.fn().mockReturnValue({ session: { id: sessionId }, file: { id: 'file-id' } }),
-        save: jest.fn().mockResolvedValue({ id: 'video-id', session: { id: sessionId }, file: { id: 'file-id' } }),
+        create: jest
+          .fn()
+          .mockReturnValue({
+            session: { id: sessionId },
+            file: { id: 'file-id' },
+          }),
+        save: jest
+          .fn()
+          .mockResolvedValue({
+            id: 'video-id',
+            session: { id: sessionId },
+            file: { id: 'file-id' },
+          }),
       } as any;
 
-      const result = await service.createVideoMetadata(patientId, sessionId, fileName);
+      const result = await service.createVideoMetadata(
+        patientId,
+        sessionId,
+        fileName,
+      );
       expect(result).toHaveProperty('id');
     });
   });
@@ -72,13 +100,15 @@ describe('VideosService', () => {
       service.videoRepository = {
         findOne: jest.fn().mockResolvedValue({
           id: videoId,
-          file: { path: `patients/test-patient-id/sessions/test-session-id/test-video.mp4` },
-          session: { patient: { id: 'test-patient-id' } }
+          file: {
+            path: `patients/test-patient-id/sessions/test-session-id/test-video.mp4`,
+          },
+          session: { patient: { id: 'test-patient-id' } },
         }),
       } as any;
 
-      jest.spyOn(swift, "putObjectStream").mockResolvedValue();
-      jest.spyOn(s3, "presignedUrl").mockResolvedValue('http://presigned-url');
+      jest.spyOn(swift, 'putObjectStream').mockResolvedValue();
+      jest.spyOn(s3, 'presignedUrl').mockResolvedValue('http://presigned-url');
 
       jest.spyOn(queue, 'getProducer').mockReturnValue({
         send: jest.fn().mockResolvedValue({}),

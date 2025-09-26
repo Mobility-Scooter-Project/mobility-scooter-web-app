@@ -37,10 +37,14 @@ export class AuthService {
     this.refreshTokenRepository = this.db.getRepository(RefreshToken);
   }
 
-  public async createUserWithPassword(email: string, password: string, newUser: Partial<User>) {
+  public async createUserWithPassword(
+    email: string,
+    password: string,
+    newUser: Partial<User>,
+  ) {
     const result = await this.db.query(
       `SELECT crypt($1, gen_salt('bf')) as hash`,
-      [password]
+      [password],
     );
 
     const passwordHash = result[0].hash;
@@ -74,15 +78,18 @@ export class AuthService {
     return user;
   }
 
-  private async _createUserSession(userId: string, identity = IDENTITY_PROVIDERS.email) {
+  private async _createUserSession(
+    userId: string,
+    identity = IDENTITY_PROVIDERS.email,
+  ) {
     let session;
     try {
       session = await this.db.transaction(async (tx) => {
         const identityRecord = await tx.getRepository(UserIdentity).findOne({
           where: {
             user: { id: userId },
-            provider: identity
-          }
+            provider: identity,
+          },
         });
 
         if (!identityRecord) {
@@ -90,7 +97,7 @@ export class AuthService {
         }
 
         const newSession = tx.create(UserSession, {
-          identity: identityRecord
+          identity: identityRecord,
         });
 
         const createdSession = await tx.save(newSession);
@@ -143,7 +150,7 @@ export class AuthService {
         await tx.query(`SET ROLE postgres`);
 
         const tokenRecord = await this.refreshTokenRepository.findOne({
-          where: { token: refreshToken }
+          where: { token: refreshToken },
         });
 
         if (!tokenRecord) {
@@ -174,8 +181,8 @@ export class AuthService {
       tokenRecord = await this.refreshTokenRepository.findOne({
         where: {
           token: refreshToken,
-          expiresAt: MoreThan(new Date())
-        }
+          expiresAt: MoreThan(new Date()),
+        },
       });
     } catch (e) {
       this.logger.error('Error finding refresh token', e);
@@ -183,9 +190,7 @@ export class AuthService {
     }
 
     if (!tokenRecord) {
-      this.logger.error(
-        `Refresh token not found or revoked: ${refreshToken}`,
-      );
+      this.logger.error(`Refresh token not found or revoked: ${refreshToken}`);
       throw new HttpException('Invalid refresh token', 401);
     }
 
@@ -197,7 +202,7 @@ export class AuthService {
         await tx.query(`SET ROLE postgres`);
 
         tokenRecord = await this.refreshTokenRepository.findOne({
-          where: { token: refreshToken }
+          where: { token: refreshToken },
         });
 
         if (!tokenRecord) {
@@ -237,10 +242,10 @@ export class AuthService {
     }
 
     // Check password using the database crypt function
-    const result = await this.db.query(
-      `SELECT crypt($1, $2) as hash`,
-      [password, user.passwordHash]
-    );
+    const result = await this.db.query(`SELECT crypt($1, $2) as hash`, [
+      password,
+      user.passwordHash,
+    ]);
     const hashedInputPassword = result[0].hash;
 
     if (hashedInputPassword !== user.passwordHash) {
@@ -253,8 +258,7 @@ export class AuthService {
   public async generateResetPasswordToken(email: string) {
     let data;
     try {
-      data = await this.userRepository.findOne({ where: { email } }
-      );
+      data = await this.userRepository.findOne({ where: { email } });
     } catch (e) {
       throw new HttpException('Error generating reset password token', 500);
     }
@@ -304,10 +308,13 @@ export class AuthService {
     try {
       const hashedPasswordResult = await this.db.query(
         `SELECT crypt($1, gen_salt('bf')) as hash`,
-        [newPassword]
+        [newPassword],
       );
       const newHashedPassword = hashedPasswordResult[0].hash;
-      await this.userRepository.update({ id: userId }, { passwordHash: newHashedPassword });
+      await this.userRepository.update(
+        { id: userId },
+        { passwordHash: newHashedPassword },
+      );
     } catch (e) {
       this.logger.error('Error resetting password: ', e);
       throw new HttpException('Error resetting password', 500);

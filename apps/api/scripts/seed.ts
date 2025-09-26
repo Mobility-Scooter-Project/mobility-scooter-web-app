@@ -1,57 +1,42 @@
-import { drizzle } from "drizzle-orm/node-postgres";
 import fs from "fs";
-import { metadata, tenants, units } from "../src/infra/db/schema/tenants";
-import { users } from "../src/infra/db/schema/auth";
-import { exit, mainModule } from "process";
-import { sql } from "drizzle-orm";
-
-const DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres";
-
-const db = drizzle(DATABASE_URL, {
-  casing: "snake_case",
-  schema: { ...tenants, ...units, ...users },
-});
+import { exit, } from "process";
+import db from "datasource";
+import { Org } from "@src/infra/db/entity/org/org";
+import { Unit } from "@src/infra/db/entity/unit/unit";
+import { Department } from "@src/infra/db/entity/org/department";
 
 async function main() {
   try {
-    const { tenant, unit } = await db.transaction(async (tx) => {
-      // I am unsure why it is returning invalid json
-      const tenant = JSON.parse(
-        JSON.stringify(
-          await tx
-            .insert(metadata)
-            .values({
-              name: "Test Tenant",
-            })
-            .returning(),
-        ),
-      )[0];
-      const unit = JSON.parse(
-        JSON.stringify(
-          await tx
-            .insert(units)
-            .values({
-              tenantId: tenant.id,
-            })
-            .returning(),
-        ),
-      )[0];
+    const orgRepository = db.getRepository(Org);
+    const departmentRepository = db.getRepository(Department);
+    const unitRepository = db.getRepository(Unit);
 
-      await tx.insert(users).values({
-        unitId: unit.id,
-        email: "test@example.com",
-        firstName: "Test",
-        lastName: "User",
-        encryptedPassword: sql`crypt('testing124', gen_salt('bf'))` as unknown as string,
-      });
+    const { unit, org } = await db.transaction(async (tx) => {
+      const org = await orgRepository.save(
+        orgRepository.create({
+          name: "Test Org",
+        }),
+      );
+      const department = await departmentRepository.save(
+        departmentRepository.create({
+          org: org,
+        }),
+      );
 
-      return { tenant, unit };
+      const unit = await unitRepository.save(
+        unitRepository.create({
+          name: "Test Unit",
+          department: department,
+        }),
+      );
+
+      return { org, department, unit };
     });
 
     fs.appendFileSync(".env", `\nTESTING_UNIT_ID=${unit.id}\n`);
 
     console.log(
-      `Successfully wrote unit ID to .env file for tenant ${tenant.id}`,
+      `Successfully wrote unit ID to .env file for tenant ${org.id}`,
     );
     exit(0);
   } catch (e) {

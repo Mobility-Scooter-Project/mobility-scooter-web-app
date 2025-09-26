@@ -42,8 +42,8 @@ export class VideosService {
     const newFile = this.fileRepository.create({
       name: fileName,
       type: 'video/mp4',
-      path
-    })
+      path,
+    });
 
     let result;
     try {
@@ -55,8 +55,8 @@ export class VideosService {
 
     const newVideo = this.videoRepository.create({
       session: { id: sessionId },
-      file: result
-    })
+      file: result,
+    });
 
     try {
       result = await this.videoRepository.save(newVideo);
