@@ -1,6 +1,4 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { DbService } from '@infra/db/db.service';
 import { S3Service } from '@infra/openstack/s3/s3.service';
 import { SwiftService } from '@infra/openstack/swift/swift.service';
 import { QueueService } from '@infra/queue/queue.service';
@@ -22,12 +20,12 @@ export class VideosService {
 
   constructor(
     private readonly swiftService: SwiftService,
-    private readonly dbService: DbService,
+    private readonly dbService: DataSource,
     private readonly queueService: QueueService,
     private readonly s3service: S3Service,
   ) {
     this.objectStorage = swiftService;
-    this.db = dbService.dataSource;
+    this.db = dbService;
     this.queue = queueService;
     this.s3 = s3service;
   }

@@ -1,18 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule, } from '@nestjs/config';
 import config from '@src/config';
 import { InfraModule } from '@infra/infra.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
-import { DbService } from '@infra/db/db.service';
 import { createMock } from '@golevelup/ts-jest';
 import { USER_ROLES } from '@src/infra/db/entity/user/enums';
 import { Unit } from '@src/infra/db/entity/unit/unit';
 import { BarbicanService } from '@src/infra/openstack/barbican/barbican.service';
+import { DataSource } from 'typeorm';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let db: DbService;
+  let db: DataSource;
   let vault: BarbicanService;
   let jwt: JwtService;
   let mockUser = {
@@ -37,11 +37,11 @@ describe('AuthService', () => {
       .compile();
 
     service = module.get<AuthService>(AuthService);
-    db = module.get<DbService>(DbService);
+    db = module.get<DataSource>(DataSource);
     jwt = module.get<JwtService>(JwtService);
     vault = module.get<BarbicanService>(BarbicanService);
 
-    unit = db.dataSource.getRepository(Unit).create({ name: 'Test Unit' });
+    unit = db.getRepository(Unit).create({ name: 'Test Unit' });
 
     jest.spyOn(jwt, 'sign').mockReturnValue('signed-token');
     jest.spyOn(jwt, 'verify').mockReturnValue({ userId: 'test-user-id' });
@@ -62,7 +62,7 @@ describe('AuthService', () => {
       } as any;
 
       jest
-        .spyOn(db.dataSource, 'transaction')
+        .spyOn(db, 'transaction')
         .mockImplementation(async (cb) => {
           return {
             id: 'user-id',
@@ -120,7 +120,7 @@ describe('AuthService', () => {
         }),
       } as any;
 
-      db.dataSource.query = jest
+      db.query = jest
         .fn()
         .mockResolvedValue([{ hash: passwordHash }]);
 
@@ -175,7 +175,7 @@ describe('AuthService', () => {
       } as any;
 
       jest
-        .spyOn(db.dataSource, 'transaction')
+        .spyOn(db, 'transaction')
         .mockImplementation(async (cb) => {
           return true;
         });
@@ -187,6 +187,6 @@ describe('AuthService', () => {
   });
 
   afterAll(async () => {
-    await db.dataSource.destroy();
+    await db.destroy();
   });
 });

@@ -1,12 +1,17 @@
 import { SCHEMAS } from '@src/config/schemas';
-import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Org } from './org';
-import { Unit } from '../unit/unit';
 
 @Entity({ schema: SCHEMAS.ORGS })
 export class Department {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+  })
+  name: string;
 
   @ManyToOne(() => Org, (org) => org.id)
   org: Org;
