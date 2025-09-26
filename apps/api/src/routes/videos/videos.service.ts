@@ -6,29 +6,21 @@ import { Readable } from 'stream';
 import { DataSource, Repository } from 'typeorm';
 import { File } from '@src/infra/db/entity/unit/file';
 import { Video } from '@src/infra/db/entity/video/video';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class VideosService {
-  private objectStorage: SwiftService;
-  private db: DataSource;
-  private queue: QueueService;
-  private s3: S3Service;
   private logger = new Logger(VideosService.name);
 
-  public fileRepository: Repository<File>;
-  public videoRepository: Repository<Video>;
-
   constructor(
-    private readonly swiftService: SwiftService,
-    private readonly dbService: DataSource,
-    private readonly queueService: QueueService,
-    private readonly s3service: S3Service,
-  ) {
-    this.objectStorage = swiftService;
-    this.db = dbService;
-    this.queue = queueService;
-    this.s3 = s3service;
-  }
+    private readonly queue: QueueService,
+    private readonly s3: S3Service,
+    private readonly objectStorage: SwiftService,
+    @InjectRepository(File)
+    private readonly fileRepository: Repository<File>,
+    @InjectRepository(Video)
+    private readonly videoRepository: Repository<Video>,
+  ) { }
 
   async createVideoMetadata(
     patientId: string,
@@ -104,7 +96,7 @@ export class VideosService {
     );
 
     const transcriptPath = filePath.replace(/\.mp4$/, '.vtt');
-    const videoDataPromise = this.s3service.presignedUrl(
+    const videoDataPromise = this.s3.presignedUrl(
       'GET',
       objectFilePath,
       60 * 60 * 24, // 24 hours
