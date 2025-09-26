@@ -1,7 +1,6 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppConfig } from 'src/config';
-import * as crypto from 'crypto';
+import { AppConfig } from '@config/constants';
 import {
   AbortMultipartUploadCommand,
   CompletedPart,
@@ -15,11 +14,8 @@ import {
   S3Client,
   S3ClientConfig,
   UploadPartCommand,
-  waitUntilObjectExists,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import type { WaiterResult } from '@smithy/util-waiter';
-import { ReadStream } from 'fs';
 import { Readable } from 'stream';
 
 /**

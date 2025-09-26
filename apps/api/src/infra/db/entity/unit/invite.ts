@@ -3,8 +3,9 @@ import { USER_ROLES } from '../user/enums';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Unit } from './unit';
 import { User } from '../user/user';
+import { SCHEMAS } from '@config/schemas';
 
-@Entity()
+@Entity({ schema: SCHEMAS.UNITS })
 export class UnitInvite {
   @PrimaryGeneratedColumn('uuid')
   id: string;

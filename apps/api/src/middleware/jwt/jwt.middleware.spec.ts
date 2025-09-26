@@ -1,8 +1,7 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TestingModule, Test } from '@nestjs/testing';
-import { KvService } from '@src/infra/kv/kv.service';
 import { JwtMiddleware } from './jwt.middleware';
-import config, { AppConfig } from '@src/config';
+import config, { AppConfig } from '@config/constants';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 
 describe('JwtMiddleware', () => {

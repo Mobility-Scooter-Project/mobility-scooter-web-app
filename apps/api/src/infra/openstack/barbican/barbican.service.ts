@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppConfig } from 'src/config';
+import { AppConfig } from '@config/constants';
 import { KeystoneService } from '../keystone/keystone.service';
 import { KvService } from '../../kv/kv.service';
 import { HttpService } from '@nestjs/axios';
@@ -10,10 +10,9 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class BarbicanService {
-  private keystone: KeystoneService;
   private kv: Redis;
   private vaultUrl: string;
-  private storageBucket: string = 'default'; // Default bucket name
+  private storageBucket: string = 'dev'; // Default bucket name
   private client: AxiosInstance;
   private readonly logger = new Logger(BarbicanService.name);
 
@@ -21,9 +20,7 @@ export class BarbicanService {
     private readonly KeystoneService: KeystoneService,
     private readonly KVService: KvService,
   ) {
-    this.keystone = KeystoneService;
     this.kv = KVService.kv;
-    this.keystone = KeystoneService;
   }
 
   public static async build(

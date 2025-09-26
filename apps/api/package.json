@@ -92,9 +92,10 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^@src/(.*)$": "<rootDir>/$1",
+      "^@config/(.*)$": "<rootDir>/config/$1",
       "^@infra/(.*)$": "<rootDir>/infra/$1",
-      "^@db/(.*)$": "<rootDir>/../infra/db/$1"
+      "^@db/(.*)$": "<rootDir>/../infra/db/$1",
+      "^@src/(.*)$": "<rootDir>/$1"
     }
   }
 }

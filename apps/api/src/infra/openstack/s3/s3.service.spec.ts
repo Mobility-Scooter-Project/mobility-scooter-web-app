@@ -2,8 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { S3Service } from './s3.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
-import config from '../../../config';
-import { after } from 'node:test';
+import config from '@config/constants';
 
 describe('S3Service', () => {
   let service: S3Service;

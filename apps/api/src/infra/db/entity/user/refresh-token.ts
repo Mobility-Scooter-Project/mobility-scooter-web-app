@@ -1,4 +1,4 @@
-import { SCHEMAS } from '@src/config/schemas';
+import { SCHEMAS } from '@config/schemas';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateUpdateFields } from '../shared';
 import { UserSession } from './session';

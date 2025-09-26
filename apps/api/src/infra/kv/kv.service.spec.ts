@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KvService } from './kv.service';
 import { ConfigModule } from '@nestjs/config';
-import config from '../../config';
+import config from '@config/constants';
 
 describe('KvService', () => {
   let service: KvService;
