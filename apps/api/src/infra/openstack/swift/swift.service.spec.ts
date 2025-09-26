@@ -58,13 +58,4 @@ describe('SwiftService', () => {
   });
 
   // once again omitting putObjectStream
-
-  describe('generatePresignedUrl', () => {
-    let url: string;
-    it('should generate a presigned URL for an existing bucket', async () => {
-      url = await service.generatePresignedGetUrl('path/test-object.mp4');
-      expect(url).toBeDefined();
-      expect(url).toContain('http');
-    });
-  });
 });

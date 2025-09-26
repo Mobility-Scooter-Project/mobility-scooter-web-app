@@ -50,28 +50,14 @@ export class SwiftService {
   }
 
   /**
-   * Uploads an object to a storage bucket using a presigned URL and encryption.
+   *  Uploads a file stream to the configured storage bucket.
    *
-   * This function performs the following steps:
-   * 1. Retrieves or creates the specified storage bucket.
-   * 2. Generates a presigned URL for uploading the object to the bucket.
-   * 3. Creates an encryption key for the object using the vault service.
-   * 4. Uploads the object to the presigned URL with the generated encryption key.
-   * 5. Generates a presigned URL for retrieving the object.
-   * 6. Publishes a message to the queue with the object's URL and filename.
-   *
-   * @param filePath - The destination path for the object in the bucket.
-   * @param uploadStream - The ReadableStream to be uploaded.
-   * @param uploadedAt - The date when the object was uploaded.
-   * @param fileType - The type of the file being uploaded (e.g., video, transcript).
-   *
-   * @returns A promise that resolves once the object has been uploaded and the queue message has been published.
+   * @param filePath - The path where the file will be stored
+   * @param uploadStream - A readable stream of the file to be uploaded
    */
   public async putObjectStream(
     filePath: string,
     uploadStream: Readable,
-    uploadedAt: Date,
-    fileType = 'video',
   ): Promise<void> {
     const startTime = new Date();
 
@@ -82,44 +68,5 @@ export class SwiftService {
     this.logger.log(
       `Uploaded file ${filePath} to bucket ${this.storageBucket} in ${new Date().getTime() - startTime.getTime()} ms`,
     );
-  }
-
-  /**
-   * Generates a pre-signed URL for GET operations on stored files
-   *
-   * @param filePath - The path to the file in storage
-   *
-   * @returns A Promise that resolves to an object containing the pre-signed URL
-   * @returns {Promise<{url: string}>} The pre-signed URL for accessing the file
-   *
-   * @remarks
-   * The generated URL includes several custom headers with a signature for authentication:
-   * - X-MSWA-Method: Always "GET" for this function
-   * - X-MSWA-Expires: Expiration timestamp (24 hours from generation)
-   * - X-MSWA-FilePath: The provided file path
-   * - X-MSWA-Bucket: The provided bucket name
-   * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
-   */
-  public async generatePresignedGetUrl(filePath: string): Promise<string> {
-    const date = new Date();
-    const expires = new Date(date.getTime() + 60 * 60 * 24 * 1000);
-    const method = 'GET';
-
-    const params = new URLSearchParams({
-      'X-MSWA-Method': method,
-      'X-MSWA-Expires': Math.floor(expires.getTime() / 1000).toString(),
-      'X-MSWA-FilePath': filePath,
-    });
-
-    // sign the URL
-    const signature = crypto
-      .createHmac('sha256', this.storageSecret)
-      .update(`${method}\n${params.get('X-MSWA-Expires')}\n${filePath}`)
-      .digest('hex');
-
-    params.append('X-MSWA-Signature', signature);
-
-    const url = `${this.baseUrl}/api/v1/uploads/presigned-url?${params.toString()}`;
-    return url;
   }
 }
