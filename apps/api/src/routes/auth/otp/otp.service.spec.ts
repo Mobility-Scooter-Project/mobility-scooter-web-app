@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OtpService } from './otp.service';
 import { ConfigModule } from '@nestjs/config';
-import config from '@src/config';
+import config from '@config/constants';
 import { InfraModule } from '@infra/infra.module';
 import { createMock } from '@golevelup/ts-jest';
 import { BarbicanService } from '@infra/openstack/barbican/barbican.service';

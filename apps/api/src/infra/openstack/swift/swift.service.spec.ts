@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SwiftService } from './swift.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import config from '../../../config';
+import config from '@config/constants';
 import { S3Service } from '../s3/s3.service';
 import { BarbicanService } from '../barbican/barbican.service';
 import { QueueService } from '../../queue/queue.service';

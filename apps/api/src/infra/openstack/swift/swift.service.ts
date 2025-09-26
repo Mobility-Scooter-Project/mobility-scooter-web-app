@@ -1,6 +1,6 @@
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppConfig } from 'src/config';
+import { AppConfig } from '@config/constants';
 import { S3Service } from '../s3/s3.service';
 import { BarbicanService } from '../barbican/barbican.service';
 import { QueueService } from '../../queue/queue.service';

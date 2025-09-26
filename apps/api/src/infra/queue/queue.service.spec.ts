@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QueueService } from './queue.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
-import config from '../../config';
+import config from '@config/constants';
 
 describe('QueueService', () => {
   let service: QueueService;

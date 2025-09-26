@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { ConfigModule } from '@nestjs/config';
-import config from '@src/config';
+import config from '@config/constants';
 import { InfraModule } from '@infra/infra.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { createMock } from '@golevelup/ts-jest';

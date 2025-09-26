@@ -1,4 +1,4 @@
-import { SCHEMAS } from '@src/config/schemas';
+import { SCHEMAS } from '@config/schemas';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { APPLICATION_STATUS } from './enums';
 import { CreateUpdateDeleteFields } from '../shared';

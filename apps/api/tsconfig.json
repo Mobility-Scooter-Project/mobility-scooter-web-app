@@ -28,14 +28,17 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@src/*": [
-        "src/*"
+      "@config/*": [
+        "src/config/*"
       ],
       "@infra/*": [
         "src/infra/*"
       ],
       "@db/*": [
         "src/infra/db/entity/*"
+      ],
+      "@src/*": [
+        "src/*"
       ]
     }
   }

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BarbicanService } from './barbican.service';
 import { KeystoneService } from '../keystone/keystone.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import config from '../../../config';
+import config from '@config/constants';
 import { KvService } from '../../kv/kv.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
 
