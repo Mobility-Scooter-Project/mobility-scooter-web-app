@@ -47,13 +47,11 @@ import { Readable } from 'stream';
 @Injectable()
 export class S3Service {
   private storageBucket: string;
-  private storageSecret: string;
   private logger: Logger = new Logger(S3Service.name);
   private client: S3Client;
 
   public constructor(configService: ConfigService<AppConfig>) {
     this.storageBucket = configService.get('storage').bucket;
-    this.storageSecret = configService.get('storage').secret;
 
     const endpoint = `https://${configService.get('storage').hostname}:${configService.get('storage').port}/`;
     const config: S3ClientConfig = {
@@ -139,32 +137,29 @@ export class S3Service {
   }
 
   /**
-   *  Generates a presigned URL for accessing an object in the S3 bucket.
+   * Generate a pre-signed URL for accessing an object in the configured S3-compatible bucket.
    *
-   * @param method - The HTTP method for the presigned URL ("GET" or "PUT")
-   * @param objectName - The name/path of the object in the bucket
-   * @param expires - The expiration time from the current time in seconds
-   * @param reqParams - Optional request parameters for server-side encryption
-   * @param requestDate - Optional specific date for signing the URL
-   * @returns Promise<string> - The generated presigned URL
+   * This method creates a GetObjectCommand for 'GET' requests or a PutObjectCommand for 'PUT' requests
+   * and uses the configured S3 client to produce a time-limited URL that can be used to perform the
+   * requested operation without further authentication.
    *
-   * @throws {HttpException} - Throws an HttpException with INTERNAL_SERVER_ERROR status code if URL generation fails
+   * @param method - The HTTP method for which to generate the pre-signed URL. Accepts 'GET' or 'PUT'.
+   * @param objectName - The key (path/name) of the object in the bucket.
+   * @param expires - Time-to-live for the pre-signed URL, in seconds.
+   * @param requestDate - Optional signing date to use for the signature. If omitted, the current time is used.
+   *
+   * @returns A Promise that resolves to the generated pre-signed URL as a string.
+   *
+   * @throws HttpException with status INTERNAL_SERVER_ERROR when URL generation fails. The error is logged before throwing.
    *
    * @example
-   * ```typescript
-   * const url = await s3Service.presignedUrl("GET", "my-object.txt", 3600);
-   * console.log(url); // Outputs the presigned URL valid for 1 hour
-   * ```
+   * const url = await s3Service.presignedUrl('PUT', 'uploads/photo.jpg', 60);
+   * // Use the returned URL to upload the file within 60 seconds.
    */
   public async presignedUrl(
     method: 'GET' | 'PUT',
     objectName: string,
     expires: number,
-    reqParams?: {
-      SSECustomerAlgorithm?: string;
-      SSECustomerKey?: string;
-      SSECustomerKeyMD5?: string;
-    },
     requestDate?: Date,
   ): Promise<string> {
     try {
@@ -172,9 +167,6 @@ export class S3Service {
       const baseRequest = {
         Bucket: this.storageBucket,
         Key: objectName,
-        SSECustomerAlgorithm: reqParams?.SSECustomerAlgorithm,
-        SSECustomerKey: reqParams?.SSECustomerKey,
-        SSECustomerKeyMD5: reqParams?.SSECustomerKeyMD5,
       };
 
       switch (method) {
@@ -245,7 +237,7 @@ export class S3Service {
       // Initialize multipart upload
       const res = await this.client.send(createMultipartUploadCommand);
       UploadId = res.UploadId!;
-      this.logger.log(`Multipart upload initiated with ID: ${UploadId}`);
+      this.logger.debug(`Multipart upload initiated with ID: ${UploadId}`);
 
       // Process stream chunks
       for await (const chunk of objectStream) {
@@ -277,14 +269,14 @@ export class S3Service {
             PartNumber: PartNumber,
           });
 
-          this.logger.log(`Uploaded part ${PartNumber} successfully.`);
+          this.logger.debug(`Uploaded part ${PartNumber} successfully.`);
           PartNumber++;
           uploadBuffer = uploadBuffer.slice(partSize);
         }
       }
 
       // Upload remaining buffer
-      this.logger.log(`All parts uploaded. Uploading last part...`);
+      this.logger.debug(`All parts uploaded. Uploading last part...`);
       if (uploadBuffer.length > 0) {
         const uploadPartCommand = new UploadPartCommand({
           ...commonHeaders,
@@ -301,7 +293,7 @@ export class S3Service {
         });
       }
 
-      this.logger.log(
+      this.logger.debug(
         `All parts uploaded successfully. Completing multipart upload...`,
       );
 
@@ -317,7 +309,7 @@ export class S3Service {
       );
       await this.client.send(completeMultipartUploadCommand);
 
-      this.logger.log(`Multipart upload completed successfully.`);
+      this.logger.debug(`Multipart upload completed successfully.`);
     } catch (error) {
       this.logger.error(`Error during multipart upload:`, error);
 
@@ -330,7 +322,7 @@ export class S3Service {
             UploadId: UploadId,
           });
           await this.client.send(abortCommand);
-          this.logger.log(`Aborted multipart upload with ID: ${UploadId}`);
+          this.logger.warn(`Aborted multipart upload with ID: ${UploadId}`);
         } catch (abortError) {
           this.logger.error(`Failed to abort multipart upload:`, abortError);
         }
