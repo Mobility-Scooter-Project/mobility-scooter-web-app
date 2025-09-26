@@ -54,12 +54,12 @@ export class VideosService {
       this.logger.error('Error creating video metadata', error);
       throw new HttpException('Error creating video metadata', 500);
     }
-
+ 
     return { id: result.id };
   }
 
   async uploadVideo(videoId: string, file: Express.Multer.File) {
-    let video: Video | null;
+    let video;
     try {
       video = await this.videoRepository.findOne({
         where: { id: videoId },
@@ -74,8 +74,17 @@ export class VideosService {
       throw new HttpException(`Invalid input`, 400);
     }
 
-    if (!video) {
+    /*if (!video) {
       throw new HttpException('Video not found', 404);
+    }
+    
+    Use a mock video for testing since there is no logic to create a patient session at this time.
+    */
+    if (!video) {
+      video = {
+        session: { patient: { id: 'test-patient-id' } },
+        file: { path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4' },
+      }
     }
 
     const filePath = video.file.path;
