@@ -1,19 +1,24 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { DB, DbService } from '@/infra/db/db.service';
-import { events, fileMetadata } from '@/infra/db/schema/storage';
-import { S3Service } from '@/infra/openstack/s3/s3.service';
-import { SwiftService } from '@/infra/openstack/swift/swift.service';
-import { QueueService } from '@/infra/queue/queue.service';
+import { DbService } from '@infra/db/db.service';
+import { S3Service } from '@infra/openstack/s3/s3.service';
+import { SwiftService } from '@infra/openstack/swift/swift.service';
+import { QueueService } from '@infra/queue/queue.service';
 import { Readable } from 'stream';
+import { DataSource, Repository } from 'typeorm';
+import { File } from '@src/infra/db/entity/unit/file';
+import { Video } from '@src/infra/db/entity/video/video';
 
 @Injectable()
 export class VideosService {
   private objectStorage: SwiftService;
-  private db: DB;
+  private db: DataSource;
   private queue: QueueService;
   private s3: S3Service;
   private logger = new Logger(VideosService.name);
+
+  public fileRepository: Repository<File>;
+  public videoRepository: Repository<Video>;
 
   constructor(
     private readonly swiftService: SwiftService,
@@ -22,7 +27,7 @@ export class VideosService {
     private readonly s3service: S3Service,
   ) {
     this.objectStorage = swiftService;
-    this.db = dbService.db;
+    this.db = dbService.dataSource;
     this.queue = queueService;
     this.s3 = s3service;
   }
@@ -34,48 +39,57 @@ export class VideosService {
   ) {
     const path = `patients/${patientId}/sessions/${sessionId}/${fileName}`;
 
+    const newFile = this.fileRepository.create({
+      name: fileName,
+      type: 'video/mp4',
+      path
+    })
+
     let result;
     try {
-      result = await this.db.transaction(async (tx) => {
-        const event = await tx.insert(events).values({}).returning();
+      result = await this.fileRepository.save(newFile);
+    } catch (error) {
+      this.logger.error('Error creating file metadata', error);
+      throw new HttpException('Error creating file metadata', 500);
+    }
 
-        return await tx
-          .insert(fileMetadata)
-          .values({
-            patientId,
-            statusEventId: event[0].id,
-            path,
-            uploadedAt: new Date(),
-          })
-          .returning();
-      });
+    const newVideo = this.videoRepository.create({
+      session: { id: sessionId },
+      file: result
+    })
+
+    try {
+      result = await this.videoRepository.save(newVideo);
     } catch (error) {
       this.logger.error('Error creating video metadata', error);
       throw new HttpException('Error creating video metadata', 500);
     }
 
-    return { id: result[0].id };
+    return { id: result.id };
   }
 
   async uploadVideo(videoId: string, file: Express.Multer.File) {
-    let video;
+    let video: Video | null;
     try {
-      video = await this.db
-        .select()
-        .from(fileMetadata)
-        .where(eq(fileMetadata.id, videoId))
-        .limit(1);
+      video = await this.videoRepository.findOne({
+        where: { id: videoId },
+        relations: { file: true, session: { patient: true } },
+        select: {
+          file: { path: true },
+          session: { patient: { id: true } },
+        },
+      });
     } catch (error) {
       this.logger.error('Error fetching video metadata', error);
       throw new HttpException(`Invalid input`, 400);
     }
 
-    if (!video[0]) {
+    if (!video) {
       throw new HttpException('Video not found', 404);
     }
 
-    const filePath = video[0].path;
-    const objectFilePath = `${video[0].patientId}/${filePath}`;
+    const filePath = video.file.path;
+    const objectFilePath = `${video.session.patient.id}/${filePath}`;
 
     // Convert buffer to readable stream since multer stores file as buffer
     if (!file.buffer) {
@@ -92,8 +106,11 @@ export class VideosService {
     );
 
     const transcriptPath = filePath.replace(/\.mp4$/, '.vtt');
-    const videoDataPromise =
-      this.objectStorage.generatePresignedGetUrl(filePath);
+    const videoDataPromise = this.s3service.presignedUrl(
+      'GET',
+      objectFilePath,
+      60 * 60 * 24, // 24 hours
+    );
 
     const expires = 60 * 60 * 24;
 
@@ -127,10 +144,14 @@ export class VideosService {
   async getVideoPresignedUrl(videoId: string): Promise<string> {
     let video;
     try {
-      video = await this.db
-        .select()
-        .from(fileMetadata)
-        .where(eq(fileMetadata.id, videoId));
+      video = await this.videoRepository.find({
+        where: { id: videoId },
+        relations: { file: true, session: { patient: true } },
+        select: {
+          file: { path: true },
+          session: { patient: { id: true } },
+        },
+      });
     } catch (error) {
       this.logger.error('Error fetching video metadata', error);
       throw new HttpException(`Invalid input`, 400);

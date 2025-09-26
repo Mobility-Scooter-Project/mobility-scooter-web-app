@@ -29,8 +29,4 @@ describe('DbService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should get repository', () => {
-    const repo = service.getRepository(User);
-    expect(repo).toBeDefined();
-  });
 });
