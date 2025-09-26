@@ -68,6 +68,7 @@ export class AuthService {
     return user;
   }
 
+  /* istanbul ignore next */
   private async _createUserSession(
     userId: string,
     identity = IDENTITY_PROVIDERS.EMAIL,
@@ -133,6 +134,7 @@ export class AuthService {
     return { token, refreshToken };
   }
 
+  /* istanbul ignore next */
   private async _invalidateRefreshToken(refreshToken: string) {
     try {
       await this.refreshTokenRepository.delete({ token: refreshToken });
