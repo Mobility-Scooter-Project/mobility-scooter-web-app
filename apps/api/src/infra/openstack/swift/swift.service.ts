@@ -25,28 +25,13 @@ export class SwiftService {
   private logger = new Logger(SwiftService.name);
 
   public constructor(
+    private readonly configService: ConfigService<AppConfig>,
     private readonly S3Service: S3Service,
-    private readonly BarbicanService: BarbicanService,
-    private readonly QueueService: QueueService,
   ) {
     this.s3 = S3Service;
-    this.barbican = BarbicanService;
-    this.queue = QueueService;
-  }
-
-  public static async build(
-    configService: ConfigService<AppConfig>,
-    s3: S3Service,
-    barbican: BarbicanService,
-    queue: QueueService,
-  ): Promise<SwiftService> {
-    const swift = new SwiftService(s3, barbican, queue);
-
-    swift.storageBucket = configService.get('storage').bucket;
-    swift.storageSecret = configService.get('storage').secret;
-    swift.baseUrl = configService.get('baseUrl') || 'http://localhost:3000';
-
-    return swift;
+    this.storageBucket = configService.get('storage').bucket;
+    this.storageSecret = configService.get('storage').secret;
+    this.baseUrl = configService.get('baseUrl') || 'http://localhost:3000';
   }
 
   /**

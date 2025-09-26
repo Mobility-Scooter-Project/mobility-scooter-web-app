@@ -4,13 +4,10 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from '@config/constants';
 import { S3Service } from '../s3/s3.service';
-import { BarbicanService } from '../barbican/barbican.service';
-import { QueueService } from '../../queue/queue.service';
-import { KvService } from '../../kv/kv.service';
-import { KeystoneService } from '../keystone/keystone.service';
 
 describe('SwiftService', () => {
   let service: SwiftService;
+  let s3: S3Service;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,41 +18,33 @@ describe('SwiftService', () => {
         }),
         HttpModule,
       ],
-      providers: [
-        S3Service,
-        BarbicanService,
-        QueueService,
-        KvService,
-        KeystoneService,
-        {
-          provide: SwiftService,
-          useFactory: async (
-            configService: ConfigService,
-            KvService: KvService,
-            KeystoneService: KeystoneService,
-          ) => {
-            const s3 = new S3Service(configService);
-            const barbican = new BarbicanService(KeystoneService, KvService);
-            const queue = new QueueService(configService);
-            return SwiftService.build(configService, s3, barbican, queue);
-          },
-          inject: [
-            ConfigService,
-            BarbicanService,
-            QueueService,
-            KvService,
-            KeystoneService,
-          ],
-        },
-      ],
+      providers: [S3Service, SwiftService],
     }).compile();
 
     service = module.get<SwiftService>(SwiftService);
+    s3 = module.get<S3Service>(S3Service);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  // once again omitting putObjectStream
+  describe('putObjectStream', () => {
+    it('should upload a file stream', async () => {
+      const filePath = 'test-folder/test-file.txt';
+      const fileContent = 'Hello, Swift!';
+      const stream = require('stream');
+      const readableStream = new stream.Readable();
+      readableStream.push(fileContent);
+      readableStream.push(null); // No more data
+
+      jest.spyOn(s3, 'getOrCreateBucket').mockResolvedValue();
+
+      await service.putObjectStream(filePath, readableStream);
+
+      expect(s3.getOrCreateBucket).toHaveBeenCalledWith(
+        service['storageBucket'],
+      );
+    });
+  });
 });
