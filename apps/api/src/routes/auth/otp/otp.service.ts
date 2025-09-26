@@ -15,7 +15,7 @@ export class OtpService {
     private readonly vault: BarbicanService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-  ) { }
+  ) {}
 
   private async _getUserEmailById(userId: string): Promise<string> {
     let data;
@@ -25,7 +25,9 @@ export class OtpService {
         select: ['email'],
       });
     } catch (error) {
-      this.logger.error(`Error fetching user email for userId ${userId}: ${error.message}`);
+      this.logger.error(
+        `Error fetching user email for userId ${userId}: ${error.message}`,
+      );
       throw new HttpException('Error fetching user email', 500);
     }
 

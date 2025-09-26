@@ -16,11 +16,10 @@
     "db:generate": "pnpm typeorm migration:generate -d ./src/infra/db/data-source.ts",
     "start": "pnpm build && node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest.config.ts"
+    "test:e2e": "jest --config ./test/jest.config.ts --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.894.0",
@@ -63,6 +62,7 @@
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
+    "husky": "^9.1.7",
     "jest": "^30.0.0",
     "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",

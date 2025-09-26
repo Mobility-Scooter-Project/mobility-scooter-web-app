@@ -20,7 +20,7 @@ export class VideosService {
     private readonly fileRepository: Repository<File>,
     @InjectRepository(Video)
     private readonly videoRepository: Repository<Video>,
-  ) { }
+  ) {}
 
   async createVideoMetadata(
     patientId: string,
@@ -54,7 +54,7 @@ export class VideosService {
       this.logger.error('Error creating video metadata', error);
       throw new HttpException('Error creating video metadata', 500);
     }
- 
+
     return { id: result.id };
   }
 
@@ -83,8 +83,10 @@ export class VideosService {
     if (!video) {
       video = {
         session: { patient: { id: 'test-patient-id' } },
-        file: { path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4' },
-      }
+        file: {
+          path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
+        },
+      };
     }
 
     const filePath = video.file.path;

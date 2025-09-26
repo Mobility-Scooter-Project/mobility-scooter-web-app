@@ -2,34 +2,24 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "outputs": ["dist/**", "build/**"]
+      "outputs": [
+        "dist/**",
+        "build/**"
+      ]
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+    "format": {
+      "cache": false,
+      "persistent": false
     },
     "dev": {
       "persistent": true,
       "cache": false
     },
-    "db:migrate": {
-      "dependsOn": ["^db:migrate"]
-    },
-    "db:generate": {
-      "dependsOn": ["^db:migrate"]
-    },
-    "db:seed": {
-      "dependsOn": ["^db:seed"]
-    },
-    "db:studio": {
-      "dependsOn": ["^db:studio"]
-    },
-    "db:drop": {
-      "dependsOn": ["^db:drop"]
-    },
-    "populate-api-key": {
-      "dependsOn": ["^populate-api-key"]
-    },
     "test": {
+      "cache": false,
+      "persistent": false
+    },
+    "test:e2e": {
       "cache": false,
       "persistent": false
     }

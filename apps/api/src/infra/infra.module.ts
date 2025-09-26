@@ -75,4 +75,4 @@ import { QueueService } from './queue/queue.service';
     QueueService,
   ],
 })
-export class InfraModule { }
+export class InfraModule {}

@@ -19,7 +19,7 @@ describe('OtpService', () => {
           load: [config],
         }),
         InfraModule,
-        TypeOrmModule.forFeature([User])
+        TypeOrmModule.forFeature([User]),
       ],
       providers: [OtpService],
     })
