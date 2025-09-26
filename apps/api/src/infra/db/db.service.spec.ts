@@ -15,11 +15,15 @@ describe('DbService', () => {
           load: [config],
         }),
       ],
-      providers: [{
-        provide: DbService,
-        useFactory: async (configService: ConfigService) => await DbService.build(configService),
-        inject: [ConfigService],
-      }, ConfigService],
+      providers: [
+        {
+          provide: DbService,
+          useFactory: async (configService: ConfigService) =>
+            await DbService.build(configService),
+          inject: [ConfigService],
+        },
+        ConfigService,
+      ],
     }).compile();
 
     service = module.get<DbService>(DbService);
@@ -28,5 +32,4 @@ describe('DbService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-
 });

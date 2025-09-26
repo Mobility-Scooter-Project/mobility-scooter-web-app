@@ -1,16 +1,16 @@
-import { SCHEMAS } from "@src/config/schemas";
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { CreateUpdateDeleteFields } from "../shared";
-import { UserIdentity } from "./identity";
+import { SCHEMAS } from '@src/config/schemas';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { CreateUpdateDeleteFields } from '../shared';
+import { UserIdentity } from './identity';
 
 @Entity({ schema: SCHEMAS.USERS })
 export class UserSession {
-    @PrimaryGeneratedColumn('uuid')
-    id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column(() => CreateUpdateDeleteFields)
-    cud: CreateUpdateDeleteFields
+  @Column(() => CreateUpdateDeleteFields)
+  cud: CreateUpdateDeleteFields;
 
-    @ManyToOne(() => UserIdentity, (identity) => identity.id, { nullable: false })
-    identity: UserIdentity
+  @ManyToOne(() => UserIdentity, (identity) => identity.id, { nullable: false })
+  identity: UserIdentity;
 }

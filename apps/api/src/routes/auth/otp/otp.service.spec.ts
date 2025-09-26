@@ -16,17 +16,23 @@ describe('OtpService', () => {
           isGlobal: true,
           load: [config],
         }),
-        InfraModule
+        InfraModule,
       ],
       providers: [OtpService],
-    }).useMocker(createMock).compile();
+    })
+      .useMocker(createMock)
+      .compile();
 
     service = module.get<OtpService>(OtpService);
     const vault = module.get<BarbicanService>(BarbicanService);
 
-    jest.spyOn(service as any, '_getUserEmailById').mockResolvedValue('test@example.com');
+    jest
+      .spyOn(service as any, '_getUserEmailById')
+      .mockResolvedValue('test@example.com');
     jest.spyOn(vault, 'createOtpSecret').mockResolvedValue();
-    jest.spyOn(vault, 'getOtpSecretByUserId').mockResolvedValue('JBSWY3DPEHPK3PXP'); // base32 for 'Hello!'
+    jest
+      .spyOn(vault, 'getOtpSecretByUserId')
+      .mockResolvedValue('JBSWY3DPEHPK3PXP'); // base32 for 'Hello!'
   });
 
   it('should be defined', () => {
