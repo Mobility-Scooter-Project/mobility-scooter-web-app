@@ -31,6 +31,7 @@ import { QueueService } from './queue/queue.service';
       inject: [ConfigService],
     },
     S3Service,
+    SwiftService,
     {
       provide: BarbicanService,
       useFactory: async (
@@ -47,23 +48,6 @@ import { QueueService } from './queue/queue.service';
         );
       },
       inject: [ConfigService, KeystoneService, KvService, HttpService],
-    },
-    {
-      provide: SwiftService,
-      useFactory: async (
-        configService: ConfigService,
-        s3Service: S3Service,
-        barbicanService: BarbicanService,
-        queueService: QueueService,
-      ) => {
-        return await SwiftService.build(
-          configService,
-          s3Service,
-          barbicanService,
-          queueService,
-        );
-      },
-      inject: [ConfigService, S3Service, BarbicanService, QueueService],
     },
   ],
   exports: [
