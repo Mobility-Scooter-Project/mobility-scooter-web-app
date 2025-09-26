@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/constants';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -64,7 +64,7 @@ export class KeystoneService {
               this.logger.error('Error in KeystoneService getToken:', error);
               throw new HttpException(
                 'Failed to fetch token from Keystone',
-                500,
+                HttpStatus.INTERNAL_SERVER_ERROR,
               );
             }),
           ),
@@ -73,7 +73,10 @@ export class KeystoneService {
       return response.headers['x-subject-token'];
     } catch (error) {
       this.logger.error('Error fetching token from Keystone:', error);
-      throw new HttpException('Failed to fetch token from Keystone', 500);
+      throw new HttpException(
+        'Failed to fetch token from Keystone',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
