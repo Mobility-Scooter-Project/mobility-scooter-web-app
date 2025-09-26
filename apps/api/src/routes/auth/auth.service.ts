@@ -12,14 +12,13 @@ import { IDENTITY_PROVIDERS } from '@src/infra/db/entity/user/enums';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
 import { InjectRepository } from '@nestjs/typeorm';
 
-interface TokenResponse {
+type TokenResponse = {
   token: string;
-}
+};
 
-interface RefreshTokenResponse extends TokenResponse {
+type RefreshTokenResponse = TokenResponse & {
   refreshToken: string;
-}
-
+};
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './routes/app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { Observable } from 'rxjs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
