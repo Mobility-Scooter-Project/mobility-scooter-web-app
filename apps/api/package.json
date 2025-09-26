@@ -13,7 +13,7 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "db:seed": "tsx ./scripts/seed.ts",
     "db:migrate": "pnpm typeorm migration:run -d datasource.ts",
-    "db:generate": "pnpm typeorm migration:generate -d ./src/infra/db/data-source.ts",
+    "db:generate": "pnpm typeorm migration:generate -d datasource.ts",
     "start": "node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest --coverage",
