@@ -19,30 +19,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 
 /**
- * A singleton class that manages interactions with a storage service (MinIO/S3).
- * This class provides methods for bucket operations, object storage, and presigned URL handling.
- *
- * @class S3Service
- * @description Handles storage operations including:
- * - Bucket existence checking and creation
- * - Object retrieval with server-side encryption
- * - Presigned URL generation and validation
- * - File upload using presigned URLs
- *
- * @example
- * ```typescript
- * const s3Service = await S3Service.build(configService);
- * await s3Service.getOrCreateBucket('my-bucket');
- * ```
- *
- * @remarks
- * This class implements a singleton pattern to maintain a single connection to the storage service.
- * It uses server-side encryption for secure object storage and retrieval.
- *
- * @throws {HttpException}
- * - HTTP 500 for general storage operation failures
- * - HTTP 404 when bucket is not found
- * - HTTP 401 for authentication/authorization failures
+ * S3Service provides methods to interact with an S3-compatible storage backend.
  */
 @Injectable()
 export class S3Service {

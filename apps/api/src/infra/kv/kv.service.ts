@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { AppConfig } from '@config/constants';
 
-@Injectable()
 /**
  * Service to interact with a Redis/Valkey key-value store.
  */
+@Injectable()
 export class KvService {
   private _kv: Redis;
 

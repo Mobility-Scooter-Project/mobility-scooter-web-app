@@ -17,8 +17,6 @@ import { Readable } from 'stream';
 @Injectable()
 export class SwiftService {
   private s3: S3Service;
-  private barbican: BarbicanService;
-  private queue: QueueService;
   private storageBucket: string;
   private storageSecret: string;
   private baseUrl: string;

@@ -1,6 +1,6 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppConfig } from '../../config';
+import { AppConfig } from '@config/constants';
 
 import { BarbicanService } from '../../infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +11,14 @@ import { UserSession } from '@src/infra/db/entity/user/session';
 import { IDENTITY_PROVIDERS } from '@src/infra/db/entity/user/enums';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
 import { InjectRepository } from '@nestjs/typeorm';
+
+interface TokenResponse {
+  token: string;
+}
+
+interface RefreshTokenResponse extends TokenResponse {
+  refreshToken: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -27,11 +35,35 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
+  /**
+   * Create a new user with a hashed password and an associated UserIdentity.
+   *
+   * This method:
+   *  - hashes the provided plaintext password using PostgreSQL's crypt() with gen_salt('bf') (bcrypt),
+   *  - sets newUser.email and newUser.passwordHash,
+   *  - prevents creation if a user with the same email already exists,
+   *  - persists the new user and a related UserIdentity inside a single transaction.
+   *
+   * @param email - The user's email address; used as the unique identifier.
+   * @param password - The plaintext password to be hashed and stored as passwordHash.
+   * @param newUser - Partial user object to populate and persist (email and passwordHash will be set/overwritten).
+   *
+   * @returns A Promise that resolves to the created User entity.
+   *
+   * @throws HttpException 400 if a user with the given email already exists.
+   * @throws HttpException 500 if an error occurs while creating the user or associated identity.
+   *
+   * @remarks
+   * - The passed newUser object is mutated: its email and passwordHash properties are assigned before persistence.
+   * - The implementation relies on a database query for hashing and a transactional save to ensure both user and identity
+   *   are created atomically.
+   * - Errors during creation are logged before throwing.
+   */
   public async createUserWithPassword(
     email: string,
     password: string,
     newUser: Partial<User>,
-  ) {
+  ): Promise<User> {
     const result = await this.db.query(
       `SELECT crypt($1, gen_salt('bf')) as hash`,
       [password],
@@ -44,7 +76,7 @@ export class AuthService {
     const userExists = await this.userRepository.findOne({ where: { email } });
 
     if (userExists) {
-      throw new HttpException('User already exists', 400);
+      throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
     }
 
     let user;
@@ -62,7 +94,10 @@ export class AuthService {
       });
     } catch (error) {
       this.logger.error('Error creating user: ', error);
-      throw new HttpException('Error creating user', 500);
+      throw new HttpException(
+        'Error creating user',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return user;
@@ -72,8 +107,8 @@ export class AuthService {
   private async _createUserSession(
     userId: string,
     identity = IDENTITY_PROVIDERS.EMAIL,
-  ) {
-    let session;
+  ): Promise<RefreshTokenResponse> {
+    let session: UserSession | null;
     try {
       session = await this.db.transaction(async (tx) => {
         const identityRecord = await tx.getRepository(UserIdentity).findOne({
@@ -84,7 +119,10 @@ export class AuthService {
         });
 
         if (!identityRecord) {
-          throw new HttpException('No identity found for user', 400);
+          throw new HttpException(
+            'No identity found for user',
+            HttpStatus.BAD_REQUEST,
+          );
         }
 
         const newSession = tx.create(UserSession, {
@@ -96,12 +134,18 @@ export class AuthService {
       });
     } catch (error) {
       this.logger.error('Error creating session: ', error);
-      throw new HttpException('Error creating session', 500);
+      throw new HttpException(
+        'Error creating session',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     if (!session) {
       this.logger.error('No session created');
-      throw new HttpException('Error creating session', 500);
+      throw new HttpException(
+        'Error creating session',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     const token = await this.jwt.signAsync({
@@ -111,7 +155,7 @@ export class AuthService {
       iat: Number(new Date().toISOString()),
     });
 
-    let refreshToken;
+    let refreshToken: string | undefined;
     try {
       refreshToken = await this.jwt.signAsync({
         userId: userId,
@@ -128,7 +172,10 @@ export class AuthService {
       await this.refreshTokenRepository.save(newRefreshToken);
     } catch (error) {
       this.logger.error('Error creating refresh token', error);
-      throw new HttpException('Error creating refresh token', 500);
+      throw new HttpException(
+        'Error creating refresh token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return { token, refreshToken };
@@ -140,11 +187,36 @@ export class AuthService {
       await this.refreshTokenRepository.delete({ token: refreshToken });
     } catch (e) {
       this.logger.error('Error revoking refresh token', e);
-      throw new HttpException('Error revoking refresh token', e.status || 500);
+      throw new HttpException(
+        'Error revoking refresh token',
+        e.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  public async refreshToken(refreshToken: string) {
+  /**
+   * Refreshes an authentication session using the provided refresh token.
+   *
+   * Verifies the JWT refresh token, ensures a corresponding non-expired refresh-token record exists
+   * in the database, creates a new user session (issuing new tokens), updates the stored refresh-token
+   * record inside a database transaction to replace the token and align expiry, and finally invalidates
+   * the old refresh token.
+   *
+   * @param refreshToken - The JWT refresh token presented by the client.
+   * @returns A promise that resolves to an object containing the newly issued tokens (for example, an accessToken and a refreshToken)
+   *          and any associated expiry information emitted by the session creation helper.
+   * @throws {HttpException} 401 - Thrown when the refresh token is invalid, expired, not found, or has been revoked.
+   * @throws {HttpException} 500 - Thrown when an unexpected error occurs while updating or revoking tokens (e.g., DB transaction failure).
+   * @remarks
+   * - The token is verified using the configured JWT secret.
+   * - The refresh-token record lookup requires the record's expiresAt to be in the future.
+   * - The DB transaction sets a specific role before performing the update.
+   * - The old refresh token is invalidated after issuing the new tokens.
+   * - Errors are logged before corresponding exceptions are thrown.
+   */
+  public async refreshToken(
+    refreshToken: string,
+  ): Promise<RefreshTokenResponse> {
     let payload;
     try {
       payload = await this.jwt.verify(refreshToken, {
@@ -152,10 +224,10 @@ export class AuthService {
       });
     } catch (e) {
       this.logger.error('Error verifying refresh token', e);
-      throw new HttpException('Invalid refresh token', 401);
+      throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
 
-    let tokenRecord;
+    let tokenRecord: RefreshToken | null;
     try {
       tokenRecord = await this.refreshTokenRepository.findOne({
         where: {
@@ -165,12 +237,12 @@ export class AuthService {
       });
     } catch (e) {
       this.logger.error('Error finding refresh token', e);
-      throw new HttpException('Invalid refresh token', 401);
+      throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
 
     if (!tokenRecord) {
       this.logger.error(`Refresh token not found or revoked: ${refreshToken}`);
-      throw new HttpException('Invalid refresh token', 401);
+      throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
 
     const newTokens = await this._createUserSession(payload.userId);
@@ -188,7 +260,10 @@ export class AuthService {
           this.logger.error(
             `Refresh token not found or revoked during refresh: ${refreshToken}`,
           );
-          throw new HttpException('Invalid refresh token', 401);
+          throw new HttpException(
+            'Invalid refresh token',
+            HttpStatus.UNAUTHORIZED,
+          );
         }
 
         tokenRecord.token = newTokens.refreshToken;
@@ -197,7 +272,10 @@ export class AuthService {
       });
     } catch (e) {
       this.logger.error('Error revoking old refresh token', e);
-      throw new HttpException('Error refreshing token', 500);
+      throw new HttpException(
+        'Error refreshing token',
+        e.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     await this._invalidateRefreshToken(refreshToken);
@@ -205,19 +283,46 @@ export class AuthService {
     return newTokens;
   }
 
-  public async signInWithPassword(email: string, password: string) {
-    let user;
+  /**
+   * Authenticate a user by email and password and create a session on success.
+   *
+   * @remarks
+   * - Looks up the user by email using the injected userRepository.
+   * - Uses a database-side crypt(...) call to hash the provided plaintext password
+   *   with the stored password hash, then compares the result to the stored hash.
+   * - If the user is not found, the password does not match, or a lookup error occurs,
+   *   an HttpException with status 401 and message "Invalid email or password" is thrown.
+   * - On successful authentication, delegates session creation to _createUserSession(user.id).
+   *
+   * @param email - The email address of the user attempting to sign in.
+   * @param password - The plaintext password provided by the user.
+   *
+   * @returns A Promise that resolves to the created user session (the return value of _createUserSession).
+   *
+   * @throws {HttpException} 401 if the email is not found, the password is invalid, or there is an error during lookup.
+   */
+  public async signInWithPassword(
+    email: string,
+    password: string,
+  ): Promise<RefreshTokenResponse> {
+    let user: User | null;
 
     try {
       // Get the user by email first
       user = await this.userRepository.findOne({ where: { email } });
     } catch (e) {
       this.logger.error('Error finding user by email', e);
-      throw new HttpException('Invalid email or password', 401);
+      throw new HttpException(
+        'Invalid email or password',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     if (!user) {
-      throw new HttpException('Invalid email or password', 401);
+      throw new HttpException(
+        'Invalid email or password',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // Check password using the database crypt function
@@ -228,21 +333,52 @@ export class AuthService {
     const hashedInputPassword = result[0].hash;
 
     if (hashedInputPassword !== user.passwordHash) {
-      throw new HttpException('Invalid email or password', 401);
+      throw new HttpException(
+        'Invalid email or password',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     return this._createUserSession(user.id);
   }
 
-  public async generateResetPasswordToken(email: string) {
-    let data;
+  /**
+   * Generates a password reset token for the given email address.
+   *
+   * Workflow:
+   * - Looks up a user by the provided email via this.userRepository.findOne.
+   * - Builds a JWT payload containing:
+   *   - userId: the user's id if found, otherwise an empty string.
+   *   - exp: expiration set to Date.now() + 24 hours (value is a numeric timestamp as computed in milliseconds).
+   * - Signs the payload with this.jwt.sign() to produce the token.
+   * - If a user was found, stores the token via this.vault.createPasswordResetToken(token, id).
+   * - Returns an object containing the token.
+   *
+   * Note:
+   * - In production this method should send the token to the user's email; in the current implementation it returns the token directly.
+   * - If no user is found for the given email, a token is still generated (with an empty userId) but it is not persisted to the vault.
+   *
+   * @param email - The email address to generate a reset token for.
+   * @returns A promise resolving to an object with the generated token: { token: string }.
+   * @throws HttpException with status 500 and message 'Error generating reset password token' when user lookup or JWT signing fails.
+   * @throws HttpException with status 500 and message 'Error storing reset password token' when persisting the token to the vault fails.
+   * @remarks The implementation currently sets exp using a millisecond timestamp (Date.now() + 24h). If this token is intended for use as a JWT exp claim, verify whether seconds-since-epoch are required by the JWT library/consumers.
+   */
+  public async generateResetPasswordToken(
+    email: string,
+  ): Promise<TokenResponse> {
+    let user: User | null;
     try {
-      data = await this.userRepository.findOne({ where: { email } });
+      user = await this.userRepository.findOne({ where: { email } });
     } catch (e) {
-      throw new HttpException('Error generating reset password token', 500);
+      this.logger.error('Error finding user by email for password reset', e);
+      throw new HttpException(
+        'Error generating reset password token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
-    const { id } = data ? data : { id: '' };
+    const { id } = user ? user : { id: '' };
 
     const payload = {
       userId: id,
@@ -253,14 +389,20 @@ export class AuthService {
     try {
       token = await this.jwt.sign(payload);
     } catch (e) {
-      throw new HttpException('Error generating reset password token', 500);
+      throw new HttpException(
+        'Error generating reset password token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
-    if (data) {
+    if (user) {
       try {
         await this.vault.createPasswordResetToken(token, id);
       } catch (e) {
-        throw new HttpException('Error storing reset password token', 500);
+        throw new HttpException(
+          'Error storing reset password token',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
 
@@ -268,7 +410,40 @@ export class AuthService {
     return { token };
   }
 
-  public async resetPassword(token: string, newPassword: string) {
+  /**
+   * Resets a user's password using a password-reset JWT token.
+   *
+   * Verifies the provided JWT token (using the configured `jwtSecret`) and
+   * extracts the `userId` from the token payload. If verification succeeds,
+   * the new plaintext password is hashed (via the database using
+   * `crypt(..., gen_salt('bf'))`) and the user's `passwordHash` is updated
+   * in the user repository. Finally, the reset token is marked as used in
+   * the vault to prevent reuse.
+   *
+   * @param token - A JWT password-reset token issued to the user.
+   * @param newPassword - The new plaintext password to set for the user.
+   *
+   * @returns A promise that resolves once the password has been updated and
+   * the token marked as used.
+   *
+   * @throws {HttpException} 401 - Thrown when the token is invalid or expired.
+   * @throws {HttpException} 500 - Thrown when hashing or updating the password fails.
+   * @throws {HttpException} (e.status || 500) - Thrown when marking the token used in the vault fails.
+   *
+   * @remarks
+   * - Expects the token payload to contain a `userId` property.
+   * - Uses the database's `crypt` with Blowfish (`gen_salt('bf')`) for hashing.
+   * - Logs internal errors when password reset fails.
+   *
+   * @security
+   * - Ensure the `newPassword` meets your application's password policy before calling.
+   * - Ensure communications with the API and database are protected (e.g., TLS).
+   * - The reset token is intended to be single-use; this method marks it as used.
+   */
+  public async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<void> {
     let payload;
 
     try {
@@ -276,7 +451,10 @@ export class AuthService {
         secret: this.configService.get('jwtSecret'),
       });
     } catch (e) {
-      throw new HttpException('Invalid or expired token', 401);
+      throw new HttpException(
+        'Invalid or expired token',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     const { userId } = payload;
 
@@ -292,13 +470,19 @@ export class AuthService {
       );
     } catch (e) {
       this.logger.error('Error resetting password: ', e);
-      throw new HttpException('Error resetting password', 500);
+      throw new HttpException(
+        'Error resetting password',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     try {
       await this.vault.markPasswordResetTokenUsed(token, userId);
     } catch (e) {
-      throw new HttpException(e.message, e.status || 500);
+      throw new HttpException(
+        e.message,
+        e.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

@@ -3,7 +3,9 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/constants';
 import { catchError, firstValueFrom } from 'rxjs';
-
+/**
+ * KeystoneService provides methods to interact with OpenStack Keystone for authentication to other OS services.
+ */
 @Injectable()
 export class KeystoneService {
   private body: any;

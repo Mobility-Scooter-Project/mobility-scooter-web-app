@@ -1,8 +1,11 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AppConfig } from 'src/config';
+import { AppConfig } from '@config/constants';
 
+/**
+ * JwtMiddleware validates JWT tokens in incoming requests and attaches user information to the request object.
+ */
 @Injectable()
 export class JwtMiddleware implements NestMiddleware {
   private config: ConfigService<AppConfig>;
@@ -17,7 +20,15 @@ export class JwtMiddleware implements NestMiddleware {
     this.config = configService;
   }
 
-  async use(req: any, res: any, next: () => void) {
+  /**
+   *  Middleware that validates JWT and attaches user info to request
+   *
+   * @param req - Request
+   * @param res - Response
+   * @param next - Next function
+   * @returns void
+   */
+  async use(req: any, res: any, next: () => void): Promise<void> {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
       return res.status(401).json({ message: 'Authorization header missing' });

@@ -3,6 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import { AppConfig } from '@config/constants';
 
+/**
+ * QueueService provides methods to interact with a Kafka message broker.
+ *
+ * This service manages the Kafka producer lifecycle and provides access to the producer instance.
+ */
 @Injectable()
 export class QueueService implements OnApplicationShutdown {
   private client: Kafka;
