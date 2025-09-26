@@ -15,22 +15,16 @@ services:
       - "6379:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
-  kafka:
-    image: bitnami/kafka:latest
+  queue:
+    image: redpandadata/redpanda
     ports:
       - "127.0.0.1:9092:9092"
     volumes:
-      - kafka:/bitnami/kafka
+      - queue:/var/lib/redpanda/data
     environment:
-      - KAFKA_NODE_ID=0
-      - KAFKA_CFG_PROCESS_ROLES=controller,broker
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_CFG_LISTENERS_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - REDPANDA_AUTO_CREATE_TOPICS_ENABLE=true
+      - REDPANDA_ADVERTISED_LISTENERS=PLAINTEXT://
 
 volumes:
   db:
-  kafka:
+  queue:
