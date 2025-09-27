@@ -2,9 +2,25 @@ import { identities, users } from "@src/db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, isNull, SQL } from "drizzle-orm";
 
 type NewUser = typeof users.$inferInsert;
+type UserColumnSelection = {
+  id?: boolean;
+  unitId?: boolean;
+  permissions?: boolean;
+  lastSignedInAt?: boolean;
+  createdAt?: boolean;
+  updatedAt?: boolean;
+  deletedAt?: boolean;
+  firstName?: boolean;
+  lastName?: boolean;
+  title?: boolean;
+  email?: boolean;
+  city?: boolean;
+  mobileNumber?: boolean;
+  pfpUrl?: boolean;
+};
 
 /**
  * Retrieves a user by ID with optional field selection
@@ -27,47 +43,38 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
       };
     }
 
-    const user = await db.query.users.findFirst({
-      where: (u: any, { eq, and, isNull }: any) =>
-        and(eq(u.id, userId), isNull(u.deletedAt)),
-      columns: fields
-        ? {
-            id: fields.includes("id"),
-            unitId: fields.includes("unitId"),
-            permissions: fields.includes("permissions"),
-            lastSignedInAt: fields.includes("lastSignedInAt"),
-            createdAt: fields.includes("createdAt"),
-            updatedAt: fields.includes("updatedAt"),
-            deletedAt: fields.includes("deletedAt"),
-            firstName: fields.includes("firstName"),
-            lastName: fields.includes("lastName"),
-            title: fields.includes("title"),
-            email: fields.includes("email"),
-            city: fields.includes("city"),
-            mobileNumber: fields.includes("mobileNumber"),
-            pfpUrl: fields.includes("pfpUrl"),
-          }
-        : {
-            id: true,
-            unitId: true,
-            permissions: true,
-            lastSignedInAt: true,
-            createdAt: true,
-            updatedAt: true,
-            deletedAt: true,
-            firstName: true,
-            lastName: true,
-            title: true,
-            email: true,
-            city: true,
-            mobileNumber: true,
-            pfpUrl: true,
-          },
-    });
+    const fieldSet = fields ? new Set(fields) : null;
+
+    const query: {
+      where?: SQL;
+      columns?: UserColumnSelection;
+    } = {
+      where: and(eq(users.id, userId), isNull(users.deletedAt)),
+    };
+
+    if (fieldSet) {
+      query.columns = {
+        id: fieldSet.has("id"),
+        unitId: fieldSet.has("unitId"),
+        permissions: fieldSet.has("permissions"),
+        lastSignedInAt: fieldSet.has("lastSignedInAt"),
+        createdAt: fieldSet.has("createdAt"),
+        updatedAt: fieldSet.has("updatedAt"),
+        deletedAt: fieldSet.has("deletedAt"),
+        firstName: fieldSet.has("firstName"),
+        lastName: fieldSet.has("lastName"),
+        title: fieldSet.has("title"),
+        email: fieldSet.has("email"),
+        city: fieldSet.has("city"),
+        mobileNumber: fieldSet.has("mobileNumber"),
+        pfpUrl: fieldSet.has("pfpUrl"),
+      };
+    }
+
+    const user = await db.query.users.findFirst(query);
 
     if (!user) {
       return {
-        status: 404,
         data: null,
         error: {
           code: "NOT_FOUND",
@@ -77,7 +84,6 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
     }
 
     return {
-      status: 200,
       data: user,
       error: null,
     };

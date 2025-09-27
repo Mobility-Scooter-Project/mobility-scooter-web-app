@@ -10,7 +10,7 @@ import {
   fieldSelectionSchema,
   pfpUploadResponseSchema,
   successResponseSchema,
-} from "@src/validators/auth";
+} from "@src/validators/users";
 import { userMiddleware } from "@src/middleware/user";
 import { usersRepository } from "@src/repositories/users";
 import { StorageService } from "@src/services/storage";
