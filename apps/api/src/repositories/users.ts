@@ -29,20 +29,10 @@ type UserColumnSelection = {
  * @param fields - Optional array of fields to select
  * @returns The user object if found, undefined otherwise
  * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ * @throws {HTTPError} When no user is found for the given ID, responds with HTTP 404 status code
  */
 const getUserById = async (db: DB, userId: string, fields?: string[]) => {
   try {
-    if (!userId) {
-      return {
-        status: 400,
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "User ID is required",
-        },
-      };
-    }
-
     const fieldSet = fields ? new Set(fields) : null;
 
     const query: {
@@ -73,15 +63,7 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
 
     const user = await db.query.users.findFirst(query);
 
-    if (!user) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
-    }
+    if (!user) throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
 
     return {
       data: user,
@@ -102,6 +84,7 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
  * @param userId - The unique identifier of the user
  * @returns Success response
  * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ * @throws {HTTPError} When no user is found for the given ID, responds with HTTP 404 status code
  */
 const softDeleteUser = async (db: DB, userId: string) => {
   try {
@@ -114,19 +97,10 @@ const softDeleteUser = async (db: DB, userId: string) => {
       .where(and(eq(users.id, userId), sql`deleted_at IS NULL`))
       .returning({ id: users.id });
 
-    if (result.length === 0) {
-      return {
-        status: 404,
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
-    }
+    if (result.length === 0)
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
 
     return {
-      status: 200,
       data: { success: true },
       error: null,
     };
@@ -146,6 +120,7 @@ const softDeleteUser = async (db: DB, userId: string) => {
  * @param pfpUrl - The new profile picture URL
  * @returns The updated user object
  * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ * @throws {HTTPError} When no user is found for the given ID, responds with HTTP 404 status code
  */
 const updatePfp = async (db: DB, userId: string, pfpUrl: string) => {
   try {
@@ -161,19 +136,10 @@ const updatePfp = async (db: DB, userId: string, pfpUrl: string) => {
         pfpUrl: users.pfpUrl,
       });
 
-    if (result.length === 0) {
-      return {
-        status: 404,
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
-    }
+    if (result.length === 0)
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
 
     return {
-      status: 200,
       data: result[0],
       error: null,
     };
@@ -204,19 +170,10 @@ const removePfp = async (db: DB, userId: string) => {
       .where(and(eq(users.id, userId), sql`deleted_at IS NULL`))
       .returning({ id: users.id });
 
-    if (result.length === 0) {
-      return {
-        status: 404,
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
-    }
+    if (result.length === 0)
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
 
     return {
-      status: 200,
       data: { success: true },
       error: null,
     };
@@ -236,6 +193,7 @@ const removePfp = async (db: DB, userId: string) => {
  * @param updateData - The data to update
  * @returns The updated user object
  * @throws {HTTPError} When database operation fails with HTTP 500 status code
+ * @throws {HTTPError} When no user is found for the given ID, responds with HTTP 404 status code
  */
 const updateUser = async (
   db: DB,
@@ -267,19 +225,10 @@ const updateUser = async (
         pfpUrl: users.pfpUrl,
       });
 
-    if (result.length === 0) {
-      return {
-        status: 404,
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
-    }
+    if (result.length === 0)
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
 
     return {
-      status: 200,
       data: result[0],
       error: null,
     };

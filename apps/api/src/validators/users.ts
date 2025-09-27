@@ -72,14 +72,15 @@ export const updateUserSchema = z.object({
 });
 
 /**
- * Schema for field selection in GET requests
- * Represents the query parameters for selecting specific user fields in responses.
+ * Schema for field selection in GET requests.
+ * Represents the `fields` query parameter used to specify which user fields
+ * should be included in the response.
  *
- * Fields for a Query Parameter:
- * - fields: string (optional)
- *    - Comma-separated list of field names to include in response
- *    - Automatically transformed to array of trimmed strings
- *    - Example: "id,name,pfpUrl" → ["id", "name", "pfpUrl"]
+ * Fields for Query Parameter:
+ *  - fields (optional):
+ *      - A comma-separated string of field names (e.g. "id,name,pfpUrl")
+ *        → parsed into ["id", "name", "pfpUrl"].
+ *      - If omitted ({}), all fields are returned (no column restriction).
  */
 export const fieldSelectionSchema = z.object({
   fields: z
@@ -87,7 +88,14 @@ export const fieldSelectionSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) return undefined;
-      return val.split(",").map((field) => field.trim());
+      return Array.from(
+        new Set(
+          val
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+        ),
+      );
     }),
 });
 
