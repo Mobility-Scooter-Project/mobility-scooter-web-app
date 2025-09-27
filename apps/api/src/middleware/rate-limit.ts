@@ -141,30 +141,80 @@ export const resetPasswordRateLimiter = rateLimiter({
 });
 
 /**
- * Rate limiter middleware for unit management operations.
- * Limits the frequency of unit-related operations per IP address to prevent abuse.
+ * Rate limiter middleware factory for unit management operations.
+ * Creates specific rate limiters for different unit operations.
  * 
  * @remarks
- * - Window: 1 hour
- * - Limit: 100 operations per window
- * - Applies to: Unit creation, updates, and user management
- * - Key: IP address of the requester
- * - Store: Uses shared store for rate limiting data
- * - Development: Rate limiting is skipped in development environment
+ * Different operations have different limits:
+ * - Unit Creation: 10/hour (resource intensive, infrequent)
+ * - Unit Updates: 30/hour (moderate frequency)
+ * - User Management: 100/hour (frequent, less intensive)
+ * - Invites: 20/hour (security sensitive)
+ * - List Operations: 200/hour (read-only, frequent)
  * 
- * @example
- * ```typescript
- * app.post('/tenant/:tenantId/units', unitRateLimiter, createUnitHandler);
- * ```
+ * @param operationType - The type of unit operation
+ * @returns An appropriate rate limiter for the operation
  */
-export const unitRateLimiter = rateLimiter({
-  windowMs: 1000 * 60 * 60, // 1 hour
-  limit: 100, // 100 operations per hour
+const createUnitRateLimiter = (operationType: string) => rateLimiter({
+  windowMs: 1000 * 60 * 60, // 1 hour base window
+  limit: (() => {
+    switch (operationType) {
+      case 'create':
+        return 10;  // Creating units is resource intensive
+      case 'update':
+        return 30;  // Updating units is moderately frequent
+      case 'invite':
+        return 20;  // Invites are security sensitive
+      case 'user_manage':
+        return 100; // User operations are more frequent
+      case 'list':
+        return 200; // List operations are read-only and frequent
+      default:
+        return 50;  // Default fallback
+    }
+  })(),
   keyGenerator: (c) => {
     const connInfo = getConnInfo(c);
-    return `unit:${connInfo.remote.address}`;
+    // Include operation type in key for separate limits
+    return `unit:${operationType}:${connInfo.remote.address}`;
   },
   //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
   skip: () => ENVIRONMENT === "development",
 });
+
+/**
+ * Rate limiter for unit creation operations.
+ * Most restrictive due to resource intensity.
+ */
+export const unitCreateRateLimiter = createUnitRateLimiter('create');
+
+/**
+ * Rate limiter for unit update operations.
+ * Moderate limits for administrative changes.
+ */
+export const unitUpdateRateLimiter = createUnitRateLimiter('update');
+
+/**
+ * Rate limiter for unit invite operations.
+ * Restricted to prevent invite abuse.
+ */
+export const unitInviteRateLimiter = createUnitRateLimiter('invite');
+
+/**
+ * Rate limiter for user management operations.
+ * Higher limits for frequent user changes.
+ */
+export const unitUserManageRateLimiter = createUnitRateLimiter('user_manage');
+
+/**
+ * Rate limiter for list operations.
+ * Highest limits for read-only operations.
+ */
+export const unitListRateLimiter = createUnitRateLimiter('list');
+
+/**
+ * Legacy unit rate limiter for backward compatibility.
+ * @deprecated Use specific operation rate limiters instead.
+ */
+export const unitRateLimiter = createUnitRateLimiter('default');

@@ -1,9 +1,16 @@
 import { units as unitsTable } from "@src/db/schema/tenants";
 import { users as usersTable } from "@src/db/schema/auth";
 import { postgresDB, type DB } from "@src/middleware/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
+
+type Unit = typeof unitsTable.$inferSelect;
+type UnitInsert = typeof unitsTable.$inferInsert;
+type User = typeof usersTable.$inferSelect;
+type UserInsert = typeof usersTable.$inferInsert;
+type UnitId = Unit['id'];
+type UserId = User['id'];
 
 /**
  * Unit repository functions
@@ -24,8 +31,8 @@ import { HTTP_CODES } from "@src/config/http-codes";
  */
 export const createUnit = async (
   db: DB,
-  payload: { tenantId: string; adminUserId?: string | null }
-) => {
+  payload: UnitInsert
+): Promise<Unit> => {
   try {
     const result = await db
       .insert(unitsTable)
@@ -33,11 +40,7 @@ export const createUnit = async (
         tenantId: payload.tenantId,
         adminUserId: payload.adminUserId ?? null,
       })
-      .returning({
-        id: unitsTable.id,
-        tenantId: unitsTable.tenantId,
-        adminUserId: unitsTable.adminUserId,
-      });
+      .returning();
     return result[0];
   } catch (e) {
     throw new HTTPError(
@@ -62,19 +65,15 @@ export const createUnit = async (
  */
 export const updateUnit = async (
   db: DB,
-  unitId: string,
-  updates: Partial<{ adminUserId: string | null }>
-) => {
+  unitId: UnitId,
+  updates: Partial<UnitInsert>
+): Promise<Unit> => {
   try {
     const result = await db
       .update(unitsTable)
-      .set({ ...updates })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(unitsTable.id, unitId))
-      .returning({
-        id: unitsTable.id,
-        tenantId: unitsTable.tenantId,
-        adminUserId: unitsTable.adminUserId,
-      });
+      .returning();
     return result[0];
   } catch (e) {
     throw new HTTPError(
@@ -95,7 +94,7 @@ export const updateUnit = async (
  * @param {number} [options.limit=50] - Max number of users to return
  * @param {number} [options.offset=0] - Pagination offset
  *
- * @returns {Promise<Record<string, any>[]>}
+ * @returns {Promise<Partial<User>[]>}
  *   Array of user objects with only the requested fields
  *
  * @throws {HTTPError} INTERNAL_SERVER_ERROR if query fails
@@ -107,24 +106,26 @@ export const getUsersByUnit = async (
     fields = ["id", "email", "firstName", "lastName"],
     limit = 50,
     offset = 0,
-  }: { fields?: string[]; limit?: number; offset?: number }
-) => {
+  }: { fields?: Array<keyof User>; limit?: number; offset?: number }
+): Promise<Partial<User>[]> => {
   try {
+    const selectFields = fields.reduce((acc, field) => {
+        return { ...acc, [field]: usersTable[field] };
+      }, {});
+
     const rows = await db
-      .select()
+      .select(selectFields)
       .from(usersTable)
-      .where(eq(usersTable.unitId, unitId))
+      .where(
+        and(
+          eq(usersTable.unitId, unitId),
+          isNull(usersTable.deletedAt)
+        )
+      )
       .limit(limit)
       .offset(offset);
 
-    const projected = rows.map((r: any) => {
-      const obj: any = {};
-      for (const f of fields) {
-        obj[f] = (r as any)[f];
-      }
-      return obj;
-    });
-    return projected;
+    return rows;
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -144,13 +145,40 @@ export const getUsersByUnit = async (
  *
  * @throws {HTTPError} INTERNAL_SERVER_ERROR if update fails
  */
-export const removeUserFromUnit = async (db: DB, userId: string, defaultUnitId: string) => {
+export const removeUserFromUnit = async (db: DB, userId: UserId, defaultUnitId: UnitId): Promise<User | null> => {
   try {
-    await db
+    // First check if user exists and has a unit assigned that's not the default unit
+    const user = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.id, userId),
+          isNull(usersTable.deletedAt),
+          ne(usersTable.unitId, defaultUnitId) // Must not already be in default unit
+        )
+      )
+      .limit(1);
+
+    if (!user.length) {
+      // User either doesn't exist, is already in default unit, or has no unit assigned
+      return null;
+    }
+
+    // Then update the user's unit to default
+    const result = await db
       .update(usersTable)
-      .set({ unitId: defaultUnitId })
-      .where(eq(usersTable.id, userId));
-    return true;
+      .set({ unitId: defaultUnitId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(usersTable.id, userId),
+          isNull(usersTable.deletedAt),
+          eq(usersTable.unitId, user[0].unitId) // Only update if unit matches what we found
+        )
+      )
+      .returning();
+
+    return result[0] ?? null;
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
@@ -167,23 +195,28 @@ export const removeUserFromUnit = async (db: DB, userId: string, defaultUnitId: 
  * @param {string} userId - ID of the user to add
  * @param {string} unitId - ID of the unit to assign the user to
  *
- * @returns {Promise<Record<string, any> | null>}
+ * @returns {Promise<Partial<typeof usersTable.$inferSelect> | null>}
  *   Updated user object if successful, null if no record found
  *
  * @throws {HTTPError} INTERNAL_SERVER_ERROR if update fails
  */
 export const addUserToUnit = async (
   db: DB,
-  userId: string,
-  unitId: string
-) => {
+  userId: UserId,
+  unitId: UnitId
+): Promise<User> => {
   try {
     const updated = await db
       .update(usersTable)
-      .set({ unitId })
-      .where(eq(usersTable.id, userId))
+      .set({ unitId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(usersTable.id, userId),
+          isNull(usersTable.deletedAt)
+        )
+      )
       .returning();
-    return updated?.[0] ?? null;
+    return updated[0] ?? null;
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,

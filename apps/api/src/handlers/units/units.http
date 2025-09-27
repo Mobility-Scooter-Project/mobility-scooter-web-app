@@ -25,3 +25,18 @@ GET {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users?fields=id,email&limit=
 
 ### Remove User from Unit
 DELETE {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users/{{userId}}
+
+### Create Invite
+POST {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/invite
+Content-Type: application/json
+
+{}
+
+### Accept Invite
+# Note: Replace {token} with the actual token received from Create Invite
+POST {{baseUrl}}/unit/invite/accept?token={token}
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}"
+}

@@ -1,15 +1,45 @@
 import { Hono } from "hono";
 import type { Variables } from "src";
 import { unitService } from "@src/services/unit";
-import { postgresDB } from "@src/middleware/db";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
-import { unitRateLimiter } from "@src/middleware/rate-limit";
+import { 
+  unitCreateRateLimiter,
+  unitUpdateRateLimiter,
+  unitInviteRateLimiter,
+  unitUserManageRateLimiter,
+  unitListRateLimiter
+} from "@src/middleware/rate-limit";
+import { users as usersTable } from "@src/db/schema/auth";
+import { units as unitsTable } from "@src/db/schema/tenants";
+
+type Unit = typeof unitsTable.$inferSelect;
+type User = typeof usersTable.$inferSelect;
+type UnitId = Unit['id'];
+type UserId = User['id'];
+type UserFields = keyof User;
+
+type CreateUnitBody = {
+  adminUserId?: UserId | null;
+};
+
+type UpdateUnitBody = {
+  adminUserId?: UserId | null;
+};
+
+type AcceptInviteBody = {
+  userId: UserId;
+};
 
 const app = new Hono<{ Variables: Variables }>();
 
-// Apply rate limiting to all unit operations
-app.use("*", unitRateLimiter);
+// Apply specific rate limits based on operation type
+app.post("/tenant/:tenantId/units", unitCreateRateLimiter);
+app.put("/tenant/:tenantId/unit/:unitId", unitUpdateRateLimiter);
+app.post("/tenant/:tenantId/unit/:unitId/invite", unitInviteRateLimiter);
+app.post("/unit/invite/accept", unitInviteRateLimiter);
+app.get("/tenant/:tenantId/unit/:unitId/users", unitListRateLimiter);
+app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", unitUserManageRateLimiter);
 
 /**
  * POST /tenant/{tenantId}/units
@@ -24,9 +54,9 @@ app.use("*", unitRateLimiter);
  */
 app.post("/tenant/:tenantId/units", async (c) => {
   const { tenantId } = c.req.param();
-  const body = await c.req.json().catch(() => ({}));
+  const body = await c.req.json().catch<Partial<CreateUnitBody>>(() => ({}));
   try {
-    const adminUserId = (body as any).adminUserId ?? null;
+    const adminUserId = body.adminUserId ?? null;
     const unit = await unitService.createUnit(tenantId, adminUserId);
     return c.json(unit, 201);
   } catch (e) {
@@ -48,7 +78,7 @@ app.post("/tenant/:tenantId/units", async (c) => {
  */
 app.put("/tenant/:tenantId/unit/:unitId", async (c) => {
   const { unitId } = c.req.param();
-  const body = await c.req.json().catch(() => ({}));
+  const body = await c.req.json().catch<Partial<UpdateUnitBody>>(() => ({}));
   try {
     const updated = await unitService.updateUnit(unitId, body);
     return c.json(updated, 200);
@@ -92,8 +122,8 @@ app.post("/tenant/:tenantId/unit/:unitId/invite", async (c) => {
  */
 app.post("/unit/invite/accept", async (c) => {
   const token = (c.req.query("token") ?? "") as string;
-  const body = await c.req.json().catch(() => ({}));
-  const userId = (body as any).userId;
+  const body = await c.req.json().catch<Partial<AcceptInviteBody>>(() => ({}));
+  const userId = body.userId;
 
   if (!token) {
     throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, "Missing token");
@@ -128,7 +158,10 @@ app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
   const fieldsQS = c.req.query("fields") || "";
   const limit = parseInt(c.req.query("limit") || "50", 10);
   const offset = parseInt(c.req.query("offset") || "0", 10);
-  const fields = fieldsQS ? fieldsQS.split(",").map((s) => s.trim()) : undefined;
+  // Validate fields against actual user table columns
+  const fields = fieldsQS ? fieldsQS.split(",")
+    .map((s) => s.trim())
+    .filter((f): f is UserFields => f in usersTable) : undefined;
   try {
     const users = await unitService.getUsers(unitId, fields, limit, offset);
     return c.json({ users }, 200);
