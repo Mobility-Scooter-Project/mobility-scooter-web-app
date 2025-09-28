@@ -216,8 +216,13 @@ export const addUserToUnit = async (
         )
       )
       .returning();
-    return updated[0] ?? null;
+
+    if (!updated.length) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+    }
+    return updated[0];
   } catch (e) {
+    if (e instanceof HTTPError) throw e;
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,

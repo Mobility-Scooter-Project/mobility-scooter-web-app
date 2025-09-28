@@ -192,7 +192,7 @@ app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", async (c) => {
     // When removing a user from a unit, we set their unitId to their current unit ID
     // This ensures we maintain the not-null constraint while effectively "removing" them
     await unitService.removeUser(userId, unitId);
-    return new Response("", { status: 204 });
+    return c.body(null, 204);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
     throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to remove user from unit");

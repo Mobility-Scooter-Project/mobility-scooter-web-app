@@ -121,11 +121,6 @@ export class UnitService {
         throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, "Invalid invite token payload");
       }
 
-      // Handle additional expiry check in case JWT verification missed it
-      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        throw new HTTPError(HTTP_CODES.UNAUTHORIZED, null, "Invite token expired");
-      }
-
       const updatedUser = await unitRepository.addUserToUnit(this.db, userId, unitId);
       return { unitId, tenantId, user: updatedUser };
     } catch (error) {
