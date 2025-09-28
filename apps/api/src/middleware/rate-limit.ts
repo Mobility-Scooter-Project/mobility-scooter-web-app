@@ -5,11 +5,16 @@ import { rateLimiter } from "hono-rate-limiter";
 import type { Store } from "hono-rate-limiter";
 import Redis from "ioredis";
 import RedisStore from "rate-limit-redis";
+import type { RedisReply } from "rate-limit-redis";
 
 const kv = await container.getAsync<Redis>(KVSymbol)
 
 const sharedStore = new RedisStore({
-  sendCommand: (...args: string[]) => (kv as any).call(...args),
+  sendCommand: (...args: string[]) => {
+    // Redis call method expects the first arg as command, rest as parameters
+    const [command, ...params] = args;
+    return kv.call(command, ...params) as Promise<RedisReply>;
+  },
 }) as unknown as Store;
 
 /**
@@ -159,6 +164,8 @@ const createUnitRateLimiter = (operationType: string) => rateLimiter({
         return 10;  // Creating units is resource intensive
       case 'update':
         return 30;  // Updating units is moderately frequent
+      case 'delete':
+        return 5;   // Deleting units is very sensitive, lowest limit
       case 'invite':
         return 20;  // Invites are security sensitive
       case 'user_manage':
@@ -207,6 +214,12 @@ export const unitUserManageRateLimiter = createUnitRateLimiter('user_manage');
  * Highest limits for read-only operations.
  */
 export const unitListRateLimiter = createUnitRateLimiter('list');
+
+/**
+ * Rate limiter for unit deletion operations.
+ * Most restrictive due to irreversible nature.
+ */
+export const unitDeleteRateLimiter = createUnitRateLimiter('delete');
 
 /**
  * Legacy unit rate limiter for backward compatibility.

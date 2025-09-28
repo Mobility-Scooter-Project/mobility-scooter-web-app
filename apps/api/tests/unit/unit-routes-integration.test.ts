@@ -14,6 +14,7 @@ jest.mock("../../src/services/unit");
 jest.mock("../../src/middleware/rate-limit", () => ({
   unitCreateRateLimiter: (c: Context, next: Next) => next(),
   unitUpdateRateLimiter: (c: Context, next: Next) => next(),
+  unitDeleteRateLimiter: (c: Context, next: Next) => next(),
   unitInviteRateLimiter: (c: Context, next: Next) => next(),
   unitUserManageRateLimiter: (c: Context, next: Next) => next(),
   unitListRateLimiter: (c: Context, next: Next) => next(),
@@ -329,6 +330,68 @@ describe("Team/Unit CRUD HTTP Routes - Integration Tests", () => {
       );
       
       const response = await unitApp.request(`/tenant/${mockTenantId}/unit/${mockUnitId}/users/${mockUserId}`, {
+        method: "DELETE"
+      });
+      
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe("DELETE /tenant/{tenantId}/unit/{unitId} - Delete Unit", () => {
+    const mockDeletedUnit = {
+      id: mockUnitId,
+      tenantId: mockTenantId,
+      adminUserId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: new Date(),
+    };
+
+    it("should successfully delete a unit", async () => {
+      mockedUnitService.deleteUnit.mockResolvedValue(mockDeletedUnit);
+      
+      const response = await unitApp.request(`/tenant/${mockTenantId}/unit/${mockUnitId}`, {
+        method: "DELETE"
+      });
+      
+      expect(response.status).toBe(204);
+      expect(mockedUnitService.deleteUnit).toHaveBeenCalledWith(mockUnitId, mockTenantId);
+      
+      // Should return empty body
+      const body = await response.text();
+      expect(body).toBe("");
+    });
+
+    it("should return 404 when unit not found", async () => {
+      mockedUnitService.deleteUnit.mockRejectedValue(
+        new HTTPError(HTTP_CODES.NOT_FOUND, null, "Unit not found or already deleted")
+      );
+      
+      const response = await unitApp.request(`/tenant/${mockTenantId}/unit/${mockUnitId}`, {
+        method: "DELETE"
+      });
+      
+      expect(response.status).toBe(404);
+    });
+
+    it("should return 400 when unit has active users", async () => {
+      mockedUnitService.deleteUnit.mockRejectedValue(
+        new HTTPError(HTTP_CODES.BAD_REQUEST, null, "Cannot delete unit with active users. Remove all users first.")
+      );
+      
+      const response = await unitApp.request(`/tenant/${mockTenantId}/unit/${mockUnitId}`, {
+        method: "DELETE"
+      });
+      
+      expect(response.status).toBe(400);
+      const responseBody = await response.json();
+      expect(responseBody.error).toBe("Cannot delete unit with active users. Remove all users first.");
+    });
+
+    it("should return 500 on service error", async () => {
+      mockedUnitService.deleteUnit.mockRejectedValue(new Error("Database connection failed"));
+      
+      const response = await unitApp.request(`/tenant/${mockTenantId}/unit/${mockUnitId}`, {
         method: "DELETE"
       });
       

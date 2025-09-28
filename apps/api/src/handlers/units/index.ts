@@ -8,7 +8,8 @@ import {
   unitUpdateRateLimiter,
   unitInviteRateLimiter,
   unitUserManageRateLimiter,
-  unitListRateLimiter
+  unitListRateLimiter,
+  unitDeleteRateLimiter
 } from "@src/middleware/rate-limit";
 import { users as usersTable } from "@src/db/schema/auth";
 import { units as unitsTable } from "@src/db/schema/tenants";
@@ -17,6 +18,20 @@ type Unit = typeof unitsTable.$inferSelect;
 type User = typeof usersTable.$inferSelect;
 type UserId = User['id'];
 type UserFields = keyof User;
+
+// Define allowed user fields explicitly for field validation
+// Excludes sensitive fields like encryptedPassword
+const allowedUserFields: UserFields[] = [
+  'id',
+  'unitId',
+  'email', 
+  'firstName',
+  'lastName',
+  'permissions',
+  'lastSignedInAt',
+  'createdAt',
+  'updatedAt'
+] as const;
 
 type CreateUnitBody = {
   adminUserId?: UserId | null;
@@ -35,6 +50,7 @@ const app = new Hono<{ Variables: Variables }>();
 // Apply specific rate limits based on operation type
 app.post("/tenant/:tenantId/units", unitCreateRateLimiter);
 app.put("/tenant/:tenantId/unit/:unitId", unitUpdateRateLimiter);
+app.delete("/tenant/:tenantId/unit/:unitId", unitDeleteRateLimiter);
 app.post("/tenant/:tenantId/unit/:unitId/invite", unitInviteRateLimiter);
 app.post("/unit/invite/accept", unitInviteRateLimiter);
 app.get("/tenant/:tenantId/unit/:unitId/users", unitListRateLimiter);
@@ -84,6 +100,31 @@ app.put("/tenant/:tenantId/unit/:unitId", async (c) => {
   } catch (e) {
     if (e instanceof HTTPError) throw e;
     throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to update unit");
+  }
+});
+
+/**
+ * DELETE /tenant/{tenantId}/unit/{unitId}
+ *
+ * Delete a unit (soft delete)
+ *
+ * @param {string} tenantId - Tenant identifier (path param)
+ * @param {string} unitId - Unit identifier (path param)
+ *
+ * @returns {204 | 400 | 404 | 500} Empty response on success or error
+ * 
+ * @remarks
+ * This is a soft delete operation that sets the deletedAt timestamp.
+ * Units with active users cannot be deleted - remove users first.
+ */
+app.delete("/tenant/:tenantId/unit/:unitId", async (c) => {
+  const { tenantId, unitId } = c.req.param();
+  try {
+    await unitService.deleteUnit(unitId, tenantId);
+    return c.body(null, 204);
+  } catch (e) {
+    if (e instanceof HTTPError) throw e;
+    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to delete unit");
   }
 });
 
@@ -157,10 +198,10 @@ app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
   const fieldsQS = c.req.query("fields") || "";
   const limit = parseInt(c.req.query("limit") || "50", 10);
   const offset = parseInt(c.req.query("offset") || "0", 10);
-  // Validate fields against actual user table columns
+  // Validate fields against allowed user table columns
   const fields = fieldsQS ? fieldsQS.split(",")
     .map((s) => s.trim())
-    .filter((f): f is UserFields => f in usersTable) : undefined;
+    .filter((f): f is UserFields => allowedUserFields.includes(f as UserFields)) : undefined;
   try {
     const users = await unitService.getUsers(unitId, fields, limit, offset);
     return c.json({ users }, 200);

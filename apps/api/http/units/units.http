@@ -80,3 +80,11 @@ X-User: {{token}}
 DELETE {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users/{{userId}}
 Authorization: Bearer {{apiKey}}
 X-User: {{token}}
+
+### Delete unit
+# @name deleteUnit
+# Soft deletes a unit (sets deletedAt timestamp)
+# Note: Unit must have no active users before deletion
+DELETE {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}

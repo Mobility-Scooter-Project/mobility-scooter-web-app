@@ -46,7 +46,8 @@ export const app = new Hono<{ Variables: Variables }>()
   )
   .basePath("/api/v1")
   .route("/auth", auth)
-  .route("/storage", storage);
+  .route("/storage", storage)
+  .route("/", units);
 
 
 app.onError((err, c) => {
@@ -100,7 +101,5 @@ serve(
     logger.info(`OpenAPI Spec: http://localhost:${info.port}/api/v1/openapi`);
   },
 );
-
-app.route("/api/v1", new Hono().route("/", units));
 
 export default app;

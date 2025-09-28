@@ -30,6 +30,14 @@ The API implements comprehensive rate limiting with Redis persistence to prevent
   - Rate limit: 30 requests/hour
   - Auth required: Yes (API Key + User Token)
 
+### Delete a unit
+- `DELETE /tenant/{tenantId}/unit/{unitId}`
+  - Soft deletes a unit by setting deletedAt timestamp.
+  - Units with active users cannot be deleted - remove users first.
+  - Response: Empty (204)
+  - Rate limit: 5 requests/hour (most restrictive)
+  - Auth required: Yes (API Key + User Token)
+
 ### Unit Invites
 - `POST /tenant/{tenantId}/unit/{unitId}/invite`
   - Returns a JWT invite token containing tenantId and unitId, valid for 7 days.

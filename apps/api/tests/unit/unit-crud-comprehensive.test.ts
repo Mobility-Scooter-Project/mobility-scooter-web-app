@@ -344,6 +344,79 @@ describe("UnitService - Comprehensive Tests", () => {
     });
   });
 
+  describe("deleteUnit", () => {
+    const mockTenantId = "tenant-123";
+    const mockUnitId = "unit-456";
+    const mockDeletedUnit = {
+      id: mockUnitId,
+      tenantId: mockTenantId,
+      adminUserId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: new Date(),
+    };
+
+    it("should successfully delete unit with no active users", async () => {
+      // Mock empty user list (no active users)
+      mockedUnitRepository.getUsersByUnit.mockResolvedValue([]);
+      mockedUnitRepository.deleteUnit.mockResolvedValue(mockDeletedUnit);
+
+      const result = await unitService.deleteUnit(mockUnitId, mockTenantId);
+
+      expect(result).toEqual(mockDeletedUnit);
+      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(
+        mockDb,
+        mockUnitId,
+        { fields: ["id"], limit: 1, offset: 0 }
+      );
+      expect(mockedUnitRepository.deleteUnit).toHaveBeenCalledWith(
+        mockDb,
+        mockUnitId,
+        mockTenantId
+      );
+    });
+
+    it("should prevent deletion of unit with active users", async () => {
+      // Mock unit with active users
+      mockedUnitRepository.getUsersByUnit.mockResolvedValue([{ id: "user-123" }]);
+
+      await expect(unitService.deleteUnit(mockUnitId, mockTenantId))
+        .rejects.toThrow("Cannot delete unit with active users. Remove all users first.");
+
+      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(
+        mockDb,
+        mockUnitId,
+        { fields: ["id"], limit: 1, offset: 0 }
+      );
+      expect(mockedUnitRepository.deleteUnit).not.toHaveBeenCalled();
+    });
+
+    it("should handle unit not found during deletion", async () => {
+      mockedUnitRepository.getUsersByUnit.mockResolvedValue([]);
+      mockedUnitRepository.deleteUnit.mockRejectedValue(
+        new HTTPError(HTTP_CODES.NOT_FOUND, null, "Unit not found or already deleted")
+      );
+
+      await expect(unitService.deleteUnit(mockUnitId, mockTenantId))
+        .rejects.toThrow("Unit not found or already deleted");
+    });
+
+    it("should handle database errors during user check", async () => {
+      mockedUnitRepository.getUsersByUnit.mockRejectedValue(new Error("Database connection failed"));
+
+      await expect(unitService.deleteUnit(mockUnitId, mockTenantId))
+        .rejects.toThrow("Failed to delete unit");
+    });
+
+    it("should handle database errors during deletion", async () => {
+      mockedUnitRepository.getUsersByUnit.mockResolvedValue([]);
+      mockedUnitRepository.deleteUnit.mockRejectedValue(new Error("Database constraint violation"));
+
+      await expect(unitService.deleteUnit(mockUnitId, mockTenantId))
+        .rejects.toThrow("Failed to delete unit");
+    });
+  });
+
   describe("Edge Cases and Error Handling", () => {
     it("should handle null tenant ID in createUnit", async () => {
       await expect(unitService.createUnit(null as unknown as string, mockAdminUserId))

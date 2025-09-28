@@ -230,10 +230,58 @@ export const addUserToUnit = async (
   }
 };
 
+/**
+ * Soft delete a unit by setting deletedAt timestamp
+ * 
+ * @param {DB} db - Database connection
+ * @param {string} unitId - ID of the unit to delete
+ * @param {string} tenantId - ID of the tenant (for validation)
+ * 
+ * @returns {Promise<Unit>} The soft-deleted unit
+ * 
+ * @throws {HTTPError} NOT_FOUND if unit doesn't exist or already deleted
+ * @throws {HTTPError} INTERNAL_SERVER_ERROR if delete fails
+ */
+export const deleteUnit = async (
+  db: DB,
+  unitId: string,
+  tenantId: string
+): Promise<Unit> => {
+  try {
+    const deleted = await db
+      .update(unitsTable)
+      .set({ 
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(unitsTable.id, unitId),
+          eq(unitsTable.tenantId, tenantId),
+          isNull(unitsTable.deletedAt)
+        )
+      )
+      .returning();
+
+    if (!deleted.length) {
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "Unit not found or already deleted");
+    }
+    return deleted[0];
+  } catch (e) {
+    if (e instanceof HTTPError) throw e;
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      "Failed to delete unit"
+    );
+  }
+};
+
 export const unitRepository = {
   createUnit,
   updateUnit,
   getUsersByUnit,
   removeUserFromUnit,
   addUserToUnit,
+  deleteUnit,
 };

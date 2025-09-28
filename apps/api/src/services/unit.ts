@@ -139,6 +139,47 @@ export class UnitService {
       throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to fetch users for unit");
     }
   }
+
+  /**
+   * Delete a unit (soft delete)
+   * 
+   * @param {string} unitId - The ID of the unit to delete
+   * @param {string} tenantId - The ID of the tenant (for validation)
+   * 
+   * @returns {Promise<Unit>} The deleted unit object
+   * 
+   * @throws {HTTPError} NOT_FOUND if unit doesn't exist
+   * @throws {HTTPError} BAD_REQUEST if unit has active users
+   * @throws {HTTPError} INTERNAL_SERVER_ERROR for other failures
+   * 
+   * @remarks
+   * Before deleting a unit, we check if it has any active users.
+   * Units with users cannot be deleted to maintain data integrity.
+   * This is a soft delete operation - sets deletedAt timestamp.
+   */
+  async deleteUnit(unitId: UnitId, tenantId: string): Promise<Unit> {
+    try {
+      // Check if unit has any active users before deletion
+      const users = await unitRepository.getUsersByUnit(this.db, unitId, { 
+        fields: ["id"], 
+        limit: 1, 
+        offset: 0 
+      });
+      
+      if (users.length > 0) {
+        throw new HTTPError(
+          HTTP_CODES.BAD_REQUEST,
+          null,
+          "Cannot delete unit with active users. Remove all users first."
+        );
+      }
+
+      return await unitRepository.deleteUnit(this.db, unitId, tenantId);
+    } catch (e) {
+      if (e instanceof HTTPError) throw e;
+      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to delete unit");
+    }
+  }
 }
 
 /**
