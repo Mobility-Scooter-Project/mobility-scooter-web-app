@@ -108,9 +108,9 @@ export const getUsersByUnit = async (
   }: { fields?: Array<keyof User>; limit?: number; offset?: number }
 ): Promise<Partial<User>[]> => {
   try {
-    const selectFields = fields.reduce((acc, field) => {
-        return { ...acc, [field]: usersTable[field] };
-      }, {});
+    const selectFields = Object.fromEntries(
+      fields.map(field => [field, usersTable[field]])
+    );
 
     const rows = await db
       .select(selectFields)

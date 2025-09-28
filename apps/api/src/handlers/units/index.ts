@@ -229,8 +229,8 @@ app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
 app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", async (c) => {
   const { userId, unitId } = c.req.param();
   try {
-    // When removing a user from a unit, we set their unitId to their current unit ID
-    // This ensures we maintain the not-null constraint while effectively "removing" them
+    // Remove the user from the specified unit (unitId is the unit they're being removed FROM)
+    // If a not-null constraint exists, ensure the user is assigned to a default or fallback unit as needed
     await unitService.removeUser(userId, unitId);
     return c.body(null, 204);
   } catch (e) {
