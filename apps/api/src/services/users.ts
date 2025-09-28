@@ -1,5 +1,5 @@
 import { users } from "@src/db/schema/auth";
-import { postgresDB, type DB } from "@middleware/db";
+import { type DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
 import { usersRepository } from "@src/repositories/users";
@@ -9,10 +9,6 @@ type NewUser = typeof users.$inferInsert;
  * UsersService is the business logic for users/ route
  */
 export class UsersService {
-  private db: DB;
-  constructor(db?: DB) {
-    this.db = db ?? postgresDB;
-  }
   /**
    * Retrieves a user by ID with optional field selection
    */
