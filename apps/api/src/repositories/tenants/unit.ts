@@ -1,6 +1,6 @@
 import { units as unitsTable } from "@src/db/schema/tenants";
 import { users as usersTable } from "@src/db/schema/auth";
-import { postgresDB, type DB } from "@src/middleware/db";
+import type { DB } from "@src/middleware/db";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
@@ -8,7 +8,6 @@ import { HTTP_CODES } from "@src/config/http-codes";
 type Unit = typeof unitsTable.$inferSelect;
 type UnitInsert = typeof unitsTable.$inferInsert;
 type User = typeof usersTable.$inferSelect;
-type UserInsert = typeof usersTable.$inferInsert;
 type UnitId = Unit['id'];
 type UserId = User['id'];
 

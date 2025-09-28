@@ -73,7 +73,7 @@
     "prettier": "3.5.3",
     "start-server-and-test": "^2.0.10",
     "ts-jest": "^29.2.6",
-    "tsx": "^4.19.3",
+    "tsx": "^4.7.1",
     "typescript": "^5.8.2",
     "util-waiter": "link:@types/smithy/util-waiter"
   },

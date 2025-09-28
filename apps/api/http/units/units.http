@@ -58,13 +58,13 @@ Content-Type: application/json
 ### Accept an invite
 # @name acceptInvite
 # Uses an invite token to add a user to the unit
-POST {{baseUrl}}/tenant/{{tenantId}}/unit/invite/accept
+POST {{baseUrl}}/unit/invite/accept?token={{createInvite.response.body.token}}
 Authorization: Bearer {{apiKey}}
 X-User: {{token}}
 Content-Type: application/json
 
 {
-  "token": "{{createInvite.response.body.data.token}}"
+  "userId": "{{userId}}"
 }
 
 ### List users in unit
@@ -73,18 +73,6 @@ Content-Type: application/json
 GET {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users?fields=id,email,firstName,lastName&limit=50&offset=0
 Authorization: Bearer {{apiKey}}
 X-User: {{token}}
-
-### Add user to unit
-# @name addUser
-# Manually adds a user to the unit (admin operation)
-POST {{baseUrl}}/tenant/{{tenantId}}/unit/{{unitId}}/users
-Authorization: Bearer {{apiKey}}
-X-User: {{token}}
-Content-Type: application/json
-
-{
-  "userId": "{{userId}}"
-}
 
 ### Remove user from unit
 # @name removeUser

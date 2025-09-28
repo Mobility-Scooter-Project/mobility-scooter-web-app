@@ -15,7 +15,6 @@ import { units as unitsTable } from "@src/db/schema/tenants";
 
 type Unit = typeof unitsTable.$inferSelect;
 type User = typeof usersTable.$inferSelect;
-type UnitId = Unit['id'];
 type UserId = User['id'];
 type UserFields = keyof User;
 
