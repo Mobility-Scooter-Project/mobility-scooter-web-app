@@ -1,4 +1,4 @@
-import { identities, users } from "@src/db/schema/auth";
+import { users } from "@src/db/schema/auth";
 import type { DB } from "@middleware/db";
 import { HTTP_CODES } from "@src/config/http-codes";
 import { HTTPError } from "@src/lib/errors";
@@ -63,7 +63,8 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
 
     const user = await db.query.users.findFirst(query);
 
-    if (!user) throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
+    if (!user)
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
 
     return {
       data: user,
@@ -98,7 +99,7 @@ const softDeleteUser = async (db: DB, userId: string) => {
       .returning({ id: users.id });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
 
     return {
       data: { success: true },
@@ -137,7 +138,7 @@ const updatePfp = async (db: DB, userId: string, pfpUrl: string) => {
       });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
 
     return {
       data: result[0],
@@ -171,7 +172,7 @@ const removePfp = async (db: DB, userId: string) => {
       .returning({ id: users.id });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
 
     return {
       data: { success: true },
@@ -226,7 +227,7 @@ const updateUser = async (
       });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
 
     return {
       data: result[0],

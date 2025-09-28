@@ -12,7 +12,7 @@ import {
   successResponseSchema,
 } from "@src/validators/users";
 import { userMiddleware } from "@src/middleware/user";
-import { usersRepository } from "@src/repositories/users";
+import { usersService } from "@src/services/users";
 import { StorageService } from "@src/services/storage";
 
 const app = new Hono<{ Variables: Variables }>()
@@ -54,7 +54,7 @@ const app = new Hono<{ Variables: Variables }>()
     async (c) => {
       const db = c.get("db");
       const userId = c.get("userId") as string;
-      const result = await usersRepository.getUserById(db, userId);
+      const result = await usersService.getUserById(db, userId);
       return c.json(result);
     },
   )
@@ -115,7 +115,7 @@ const app = new Hono<{ Variables: Variables }>()
       const db = c.get("db");
       const userId = c.req.param("id");
       const { fields } = c.req.valid("query");
-      const result = await usersRepository.getUserById(db, userId, fields);
+      const result = await usersService.getUserById(db, userId, fields);
       return c.json(result);
     },
   )
@@ -166,7 +166,7 @@ const app = new Hono<{ Variables: Variables }>()
       const db = c.get("db");
       const userId = c.get("userId") as string;
       const updateData = c.req.valid("json");
-      const result = await usersRepository.updateUser(db, userId, updateData);
+      const result = await usersService.updateUser(db, userId, updateData);
       return c.json(result);
     },
   )
@@ -225,7 +225,7 @@ const app = new Hono<{ Variables: Variables }>()
       const db = c.get("db");
       const userId = c.req.param("id");
       const updateData = c.req.valid("json");
-      const result = await usersRepository.updateUser(db, userId, updateData);
+      const result = await usersService.updateUser(db, userId, updateData);
       return c.json(result);
     },
   )
@@ -268,7 +268,7 @@ const app = new Hono<{ Variables: Variables }>()
     async (c) => {
       const db = c.get("db");
       const userId = c.req.param("id");
-      const result = await usersRepository.softDeleteUser(db, userId);
+      const result = await usersService.softDeleteUser(db, userId);
       return c.json(result);
     },
   )
@@ -363,13 +363,13 @@ const app = new Hono<{ Variables: Variables }>()
           await storageService.generatePresignedGetUrl(filePath);
 
         // Update user's pfpUrl in database
-        const result = await usersRepository.updatePfp(
+        const result = await usersService.updatePfp(
           db,
           userId,
           presignedData.url,
         );
 
-        if (result.status !== 200) {
+        if (!result.data) {
           return c.json(result);
         }
 
@@ -425,7 +425,7 @@ const app = new Hono<{ Variables: Variables }>()
     async (c) => {
       const db = c.get("db");
       const userId = c.get("userId") as string;
-      const result = await usersRepository.removePfp(db, userId);
+      const result = await usersService.removePfp(db, userId);
       return c.json(result);
     },
   );
