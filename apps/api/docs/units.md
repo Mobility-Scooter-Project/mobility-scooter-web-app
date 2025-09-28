@@ -4,14 +4,13 @@
 This module provides API endpoints and business logic for managing teams/units within tenants. It supports creating, updating, inviting users, listing users, and removing users from units.
 
 ## Rate Limits
-Each operation has specific rate limits to prevent abuse:
-- Unit Creation: 10 requests/hour (resource intensive)
-- Unit Updates: 30 requests/hour (moderate usage)
-- Invite Operations: 20 requests/hour (security sensitive)
-- User Management: 100 requests/hour (frequent usage)
-- List Operations: 200 requests/hour (read-only)
+The API implements comprehensive rate limiting with Redis persistence to prevent abuse and ensure fair usage:
 
-Rate limits are per IP address and operation type.
+### Authentication Rate Limits
+- **Sign Up**: 50 requests per 8 hours (IP-based, designed for team onboarding)
+- **Sign In**: 5 attempts per 30 minutes (email + IP combination, matches Windows lockout policy)
+- **OTP Requests**: 5 attempts per 30 minutes (userId + IP combination)
+- **Password Reset**: 3 attempts per 24 hours (email + IP combination)
 
 ## Endpoints
 
