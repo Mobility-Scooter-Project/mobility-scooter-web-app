@@ -38,7 +38,7 @@ Rate limits are per IP address and operation type.
   - Rate limit: 20 requests/hour
   - Auth required: Yes (API Key + User Token)
 
-- `POST /tenant/{tenantId}/unit/invite/accept`
+- `POST /unit/invite/accept?token=...`
   - Accepts an invite and adds the user to the unit specified in the token.
   - Request body: `{ userId: string }`
   - Query params: `token` (required)
@@ -90,25 +90,27 @@ Common error codes:
   - Request/response handling
   - Input validation
   - Rate limiting
+  - **No direct database access** - uses service layer
   
 - Service: `/src/services/unit.ts`
-  - Business logic
-  - Invite token generation/validation
+  - Business logic and orchestration
+  - JWT invite token generation/validation (7-day expiration)
   - User management operations
+  - Error handling and validation
+  - **Separation of concerns** - no direct database queries
   
 - Repository: `/src/repositories/tenants/unit.ts`
-  - Database operations
-  - Type-safe Drizzle queries
-  - Data validation
+  - Db operations only
   
 - Schema: 
   - `/src/db/schema/tenants.ts`
   - `/src/db/schema/auth.ts`
   
-- Tests: `/tests/integration/unit/unit.test.ts`
-  - Integration tests
-  - Edge cases
-  - Error scenarios
+- Tests: 
+  - `/tests/unit/unit-crud-comprehensive.test.ts` - Unit tests for UnitService business logic (25 tests)
+  - `/tests/unit/unit-routes-integration.test.ts` - Integration tests for HTTP routes (24 tests)
+  - **Total Coverage**: 49 tests covering all endpoints, edge cases, and error scenarios
+  - **Test Categories**: Service logic, HTTP routes, error handling, validation, concurrent operations
   
 - HTTP Tests: `/http/units/units.http`
   - Manual API testing
@@ -121,7 +123,9 @@ Common error codes:
 3. Add business logic in service (`services/unit.ts`)
 4. Create route handlers (`handlers/units/index.ts`)
 5. Add rate limits for new endpoints
-6. Add tests (`tests/integration/unit/`)
+6. Add tests:
+   - Unit tests: `tests/unit/` for service logic testing
+   - Integration tests: `tests/unit/` for route testing
 7. Update HTTP test file (`http/units/units.http`)
 
 ## Testing
@@ -135,10 +139,16 @@ Common error codes:
 
 2. Automated Testing:
    ```bash
+   # Run all tests (includes server startup)
    pnpm test
+   
+   # Run unit tests only
+   ENVIRONMENT=test npx jest tests/unit/
+   
+   # Run specific test file
+   ENVIRONMENT=test npx jest tests/unit/unit-crud-comprehensive.test.ts
    ```
-
-## Future Improvements
+## Future Improvements?
 - [ ] Add support for bulk user operations
 - [ ] Implement unit hierarchy/nesting
 - [ ] Add unit access roles/permissions

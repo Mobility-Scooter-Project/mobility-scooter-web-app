@@ -7,15 +7,16 @@ import unitApp from "../../src/handlers/units/index";
 import { unitService } from "../../src/services/unit";
 import { HTTPError } from "../../src/lib/errors";
 import { HTTP_CODES } from "../../src/config/http-codes";
+import type { Context, Next } from "hono";
 
 // Mock the unit service and rate limiters
 jest.mock("../../src/services/unit");
 jest.mock("../../src/middleware/rate-limit", () => ({
-  unitCreateRateLimiter: (c: any, next: any) => next(),
-  unitUpdateRateLimiter: (c: any, next: any) => next(),
-  unitInviteRateLimiter: (c: any, next: any) => next(),
-  unitUserManageRateLimiter: (c: any, next: any) => next(),
-  unitListRateLimiter: (c: any, next: any) => next(),
+  unitCreateRateLimiter: (c: Context, next: Next) => next(),
+  unitUpdateRateLimiter: (c: Context, next: Next) => next(),
+  unitInviteRateLimiter: (c: Context, next: Next) => next(),
+  unitUserManageRateLimiter: (c: Context, next: Next) => next(),
+  unitListRateLimiter: (c: Context, next: Next) => next(),
 }));
 
 const mockedUnitService = unitService as jest.Mocked<typeof unitService>;
@@ -275,7 +276,7 @@ describe("Team/Unit CRUD HTTP Routes - Integration Tests", () => {
       
       expect(response.status).toBe(200);
       // Fields should be parsed and filtered
-      expect(mockedUnitService.getUsers).toHaveBeenCalledWith(mockUnitId, expect.any(Array), 50, 0);
+      expect(mockedUnitService.getUsers).toHaveBeenCalledWith(mockUnitId, ["id", "email"], 50, 0);
     });
 
     it("should handle pagination parameters", async () => {

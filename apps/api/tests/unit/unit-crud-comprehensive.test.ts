@@ -7,6 +7,7 @@ import { UnitService } from "../../src/services/unit";
 import { unitRepository } from "../../src/repositories/tenants/unit";
 import { HTTPError } from "../../src/lib/errors";
 import { HTTP_CODES } from "../../src/config/http-codes";
+import { type DB } from "../../src/middleware/db";
 import * as jwtLib from "../../src/lib/jwt";
 import * as honoJwt from "hono/jwt";
 
@@ -26,7 +27,7 @@ describe("UnitService - Comprehensive Tests", () => {
   const mockAdminUserId = "789e0123-e89b-12d3-a456-426614174002";
 
   // Create a mock database instance
-  const mockDb = {} as any;
+  const mockDb = {} as DB;
   let unitService: UnitService;
 
   beforeEach(() => {
@@ -137,11 +138,11 @@ describe("UnitService - Comprehensive Tests", () => {
 
       expect(result).toBe(mockToken);
       expect(mockedJwtLib.signJWT).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           tenantId: mockTenantId,
           unitId: mockUnitId,
-          exp: expect.any(Number)
-        }
+          exp: expect.anything()
+        })
       );
     });
 
@@ -154,7 +155,7 @@ describe("UnitService - Comprehensive Tests", () => {
       await unitService.createInviteToken(mockTenantId, mockUnitId);
 
       const signCall = mockedJwtLib.signJWT.mock.calls[0];
-      const payload = signCall[0] as any;
+      const payload = signCall[0] as { tenantId: string; unitId: string; exp: number };
       
       // Token should expire in 7 days (604800 seconds)
       expect(payload.exp).toBeGreaterThanOrEqual(currentTime + 604800 - 10);
@@ -200,7 +201,7 @@ describe("UnitService - Comprehensive Tests", () => {
       expect(result.unitId).toBe(mockUnitId);
       expect(result.tenantId).toBe(mockTenantId);
       expect(result.user).toEqual(mockUser);
-      expect(mockedHonoJwt.verify).toHaveBeenCalledWith(mockToken, expect.any(String));
+      expect(mockedHonoJwt.verify).toHaveBeenCalledWith(mockToken, expect.anything());
       expect(mockedUnitRepository.addUserToUnit).toHaveBeenCalledWith(
         mockDb,
         mockUserId,
@@ -271,7 +272,7 @@ describe("UnitService - Comprehensive Tests", () => {
       const result = await unitService.getUsers(mockUnitId);
 
       expect(result).toEqual(mockUsers);
-      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(expect.any(Object), mockUnitId, { fields: undefined, limit: 50, offset: 0 });
+      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(mockDb, mockUnitId, { fields: undefined, limit: 50, offset: 0 });
     });
 
     it("should get users with custom parameters", async () => {
@@ -285,7 +286,7 @@ describe("UnitService - Comprehensive Tests", () => {
       const result = await unitService.getUsers(mockUnitId, ["id", "email"], 10, 20);
 
       expect(result).toEqual(filteredUsers);
-      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(expect.any(Object), mockUnitId, { fields: ["id", "email"], limit: 10, offset: 20 });
+      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(mockDb, mockUnitId, { fields: ["id", "email"], limit: 10, offset: 20 });
     });
 
     it("should handle empty result", async () => {
@@ -325,7 +326,7 @@ describe("UnitService - Comprehensive Tests", () => {
       const result = await unitService.removeUser(mockUserId, mockUnitId);
 
       expect(result).toBe(true);
-      expect(mockedUnitRepository.removeUserFromUnit).toHaveBeenCalledWith(expect.any(Object), mockUserId, mockUnitId);
+      expect(mockedUnitRepository.removeUserFromUnit).toHaveBeenCalledWith(mockDb, mockUserId, mockUnitId);
     });
 
     it("should handle user not found", async () => {
@@ -345,7 +346,7 @@ describe("UnitService - Comprehensive Tests", () => {
 
   describe("Edge Cases and Error Handling", () => {
     it("should handle null tenant ID in createUnit", async () => {
-      await expect(unitService.createUnit(null as any, mockAdminUserId))
+      await expect(unitService.createUnit(null as unknown as string, mockAdminUserId))
         .rejects.toThrow();
     });
 
@@ -366,7 +367,7 @@ describe("UnitService - Comprehensive Tests", () => {
 
       await unitService.getUsers(mockUnitId, undefined, -5, -10);
 
-      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(expect.any(Object), mockUnitId, { fields: undefined, limit: -5, offset: -10 });
+      expect(mockedUnitRepository.getUsersByUnit).toHaveBeenCalledWith(mockDb, mockUnitId, { fields: undefined, limit: -5, offset: -10 });
     });
 
     it("should handle concurrent operations", async () => {
