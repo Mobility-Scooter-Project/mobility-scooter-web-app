@@ -40,6 +40,33 @@ export class User {
   })
   passwordHash: string;
 
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  title: string;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  phoneNumber: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  city: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  pfpUrl: string | null;
+
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
