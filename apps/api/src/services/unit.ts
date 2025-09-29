@@ -1,12 +1,12 @@
-import { postgresDB, type DB } from "@src/middleware/db";
-import { unitRepository } from "@src/repositories/tenants/unit";
-import { signJWT } from "@src/lib/jwt";
-import { verify as verifyJwt } from "hono/jwt";
-import { JWT_SECRET } from "@config/constants";
-import { HTTPError } from "@src/lib/errors";
-import { HTTP_CODES } from "@src/config/http-codes";
-import { users as usersTable } from "@src/db/schema/auth";
-import { units as unitsTable } from "@src/db/schema/tenants";
+import { postgresDB, type DB } from '@src/middleware/db';
+import { unitRepository } from '@src/repositories/tenants/unit';
+import { signJWT } from '@src/lib/jwt';
+import { verify as verifyJwt } from 'hono/jwt';
+import { JWT_SECRET } from '@config/constants';
+import { HTTPError } from '@src/lib/errors';
+import { HTTP_CODES } from '@src/config/http-codes';
+import { users as usersTable } from '@src/db/schema/auth';
+import { units as unitsTable } from '@src/db/schema/tenants';
 
 type Unit = typeof unitsTable.$inferSelect;
 type User = typeof usersTable.$inferSelect;
@@ -36,20 +36,34 @@ export class UnitService {
    */
   async createUnit(tenantId: UnitId, adminUserId?: UserId | null) {
     try {
-      return await unitRepository.createUnit(this.db, { tenantId, adminUserId });
+      return await unitRepository.createUnit(this.db, {
+        tenantId,
+        adminUserId,
+      });
     } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create unit");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to create unit',
+      );
     }
   }
 
   /**
    * Update a unit (e.g., set/change admin)
    */
-  async updateUnit(unitId: UnitId, updates: Partial<{ adminUserId: UserId | null }>) {
+  async updateUnit(
+    unitId: UnitId,
+    updates: Partial<{ adminUserId: UserId | null }>,
+  ) {
     try {
       return await unitRepository.updateUnit(this.db, unitId, updates);
     } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to update unit");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to update unit',
+      );
     }
   }
 
@@ -60,7 +74,11 @@ export class UnitService {
     try {
       return await unitRepository.addUserToUnit(this.db, userId, unitId);
     } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to add user to unit");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to add user to unit',
+      );
     }
   }
 
@@ -69,21 +87,37 @@ export class UnitService {
    */
   async removeUser(userId: UserId, defaultUnitId: UnitId): Promise<boolean> {
     try {
-      const result = await unitRepository.removeUserFromUnit(this.db, userId, defaultUnitId);
+      const result = await unitRepository.removeUserFromUnit(
+        this.db,
+        userId,
+        defaultUnitId,
+      );
       if (!result) {
-        throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found in unit");
+        throw new HTTPError(
+          HTTP_CODES.NOT_FOUND,
+          null,
+          'User not found in unit',
+        );
       }
       return true;
     } catch (e) {
       if (e instanceof HTTPError) throw e;
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to remove user from unit");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to remove user from unit',
+      );
     }
   }
 
   /**
    * Create invite token (JWT) that contains { tenantId, unitId } and expires in 7 days
    */
-  async createInviteToken(tenantId: UnitId, unitId: UnitId, params: Record<string, unknown> = {}) {
+  async createInviteToken(
+    tenantId: UnitId,
+    unitId: UnitId,
+    params: Record<string, unknown> = {},
+  ) {
     try {
       const payload = {
         tenantId,
@@ -93,7 +127,11 @@ export class UnitService {
       } satisfies InviteTokenPayload;
       return await signJWT(payload);
     } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create invite token");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to create invite token',
+      );
     }
   }
 
@@ -105,53 +143,90 @@ export class UnitService {
       // Verify the token signature and expiry
       let payload: InviteTokenPayload;
       try {
-        payload = await verifyJwt(token, JWT_SECRET) as InviteTokenPayload;
+        payload = (await verifyJwt(token, JWT_SECRET)) as InviteTokenPayload;
       } catch (error) {
         // Handle expired token case first
-        if (error instanceof Error && (error.name === "JWTExpired" || error.message.toLowerCase().includes("expired"))) {
-          throw new HTTPError(HTTP_CODES.UNAUTHORIZED, error, "Invite token expired");
+        if (
+          error instanceof Error &&
+          (error.name === 'JWTExpired' ||
+            error.message.toLowerCase().includes('expired'))
+        ) {
+          throw new HTTPError(
+            HTTP_CODES.UNAUTHORIZED,
+            error,
+            'Invite token expired',
+          );
         }
         // Then handle other JWT errors
-        throw new HTTPError(HTTP_CODES.BAD_REQUEST, error, "Invalid invite token");
+        throw new HTTPError(
+          HTTP_CODES.BAD_REQUEST,
+          error,
+          'Invalid invite token',
+        );
       }
 
       // Verify required payload fields
       const { tenantId, unitId } = payload;
       if (!tenantId || !unitId) {
-        throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, "Invalid invite token payload");
+        throw new HTTPError(
+          HTTP_CODES.BAD_REQUEST,
+          null,
+          'Invalid invite token payload',
+        );
       }
 
-      const updatedUser = await unitRepository.addUserToUnit(this.db, userId, unitId);
+      const updatedUser = await unitRepository.addUserToUnit(
+        this.db,
+        userId,
+        unitId,
+      );
       return { unitId, tenantId, user: updatedUser };
     } catch (error) {
       if (error instanceof HTTPError) throw error;
-      throw new HTTPError(HTTP_CODES.BAD_REQUEST, error, "Invalid invite token");
+      throw new HTTPError(
+        HTTP_CODES.BAD_REQUEST,
+        error,
+        'Invalid invite token',
+      );
     }
   }
 
   /**
    * Get users that belong to a unit (with optional fields + pagination)
    */
-  async getUsers(unitId: UnitId, fields?: UserFields[], limit = 50, offset = 0) {
+  async getUsers(
+    unitId: UnitId,
+    fields?: UserFields[],
+    limit = 50,
+    offset = 0,
+  ) {
     try {
-      return await unitRepository.getUsersByUnit(this.db, unitId, { fields, limit, offset });
+      return await unitRepository.getUsersByUnit(this.db, unitId, {
+        fields,
+        limit,
+        offset,
+      });
     } catch (e) {
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to fetch users for unit");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to fetch users for unit',
+      );
     }
   }
 
   /**
    * Delete a unit (soft delete)
-   * 
+   *
    * @param {string} unitId - The ID of the unit to delete
    * @param {string} tenantId - The ID of the tenant (for validation)
-   * 
+   *
    * @returns {Promise<Unit>} The deleted unit object
-   * 
+   *
    * @throws {HTTPError} NOT_FOUND if unit doesn't exist
    * @throws {HTTPError} BAD_REQUEST if unit has active users
    * @throws {HTTPError} INTERNAL_SERVER_ERROR for other failures
-   * 
+   *
    * @remarks
    * Before deleting a unit, we check if it has any active users.
    * Units with users cannot be deleted to maintain data integrity.
@@ -160,24 +235,28 @@ export class UnitService {
   async deleteUnit(unitId: UnitId, tenantId: string): Promise<Unit> {
     try {
       // Check if unit has any active users before deletion
-      const users = await unitRepository.getUsersByUnit(this.db, unitId, { 
-        fields: ["id"], 
-        limit: 1, 
-        offset: 0 
+      const users = await unitRepository.getUsersByUnit(this.db, unitId, {
+        fields: ['id'],
+        limit: 1,
+        offset: 0,
       });
-      
+
       if (users.length > 0) {
         throw new HTTPError(
           HTTP_CODES.BAD_REQUEST,
           null,
-          "Cannot delete unit with active users. Remove all users first."
+          'Cannot delete unit with active users. Remove all users first.',
         );
       }
 
       return await unitRepository.deleteUnit(this.db, unitId, tenantId);
     } catch (e) {
       if (e instanceof HTTPError) throw e;
-      throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to delete unit");
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        'Failed to delete unit',
+      );
     }
   }
 }

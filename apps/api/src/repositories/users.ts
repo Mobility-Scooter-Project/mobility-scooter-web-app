@@ -1,8 +1,8 @@
-import { users } from "@src/db/schema/auth";
-import type { DB } from "@middleware/db";
-import { HTTP_CODES } from "@src/config/http-codes";
-import { HTTPError } from "@src/lib/errors";
-import { eq, sql, and, isNull, SQL } from "drizzle-orm";
+import { users } from '@src/db/schema/auth';
+import type { DB } from '@middleware/db';
+import { HTTP_CODES } from '@src/config/http-codes';
+import { HTTPError } from '@src/lib/errors';
+import { eq, sql, and, isNull, SQL } from 'drizzle-orm';
 
 type NewUser = typeof users.$inferInsert;
 type UserColumnSelection = {
@@ -44,27 +44,27 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
 
     if (fieldSet) {
       query.columns = {
-        id: fieldSet.has("id"),
-        unitId: fieldSet.has("unitId"),
-        permissions: fieldSet.has("permissions"),
-        lastSignedInAt: fieldSet.has("lastSignedInAt"),
-        createdAt: fieldSet.has("createdAt"),
-        updatedAt: fieldSet.has("updatedAt"),
-        deletedAt: fieldSet.has("deletedAt"),
-        firstName: fieldSet.has("firstName"),
-        lastName: fieldSet.has("lastName"),
-        title: fieldSet.has("title"),
-        email: fieldSet.has("email"),
-        city: fieldSet.has("city"),
-        mobileNumber: fieldSet.has("mobileNumber"),
-        pfpUrl: fieldSet.has("pfpUrl"),
+        id: fieldSet.has('id'),
+        unitId: fieldSet.has('unitId'),
+        permissions: fieldSet.has('permissions'),
+        lastSignedInAt: fieldSet.has('lastSignedInAt'),
+        createdAt: fieldSet.has('createdAt'),
+        updatedAt: fieldSet.has('updatedAt'),
+        deletedAt: fieldSet.has('deletedAt'),
+        firstName: fieldSet.has('firstName'),
+        lastName: fieldSet.has('lastName'),
+        title: fieldSet.has('title'),
+        email: fieldSet.has('email'),
+        city: fieldSet.has('city'),
+        mobileNumber: fieldSet.has('mobileNumber'),
+        pfpUrl: fieldSet.has('pfpUrl'),
       };
     }
 
     const user = await db.query.users.findFirst(query);
 
     if (!user)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, 'User not found');
 
     return {
       data: user,
@@ -74,7 +74,7 @@ const getUserById = async (db: DB, userId: string, fields?: string[]) => {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to retrieve user",
+      'Failed to retrieve user',
     );
   }
 };
@@ -99,7 +99,7 @@ const softDeleteUser = async (db: DB, userId: string) => {
       .returning({ id: users.id });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, 'User not found');
 
     return {
       data: { success: true },
@@ -109,7 +109,7 @@ const softDeleteUser = async (db: DB, userId: string) => {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to delete user",
+      'Failed to delete user',
     );
   }
 };
@@ -138,7 +138,7 @@ const updatePfp = async (db: DB, userId: string, pfpUrl: string) => {
       });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, 'User not found');
 
     return {
       data: result[0],
@@ -148,7 +148,7 @@ const updatePfp = async (db: DB, userId: string, pfpUrl: string) => {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to update profile picture",
+      'Failed to update profile picture',
     );
   }
 };
@@ -172,7 +172,7 @@ const removePfp = async (db: DB, userId: string) => {
       .returning({ id: users.id });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, 'User not found');
 
     return {
       data: { success: true },
@@ -182,7 +182,7 @@ const removePfp = async (db: DB, userId: string) => {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to remove profile picture",
+      'Failed to remove profile picture',
     );
   }
 };
@@ -227,7 +227,7 @@ const updateUser = async (
       });
 
     if (result.length === 0)
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, 'User not found');
 
     return {
       data: result[0],
@@ -237,7 +237,7 @@ const updateUser = async (
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to update user",
+      'Failed to update user',
     );
   }
 };

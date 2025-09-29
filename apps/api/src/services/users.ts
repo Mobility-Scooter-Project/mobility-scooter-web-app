@@ -1,10 +1,10 @@
-import { users } from "@src/db/schema/auth";
-import { type DB } from "@middleware/db";
-import { HTTP_CODES } from "@src/config/http-codes";
-import { HTTPError } from "@src/lib/errors";
-import { usersRepository } from "@src/repositories/users";
-import { StorageService } from "./storage";
-import { FILE_TYPES } from "@src/config/file-types";
+import { users } from '@src/db/schema/auth';
+import { type DB } from '@middleware/db';
+import { HTTP_CODES } from '@src/config/http-codes';
+import { HTTPError } from '@src/lib/errors';
+import { usersRepository } from '@src/repositories/users';
+import { StorageService } from './storage';
+import { FILE_TYPES } from '@src/config/file-types';
 
 type NewUser = typeof users.$inferInsert;
 
@@ -22,7 +22,7 @@ export class UsersService {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         e,
-        "Failed to update user",
+        'Failed to update user',
       );
     }
   }
@@ -37,7 +37,7 @@ export class UsersService {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         e,
-        "Failed to delete user",
+        'Failed to delete user',
       );
     }
   }
@@ -48,18 +48,18 @@ export class UsersService {
    */
   async updatePfp(db: DB, userId: string, storage: StorageService, file: File) {
     if (!file) {
-      throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, "No file provided");
+      throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, 'No file provided');
     }
 
-    const fileName = file.name || "pfp.jpg";
-    const ext = (fileName.split(".").pop() || "jpg").toLowerCase();
+    const fileName = file.name || 'pfp.jpg';
+    const ext = (fileName.split('.').pop() || 'jpg').toLowerCase();
 
-    const allowed = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
+    const allowed = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
     if (!allowed.has(ext)) {
       throw new HTTPError(
         HTTP_CODES.BAD_REQUEST,
         null,
-        "Unsupported file type for profile picture",
+        'Unsupported file type for profile picture',
       );
     }
 
@@ -95,12 +95,12 @@ export class UsersService {
       }
 
       const u = new URL(user.data.pfpUrl);
-      const filePath: string | null = u.searchParams.get("X-MSWA-FilePath");
+      const filePath: string | null = u.searchParams.get('X-MSWA-FilePath');
       if (!filePath) {
         throw new HTTPError(
           HTTP_CODES.BAD_REQUEST,
           null,
-          "Invalid stored profile picture URL (missing X-MSWA-FilePath)",
+          'Invalid stored profile picture URL (missing X-MSWA-FilePath)',
         );
       }
 
@@ -111,7 +111,7 @@ export class UsersService {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         e,
-        "Failed to remove profile picture",
+        'Failed to remove profile picture',
       );
     }
   }
@@ -125,7 +125,7 @@ export class UsersService {
       throw new HTTPError(
         HTTP_CODES.INTERNAL_SERVER_ERROR,
         e,
-        "Failed to update user",
+        'Failed to update user',
       );
     }
   }

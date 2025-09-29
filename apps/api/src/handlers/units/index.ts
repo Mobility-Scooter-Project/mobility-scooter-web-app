@@ -1,18 +1,18 @@
-import { Hono } from "hono";
-import type { Variables } from "src";
-import { unitService } from "@src/services/unit";
-import { HTTPError } from "@src/lib/errors";
-import { HTTP_CODES } from "@src/config/http-codes";
-import { 
+import { Hono } from 'hono';
+import type { Variables } from 'src';
+import { unitService } from '@src/services/unit';
+import { HTTPError } from '@src/lib/errors';
+import { HTTP_CODES } from '@src/config/http-codes';
+import {
   unitCreateRateLimiter,
   unitUpdateRateLimiter,
   unitInviteRateLimiter,
   unitUserManageRateLimiter,
   unitListRateLimiter,
-  unitDeleteRateLimiter
-} from "@src/middleware/rate-limit";
-import { users as usersTable } from "@src/db/schema/auth";
-import { units as unitsTable } from "@src/db/schema/tenants";
+  unitDeleteRateLimiter,
+} from '@src/middleware/rate-limit';
+import { users as usersTable } from '@src/db/schema/auth';
+import { units as unitsTable } from '@src/db/schema/tenants';
 
 type Unit = typeof unitsTable.$inferSelect;
 type User = typeof usersTable.$inferSelect;
@@ -24,13 +24,13 @@ type UserFields = keyof User;
 const allowedUserFields: UserFields[] = [
   'id',
   'unitId',
-  'email', 
+  'email',
   'firstName',
   'lastName',
   'permissions',
   'lastSignedInAt',
   'createdAt',
-  'updatedAt'
+  'updatedAt',
 ] as const;
 
 type CreateUnitBody = {
@@ -48,13 +48,16 @@ type AcceptInviteBody = {
 const app = new Hono<{ Variables: Variables }>();
 
 // Apply specific rate limits based on operation type
-app.post("/tenant/:tenantId/units", unitCreateRateLimiter);
-app.put("/tenant/:tenantId/unit/:unitId", unitUpdateRateLimiter);
-app.delete("/tenant/:tenantId/unit/:unitId", unitDeleteRateLimiter);
-app.post("/tenant/:tenantId/unit/:unitId/invite", unitInviteRateLimiter);
-app.post("/unit/invite/accept", unitInviteRateLimiter);
-app.get("/tenant/:tenantId/unit/:unitId/users", unitListRateLimiter);
-app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", unitUserManageRateLimiter);
+app.post('/tenant/:tenantId/units', unitCreateRateLimiter);
+app.put('/tenant/:tenantId/unit/:unitId', unitUpdateRateLimiter);
+app.delete('/tenant/:tenantId/unit/:unitId', unitDeleteRateLimiter);
+app.post('/tenant/:tenantId/unit/:unitId/invite', unitInviteRateLimiter);
+app.post('/unit/invite/accept', unitInviteRateLimiter);
+app.get('/tenant/:tenantId/unit/:unitId/users', unitListRateLimiter);
+app.delete(
+  '/tenant/:tenantId/unit/:unitId/users/:userId',
+  unitUserManageRateLimiter,
+);
 
 /**
  * POST /tenant/{tenantId}/units
@@ -67,7 +70,7 @@ app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", unitUserManageRateLim
  *
  * @returns {201 | 500} JSON of created unit or error
  */
-app.post("/tenant/:tenantId/units", async (c) => {
+app.post('/tenant/:tenantId/units', async (c) => {
   const { tenantId } = c.req.param();
   const body = await c.req.json().catch<Partial<CreateUnitBody>>(() => ({}));
   try {
@@ -76,7 +79,11 @@ app.post("/tenant/:tenantId/units", async (c) => {
     return c.json(unit, 201);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
-    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create unit");
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      'Failed to create unit',
+    );
   }
 });
 
@@ -91,7 +98,7 @@ app.post("/tenant/:tenantId/units", async (c) => {
  *
  * @returns {200 | 500} JSON of updated unit or error
  */
-app.put("/tenant/:tenantId/unit/:unitId", async (c) => {
+app.put('/tenant/:tenantId/unit/:unitId', async (c) => {
   const { unitId } = c.req.param();
   const body = await c.req.json().catch<Partial<UpdateUnitBody>>(() => ({}));
   try {
@@ -99,7 +106,11 @@ app.put("/tenant/:tenantId/unit/:unitId", async (c) => {
     return c.json(updated, 200);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
-    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to update unit");
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      'Failed to update unit',
+    );
   }
 });
 
@@ -112,19 +123,23 @@ app.put("/tenant/:tenantId/unit/:unitId", async (c) => {
  * @param {string} unitId - Unit identifier (path param)
  *
  * @returns {204 | 400 | 404 | 500} Empty response on success or error
- * 
+ *
  * @remarks
  * This is a soft delete operation that sets the deletedAt timestamp.
  * Units with active users cannot be deleted - remove users first.
  */
-app.delete("/tenant/:tenantId/unit/:unitId", async (c) => {
+app.delete('/tenant/:tenantId/unit/:unitId', async (c) => {
   const { tenantId, unitId } = c.req.param();
   try {
     await unitService.deleteUnit(unitId, tenantId);
     return c.body(null, 204);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
-    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to delete unit");
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      'Failed to delete unit',
+    );
   }
 });
 
@@ -138,14 +153,18 @@ app.delete("/tenant/:tenantId/unit/:unitId", async (c) => {
  *
  * @returns {200 | 500} JSON containing `{ token }` or error
  */
-app.post("/tenant/:tenantId/unit/:unitId/invite", async (c) => {
+app.post('/tenant/:tenantId/unit/:unitId/invite', async (c) => {
   const { tenantId, unitId } = c.req.param();
   try {
     const token = await unitService.createInviteToken(tenantId, unitId);
     return c.json({ token }, 200);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
-    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to create invitation");
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      'Failed to create invitation',
+    );
   }
 });
 
@@ -160,23 +179,27 @@ app.post("/tenant/:tenantId/unit/:unitId/invite", async (c) => {
  *
  * @returns {200 | 400 | 500} JSON result or error
  */
-app.post("/unit/invite/accept", async (c) => {
-  const token = (c.req.query("token") ?? "") as string;
+app.post('/unit/invite/accept', async (c) => {
+  const token = (c.req.query('token') ?? '') as string;
   const body = await c.req.json().catch<Partial<AcceptInviteBody>>(() => ({}));
   const userId = body.userId;
 
   if (!token) {
-    throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, "Missing token");
+    throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, 'Missing token');
   }
   if (!userId) {
-    throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, "Missing userId in body");
+    throw new HTTPError(HTTP_CODES.BAD_REQUEST, null, 'Missing userId in body');
   }
   try {
     const result = await unitService.acceptInvite(token, userId);
     return c.json(result, 200);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
-    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to accept invite");
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      'Failed to accept invite',
+    );
   }
 });
 
@@ -193,15 +216,20 @@ app.post("/unit/invite/accept", async (c) => {
  *
  * @returns {200 | 500} JSON `{ users: [...] }` or error
  */
-app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
+app.get('/tenant/:tenantId/unit/:unitId/users', async (c) => {
   const { unitId } = c.req.param();
-  const fieldsQS = c.req.query("fields") || "";
-  const limit = parseInt(c.req.query("limit") || "50", 10);
-  const offset = parseInt(c.req.query("offset") || "0", 10);
+  const fieldsQS = c.req.query('fields') || '';
+  const limit = parseInt(c.req.query('limit') || '50', 10);
+  const offset = parseInt(c.req.query('offset') || '0', 10);
   // Validate fields against allowed user table columns
-  const fields = fieldsQS ? fieldsQS.split(",")
-    .map((s) => s.trim())
-    .filter((f): f is UserFields => allowedUserFields.includes(f as UserFields)) : undefined;
+  const fields = fieldsQS
+    ? fieldsQS
+        .split(',')
+        .map((s) => s.trim())
+        .filter((f): f is UserFields =>
+          allowedUserFields.includes(f as UserFields),
+        )
+    : undefined;
   try {
     const users = await unitService.getUsers(unitId, fields, limit, offset);
     return c.json({ users }, 200);
@@ -210,7 +238,7 @@ app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to list users for unit"
+      'Failed to list users for unit',
     );
   }
 });
@@ -226,7 +254,7 @@ app.get("/tenant/:tenantId/unit/:unitId/users", async (c) => {
  *
  * @returns {204 | 500} Empty response on success or error
  */
-app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", async (c) => {
+app.delete('/tenant/:tenantId/unit/:unitId/users/:userId', async (c) => {
   const { userId, unitId } = c.req.param();
   try {
     // Remove the user from the specified unit (unitId is the unit they're being removed FROM)
@@ -235,7 +263,11 @@ app.delete("/tenant/:tenantId/unit/:unitId/users/:userId", async (c) => {
     return c.body(null, 204);
   } catch (e) {
     if (e instanceof HTTPError) throw e;
-    throw new HTTPError(HTTP_CODES.INTERNAL_SERVER_ERROR, e, "Failed to remove user from unit");
+    throw new HTTPError(
+      HTTP_CODES.INTERNAL_SERVER_ERROR,
+      e,
+      'Failed to remove user from unit',
+    );
   }
 });
 

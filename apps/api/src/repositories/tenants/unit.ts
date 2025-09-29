@@ -1,9 +1,9 @@
-import { units as unitsTable } from "@src/db/schema/tenants";
-import { users as usersTable } from "@src/db/schema/auth";
-import type { DB } from "@src/middleware/db";
-import { and, eq, isNull, ne } from "drizzle-orm";
-import { HTTPError } from "@src/lib/errors";
-import { HTTP_CODES } from "@src/config/http-codes";
+import { units as unitsTable } from '@src/db/schema/tenants';
+import { users as usersTable } from '@src/db/schema/auth';
+import type { DB } from '@src/middleware/db';
+import { and, eq, isNull, ne } from 'drizzle-orm';
+import { HTTPError } from '@src/lib/errors';
+import { HTTP_CODES } from '@src/config/http-codes';
 
 type Unit = typeof unitsTable.$inferSelect;
 type UnitInsert = typeof unitsTable.$inferInsert;
@@ -30,7 +30,7 @@ type UserId = User['id'];
  */
 export const createUnit = async (
   db: DB,
-  payload: UnitInsert
+  payload: UnitInsert,
 ): Promise<Unit> => {
   try {
     const result = await db
@@ -45,7 +45,7 @@ export const createUnit = async (
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to create unit"
+      'Failed to create unit',
     );
   }
 };
@@ -65,7 +65,7 @@ export const createUnit = async (
 export const updateUnit = async (
   db: DB,
   unitId: UnitId,
-  updates: Partial<UnitInsert>
+  updates: Partial<UnitInsert>,
 ): Promise<Unit> => {
   try {
     const result = await db
@@ -78,7 +78,7 @@ export const updateUnit = async (
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to update unit"
+      'Failed to update unit',
     );
   }
 };
@@ -102,25 +102,20 @@ export const getUsersByUnit = async (
   db: DB,
   unitId: string,
   {
-    fields = ["id", "email", "firstName", "lastName"],
+    fields = ['id', 'email', 'firstName', 'lastName'],
     limit = 50,
     offset = 0,
-  }: { fields?: Array<keyof User>; limit?: number; offset?: number }
+  }: { fields?: Array<keyof User>; limit?: number; offset?: number },
 ): Promise<Partial<User>[]> => {
   try {
     const selectFields = Object.fromEntries(
-      fields.map(field => [field, usersTable[field]])
+      fields.map((field) => [field, usersTable[field]]),
     );
 
     const rows = await db
       .select(selectFields)
       .from(usersTable)
-      .where(
-        and(
-          eq(usersTable.unitId, unitId),
-          isNull(usersTable.deletedAt)
-        )
-      )
+      .where(and(eq(usersTable.unitId, unitId), isNull(usersTable.deletedAt)))
       .limit(limit)
       .offset(offset);
 
@@ -129,7 +124,7 @@ export const getUsersByUnit = async (
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to fetch users for unit"
+      'Failed to fetch users for unit',
     );
   }
 };
@@ -144,7 +139,11 @@ export const getUsersByUnit = async (
  *
  * @throws {HTTPError} INTERNAL_SERVER_ERROR if update fails
  */
-export const removeUserFromUnit = async (db: DB, userId: UserId, defaultUnitId: UnitId): Promise<User | null> => {
+export const removeUserFromUnit = async (
+  db: DB,
+  userId: UserId,
+  defaultUnitId: UnitId,
+): Promise<User | null> => {
   try {
     // First check if user exists and has a unit assigned that's not the default unit
     const user = await db
@@ -154,8 +153,8 @@ export const removeUserFromUnit = async (db: DB, userId: UserId, defaultUnitId: 
         and(
           eq(usersTable.id, userId),
           isNull(usersTable.deletedAt),
-          ne(usersTable.unitId, defaultUnitId) // Must not already be in default unit
-        )
+          ne(usersTable.unitId, defaultUnitId), // Must not already be in default unit
+        ),
       )
       .limit(1);
 
@@ -172,8 +171,8 @@ export const removeUserFromUnit = async (db: DB, userId: UserId, defaultUnitId: 
         and(
           eq(usersTable.id, userId),
           isNull(usersTable.deletedAt),
-          eq(usersTable.unitId, user[0].unitId) // Only update if unit matches what we found
-        )
+          eq(usersTable.unitId, user[0].unitId), // Only update if unit matches what we found
+        ),
       )
       .returning();
 
@@ -182,7 +181,7 @@ export const removeUserFromUnit = async (db: DB, userId: UserId, defaultUnitId: 
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to remove user from unit"
+      'Failed to remove user from unit',
     );
   }
 };
@@ -202,22 +201,17 @@ export const removeUserFromUnit = async (db: DB, userId: UserId, defaultUnitId: 
 export const addUserToUnit = async (
   db: DB,
   userId: UserId,
-  unitId: UnitId
+  unitId: UnitId,
 ): Promise<User> => {
   try {
     const updated = await db
       .update(usersTable)
       .set({ unitId, updatedAt: new Date() })
-      .where(
-        and(
-          eq(usersTable.id, userId),
-          isNull(usersTable.deletedAt)
-        )
-      )
+      .where(and(eq(usersTable.id, userId), isNull(usersTable.deletedAt)))
       .returning();
 
     if (!updated.length) {
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "User not found");
+      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, 'User not found');
     }
     return updated[0];
   } catch (e) {
@@ -225,46 +219,50 @@ export const addUserToUnit = async (
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to add user to unit"
+      'Failed to add user to unit',
     );
   }
 };
 
 /**
  * Soft delete a unit by setting deletedAt timestamp
- * 
+ *
  * @param {DB} db - Database connection
  * @param {string} unitId - ID of the unit to delete
  * @param {string} tenantId - ID of the tenant (for validation)
- * 
+ *
  * @returns {Promise<Unit>} The soft-deleted unit
- * 
+ *
  * @throws {HTTPError} NOT_FOUND if unit doesn't exist or already deleted
  * @throws {HTTPError} INTERNAL_SERVER_ERROR if delete fails
  */
 export const deleteUnit = async (
   db: DB,
   unitId: string,
-  tenantId: string
+  tenantId: string,
 ): Promise<Unit> => {
   try {
     const deleted = await db
       .update(unitsTable)
-      .set({ 
+      .set({
         deletedAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(
         and(
           eq(unitsTable.id, unitId),
           eq(unitsTable.tenantId, tenantId),
-          isNull(unitsTable.deletedAt)
-        )
+          isNull(unitsTable.deletedAt),
+        ),
       )
       .returning();
 
     if (!deleted.length) {
-      throw new HTTPError(HTTP_CODES.NOT_FOUND, null, "Unit not found or already deleted");
+      throw new HTTPError(
+        HTTP_CODES.NOT_FOUND,
+        null,
+        'Unit not found or already deleted',
+      );
     }
     return deleted[0];
   } catch (e) {
@@ -272,7 +270,7 @@ export const deleteUnit = async (
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,
       e,
-      "Failed to delete unit"
+      'Failed to delete unit',
     );
   }
 };

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Schema for /users Route
@@ -91,7 +91,7 @@ export const fieldSelectionSchema = z.object({
       return Array.from(
         new Set(
           val
-            .split(",")
+            .split(',')
             .map((s) => s.trim())
             .filter((s) => s.length > 0),
         ),
