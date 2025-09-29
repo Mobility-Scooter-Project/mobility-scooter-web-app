@@ -5,3 +5,6 @@ dist/
 kubeconfig.yaml
 .pnpm-store/
 .devpod-internal/
+# Coverage reports
+coverage/
+*.lcov

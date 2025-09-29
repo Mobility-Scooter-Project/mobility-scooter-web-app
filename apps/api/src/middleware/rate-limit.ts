@@ -1,16 +1,21 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { ENVIRONMENT } from "@src/config/constants";
+import { ENVIRONMENT } from "@config/constants";
 import container, { KVSymbol } from "@src/lib/container";
 import { rateLimiter } from "hono-rate-limiter";
+import type { Store } from "hono-rate-limiter";
 import Redis from "ioredis";
 import RedisStore from "rate-limit-redis";
+import type { RedisReply } from "rate-limit-redis";
 
 const kv = await container.getAsync<Redis>(KVSymbol)
 
 const sharedStore = new RedisStore({
-  // @ts-expect-error - Known issue: the `call` function is not present in @types/ioredis
-  sendCommand: (...args: string[]) => kv.call(...args),
-});
+  sendCommand: (...args: string[]) => {
+    // Redis call method expects the first arg as command, rest as parameters
+    const [command, ...params] = args;
+    return kv.call(command, ...params) as Promise<RedisReply>;
+  },
+}) as unknown as Store;
 
 /**
  * Rate limiter middleware for sign-up requests.
@@ -35,7 +40,6 @@ export const signUpRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${connInfo.remote.address}`; // base solely on IP address to prevent spamming
   },
-  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
   skip: () => ENVIRONMENT === "development",
 });
@@ -72,7 +76,6 @@ export const signInRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${email}:${connInfo.remote.address}`; // email:
   },
-  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
   skip: () => ENVIRONMENT === "development",
 });
@@ -102,7 +105,6 @@ export const otpRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${userId}:${connInfo.remote.address}`;
   },
-  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
   skip: () => ENVIRONMENT === "development",
 });
@@ -135,7 +137,92 @@ export const resetPasswordRateLimiter = rateLimiter({
     const connInfo = getConnInfo(c);
     return `${email}:${connInfo.remote.address}`;
   },
-  //@ts-expect-error - The store is not defined in the rateLimiter function
   store: sharedStore,
   skip: () => ENVIRONMENT === "development",
 });
+
+/**
+ * Rate limiter middleware factory for unit management operations.
+ * Creates specific rate limiters for different unit operations.
+ * 
+ * @remarks
+ * Different operations have different limits:
+ * - Unit Creation: 10/hour (resource intensive, infrequent)
+ * - Unit Updates: 30/hour (moderate frequency)
+ * - User Management: 100/hour (frequent, less intensive)
+ * - Invites: 20/hour (security sensitive)
+ * - List Operations: 200/hour (read-only, frequent)
+ * 
+ * @param operationType - The type of unit operation
+ * @returns An appropriate rate limiter for the operation
+ */
+const createUnitRateLimiter = (operationType: string) => rateLimiter({
+  windowMs: 1000 * 60 * 60, // 1 hour base window
+  limit: (() => {
+    switch (operationType) {
+      case 'create':
+        return 10;  // Creating units is resource intensive
+      case 'update':
+        return 30;  // Updating units is moderately frequent
+      case 'delete':
+        return 5;   // Deleting units is very sensitive, lowest limit
+      case 'invite':
+        return 20;  // Invites are security sensitive
+      case 'user_manage':
+        return 100; // User operations are more frequent
+      case 'list':
+        return 200; // List operations are read-only and frequent
+      default:
+        return 50;  // Default fallback
+    }
+  })(),
+  keyGenerator: (c) => {
+    const connInfo = getConnInfo(c);
+    // Include operation type in key for separate limits
+    return `unit:${operationType}:${connInfo.remote.address}`;
+  },
+  store: sharedStore,
+  skip: () => ENVIRONMENT === "development",
+});
+
+/**
+ * Rate limiter for unit creation operations.
+ * Most restrictive due to resource intensity.
+ */
+export const unitCreateRateLimiter = createUnitRateLimiter('create');
+
+/**
+ * Rate limiter for unit update operations.
+ * Moderate limits for administrative changes.
+ */
+export const unitUpdateRateLimiter = createUnitRateLimiter('update');
+
+/**
+ * Rate limiter for unit invite operations.
+ * Restricted to prevent invite abuse.
+ */
+export const unitInviteRateLimiter = createUnitRateLimiter('invite');
+
+/**
+ * Rate limiter for user management operations.
+ * Higher limits for frequent user changes.
+ */
+export const unitUserManageRateLimiter = createUnitRateLimiter('user_manage');
+
+/**
+ * Rate limiter for list operations.
+ * Highest limits for read-only operations.
+ */
+export const unitListRateLimiter = createUnitRateLimiter('list');
+
+/**
+ * Rate limiter for unit deletion operations.
+ * Most restrictive due to irreversible nature.
+ */
+export const unitDeleteRateLimiter = createUnitRateLimiter('delete');
+
+/**
+ * Legacy unit rate limiter for backward compatibility.
+ * @deprecated Use specific operation rate limiters instead.
+ */
+export const unitRateLimiter = createUnitRateLimiter('default');
