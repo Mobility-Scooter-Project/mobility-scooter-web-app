@@ -1,4 +1,8 @@
-import { BASE_URL, STORAGE_BUCKET, STORAGE_SECRET } from "@src/config/constants";
+import {
+  BASE_URL,
+  STORAGE_BUCKET,
+  STORAGE_SECRET,
+} from "@src/config/constants";
 import { FILE_TYPES } from "@src/config/file-types";
 import { TOPICS } from "@src/config/queue";
 import { videoRepository } from "@src/repositories/storage/video";
@@ -6,7 +10,7 @@ import crypto from "node:crypto";
 import { HTTPError } from "@src/lib/errors";
 import { HTTP_CODES } from "@src/config/http-codes";
 import logger from "../lib/logger";
-import { WaiterState } from "@smithy/util-waiter"
+import { WaiterState } from "@smithy/util-waiter";
 import { S3Service } from "./s3";
 import { VaultService } from "./vault";
 import { inject } from "inversify";
@@ -14,7 +18,6 @@ import { QueueService } from "./queue";
 import { QueueSymbol } from "@src/lib/container";
 
 export class StorageService {
-
   private readonly s3: S3Service;
   private readonly vault: VaultService;
   private readonly queue: QueueService;
@@ -61,16 +64,11 @@ export class StorageService {
 
     await this.s3.getOrCreateBucket(STORAGE_BUCKET);
 
-    await this.s3.multipartUpload(
-      uploadStream,
-      filePath,
-    );
+    await this.s3.multipartUpload(uploadStream, filePath);
 
     if (fileType === FILE_TYPES.VIDEO) {
       const transcriptPath = filePath.replace(/\.mp4$/, ".vtt");
-      const videoDataPromise = this.generatePresignedGetUrl(
-        filePath,
-      );
+      const videoDataPromise = this.generatePresignedGetUrl(filePath);
 
       const transcriptPutUrlPromise = this.s3.presignedUrl(
         "PUT",
@@ -90,9 +88,7 @@ export class StorageService {
         videoMetadataPromise,
       ]);
 
-      let uploadState = await this.s3.waitUntilObjectExists(
-        filePath,
-      );
+      let uploadState = await this.s3.waitUntilObjectExists(filePath);
 
       while (uploadState.state !== WaiterState.SUCCESS) {
         if (uploadState.state === WaiterState.FAILURE) {
@@ -101,22 +97,22 @@ export class StorageService {
             "Failed to upload video file",
           );
         }
-        uploadState = await this.s3.waitUntilObjectExists(
-          filePath,
-        );
+        uploadState = await this.s3.waitUntilObjectExists(filePath);
       }
 
       await this.queue.producer.send({
         topic: TOPICS.VIDEOS,
-        messages: [{
-          key: videoMetadata.id,
-          value: JSON.stringify({
-            id: videoMetadata.id,
-            url: videoData.url,
-            filename: filePath,
-            transcriptPutUrl,
-          }),
-        }],
+        messages: [
+          {
+            key: videoMetadata.id,
+            value: JSON.stringify({
+              id: videoMetadata.id,
+              url: videoData.url,
+              filename: filePath,
+              transcriptPutUrl,
+            }),
+          },
+        ],
       });
 
       logger.debug(
@@ -131,13 +127,13 @@ export class StorageService {
 
   /**
    * Generates a pre-signed URL for GET operations on stored files
-   * 
+   *
    * @param filePath - The path to the file in storage
    * @param userId - The ID of the user requesting access
-   * 
+   *
    * @returns A Promise that resolves to an object containing the pre-signed URL
    * @returns {Promise<{url: string}>} The pre-signed URL for accessing the file
-   * 
+   *
    * @remarks
    * The generated URL includes several custom headers with a signature for authentication:
    * - X-MSWA-Method: Always "GET" for this function
@@ -146,9 +142,7 @@ export class StorageService {
    * - X-MSWA-Bucket: The provided bucket name
    * - X-MSWA-Signature: HMAC-SHA256 signature of the request parameters
    */
-  async generatePresignedGetUrl(
-    filePath: string,
-  ) {
+  async generatePresignedGetUrl(filePath: string) {
     const date = new Date();
     const expires = new Date(date.getTime() + 60 * 60 * 24 * 1000);
     const method = "GET";
@@ -173,17 +167,13 @@ export class StorageService {
 
   /**
    * Retrieves an object stream from storage with encryption.
-   * 
+   *
    * @param filePath - The file path of the object within the bucket
    * @returns A promise that resolves to an object containing the stream
    * @throws {Error} If the bucket does not exist or if there's an issue retrieving the encryption key
    */
-  async getObjectStream(
-    filePath: string,
-  ) {
-    const object = await this.s3.getObject(
-      filePath,
-    );
+  async getObjectStream(filePath: string) {
+    const object = await this.s3.getObject(filePath);
 
     return {
       stream: object,
@@ -205,12 +195,7 @@ export class StorageService {
     expires: string,
     signature: string,
   ) {
-    await this.s3.validatePresignedUrl(
-      filePath,
-      method,
-      expires,
-      signature,
-    );
+    await this.s3.validatePresignedUrl(filePath, method, expires, signature);
   }
 
   /**
@@ -226,15 +211,30 @@ export class StorageService {
    * This function will create an event ID and store the video metadata in the database.
    * The event ID is used to track the status of the video.
    */
-  async createVideoMetadata(
-    patientId: string,
-    path: string,
-    uploadedAt: Date,
-  ) {
+  async createVideoMetadata(patientId: string, path: string, uploadedAt: Date) {
     return await videoRepository.createVideoMetadata({
       patientId,
       path,
       uploadedAt,
     });
+  }
+
+  /**
+   * Delete an object from storage
+   * @param filePath - The path to the file in storage
+   * @returns A promise that resolves once the object has been deleted
+   * @throws {HTTPError} If the deletion fails
+   */
+  async deleteObject(filePath: string) {
+    try {
+      await this.s3.deleteObject(filePath);
+      logger.info(`Deleted file ${filePath} from bucket ${STORAGE_BUCKET}`);
+    } catch (e) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        e,
+        `Failed to delete object at ${filePath}`,
+      );
+    }
   }
 }

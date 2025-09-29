@@ -66,10 +66,7 @@ const createUser = async (db: DB, newUser: NewUser) => {
       "code" in e &&
       e.code === "23505"
     ) {
-      throw new HTTPError(
-        HTTP_CODES.CONFLICT,
-        "User already exists",
-      );
+      throw new HTTPError(HTTP_CODES.CONFLICT, "User already exists");
     }
 
     throw new HTTPError(
@@ -79,7 +76,6 @@ const createUser = async (db: DB, newUser: NewUser) => {
     );
   }
 };
-
 
 /**
  * Finds a user by their email address in the database.
@@ -103,7 +99,7 @@ export const findUserByEmail = async (db: DB, email: string) => {
 
 /**
  * Finds a user by their email address and verifies the password.
- * 
+ *
  * @param db - The database instance to query
  * @param email - The email address to search for
  * @param password - The password to verify
@@ -138,7 +134,6 @@ export const findUserWithPassword = async (
   }
 };
 
-
 /**
  * Retrieves a user from the database by their unique identifier
  * @param db - The database connection instance
@@ -159,7 +154,6 @@ const findUserById = async (db: DB, id: string) => {
   }
 };
 
-
 /**
  * Updates the password for a specified user in the database
  * @param db - The database instance
@@ -170,7 +164,10 @@ const findUserById = async (db: DB, id: string) => {
 const updatePassword = async (db: DB, userId: string, password: string) => {
   const encryptedPassword = sql`crypt(${password}, gen_salt('bf'))`;
   try {
-    await db.update(users).set({ encryptedPassword }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ encryptedPassword })
+      .where(eq(users.id, userId));
   } catch (e) {
     throw new HTTPError(
       HTTP_CODES.INTERNAL_SERVER_ERROR,

@@ -1,0 +1,85 @@
+@userToken = $dotenv USERTOKEN
+@userId = $dotenv USERID
+@baseUrl = http://localhost:3000/api/v1
+@apiKey = $dotenv TESTING_API_KEY
+
+### Get the current user's profile
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+
+### Get user by ID with all fields
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+### Get user by ID with specific fields only
+GET {{baseUrl}}/users/{{userId}}?fields=id,firstName,lastName,pfpUrl
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+### Get user by ID with multiple specific fields
+GET {{baseUrl}}/users/{{userId}}?fields=id,firstName,lastName,email,title,city,mobileNumber
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+### Update current user's profile
+PUT {{baseUrl}}/users/me
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "title": "Dr.",
+  "city": "New York",
+  "mobileNumber": "+1-555-123-4567"
+}
+
+### Update current user's profile (partial update)
+PUT {{baseUrl}}/users/me
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+{
+  "title": "Mr.",
+  "city": "Los Angeles"
+}
+
+### Update user by ID
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "title": "Ms.",
+  "email": "jane.smith@example.com",
+  "city": "Chicago",
+  "mobileNumber": "+1-555-987-6543"
+}
+
+### Update user by ID (email only)
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com"
+}
+
+### Soft delete user by ID
+DELETE {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
+Content-Type: application/json
+
