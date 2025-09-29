@@ -4,3 +4,8 @@ node_modules
 dist/
 .DS_Store
 kubeconfig.yaml
+.pnpm-store/
+.devpod-internal/
+# Coverage reports
+coverage/
+*.lcov

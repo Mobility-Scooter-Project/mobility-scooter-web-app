@@ -11,6 +11,7 @@ import { HTTPError } from "./lib/errors";
 import logger from "./lib/logger"
 import container from "./lib/container";
 import { diMiddleware } from "./middleware/di";
+import units from "@src/handlers/units";
 
 const startTime = Date.now();
 logger.info("Starting API server...");
@@ -45,7 +46,8 @@ export const app = new Hono<{ Variables: Variables }>()
   )
   .basePath("/api/v1")
   .route("/auth", auth)
-  .route("/storage", storage);
+  .route("/storage", storage)
+  .route("/", units);
 
 
 app.onError((err, c) => {
@@ -99,3 +101,5 @@ serve(
     logger.info(`OpenAPI Spec: http://localhost:${info.port}/api/v1/openapi`);
   },
 );
+
+export default app;

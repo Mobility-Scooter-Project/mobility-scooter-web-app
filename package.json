@@ -15,6 +15,7 @@
     "compose:up": "turbo run compose:up"
   },
   "devDependencies": {
+    "supertest": "^7.1.4",
     "turbo": "latest"
   },
   "packageManager": "pnpm@10.15.1"
