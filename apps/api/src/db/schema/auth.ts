@@ -35,15 +35,21 @@ export const users = auth.table(
     unitId: uuid()
       .references(() => units.id)
       .notNull(),
-    email: text().notNull().unique(),
     encryptedPassword: text(),
     permissions: jsonb().default({}),
-    firstName: varchar({ length: 255 }).notNull(),
-    lastName: varchar({ length: 255 }).notNull(),
     lastSignedInAt: timestamp(),
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow(),
     deletedAt: timestamp(),
+
+    // updated fields (aligned with the screenshot)
+    firstName: varchar({ length: 255 }).notNull(),
+    lastName: varchar({ length: 255 }).notNull(),
+    title: varchar({ length: 32 }),
+    email: text().notNull().unique(),
+    city: varchar({ length: 32 }),
+    mobileNumber: varchar({ length: 32 }),
+    pfpUrl: text(),
   },
   () => [
     pgPolicy("allow unauthenticated users to create an account", {

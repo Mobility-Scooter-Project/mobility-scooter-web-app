@@ -29,6 +29,7 @@ import logger from "../lib/logger";
 import type { WaiterResult } from "@smithy/util-waiter";
 import { cryptoUtils } from "@src/lib/crypto";
 import { injectable } from "inversify";
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 /**
  * A singleton class that manages interactions with a storage service (MinIO).
@@ -65,8 +66,8 @@ export class S3Service {
     if (!S3Service.instance) {
       S3Service.connectionPromise = new Promise((resolve) => {
         try {
-          const endpoint = `https://${STORAGE_HOSTNAME}:${STORAGE_PORT}/`
-          const config:S3ClientConfig = {
+          const endpoint = `https://${STORAGE_HOSTNAME}:${STORAGE_PORT}/`;
+          const config: S3ClientConfig = {
             endpoint,
             region: "us-east-1",
             credentials: {
@@ -80,8 +81,8 @@ export class S3Service {
               warn: (msg) => logger.warn(msg),
               trace: (msg) => logger.trace(msg),
               error: (msg) => logger.error(msg),
-            }
-          }
+            },
+          };
           S3Service.instance = new S3Client(config);
 
           resolve(true);
@@ -112,7 +113,7 @@ export class S3Service {
 
   /**
    * Creates a new S3 bucket with the specified name.
-   * 
+   *
    * @param bucketName - The name of the bucket to create
    * @throws {HTTPError} Throws an HTTPError with INTERNAL_SERVER_ERROR status code if:
    *   - The bucket creation fails (non-200 HTTP status)
@@ -168,10 +169,7 @@ export class S3Service {
    * @returns A Promise that resolves with the retrieved object.
    * @throws {HTTPException} When the object retrieval fails with a 500 Internal Server Error.
    */
-  public async getObject(
-    objectName: string,
-  ) {
-
+  public async getObject(objectName: string) {
     try {
       const getObjectCommand = new GetObjectCommand({
         Bucket: STORAGE_BUCKET,
@@ -259,7 +257,7 @@ export class S3Service {
       Key: objectName,
     };
 
-    logger.info(commonHeaders)
+    logger.info(commonHeaders);
 
     let UploadId = "";
     let PartNumber = 1;
@@ -371,10 +369,12 @@ export class S3Service {
         abort: async () => {
           logger.error(`Multipart upload aborted.`);
           try {
-            const abortMultipartUploadCommand = new AbortMultipartUploadCommand({
-              ...commonHeaders,
-              UploadId: UploadId,
-            });
+            const abortMultipartUploadCommand = new AbortMultipartUploadCommand(
+              {
+                ...commonHeaders,
+                UploadId: UploadId,
+              },
+            );
             await S3Service.instance.send(abortMultipartUploadCommand);
           } catch (error) {
             throw new HTTPError(
@@ -398,11 +398,11 @@ export class S3Service {
 
   /**
    * Waits until an object exists in the S3 bucket.
-   * 
+   *
    * @param objectName - The key/name of the object to wait for in the S3 bucket
    * @returns A Promise that resolves to a WaiterResult when the object exists or the wait times out
    * @throws {HTTPError} Throws an HTTPError with INTERNAL_SERVER_ERROR status if the wait operation fails
-   * 
+   *
    * @example
    * ```typescript
    * const result = await s3Service.waitUntilObjectExists('my-file.txt');
@@ -411,10 +411,7 @@ export class S3Service {
    * }
    * ```
    */
-  public waitUntilObjectExists(
-    objectName: string,
-  ): Promise<WaiterResult> {
-
+  public waitUntilObjectExists(objectName: string): Promise<WaiterResult> {
     try {
       return waitUntilObjectExists(
         {
@@ -473,5 +470,25 @@ export class S3Service {
       throw new HTTPError(HTTP_CODES.UNAUTHORIZED, "URL has expired");
     }
   }
-}
 
+  /**
+   * delete an object from the specified bucket in the storage.
+   * @param objectName - The name/path of the object to delete.
+   * @throws {HTTPError} With status 500 if the object deletion fails.
+   */
+  public async deleteObject(objectName: string): Promise<void> {
+    try {
+      const cmd = new DeleteObjectCommand({
+        Bucket: STORAGE_BUCKET,
+        Key: objectName,
+      });
+      await S3Service.instance.send(cmd);
+    } catch (error) {
+      throw new HTTPError(
+        HTTP_CODES.INTERNAL_SERVER_ERROR,
+        error,
+        `Failed to delete object: ${objectName}`,
+      );
+    }
+  }
+}

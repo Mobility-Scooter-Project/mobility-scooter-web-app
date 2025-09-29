@@ -1,0 +1,158 @@
+import { z } from "zod";
+
+/**
+ * Schema for /users Route
+ * Represents API responses when requesting a user profile.
+ *
+ * Fields for a Response:
+ * - status: number
+ *    - always presents (e.g. 200, 404)
+ * - data: userProfileSchema | null
+ *    - The actual user profile object if the request succeeded.
+ *    - null if no data is found or an error occurred.
+ *
+ * - error:
+ *    - null if no error occurred
+ *    - otherwise, contains:
+ *        - code: string → Error code (e.g., "NOT_FOUND", "UNAUTHORIZED")
+ *        - message: string → Human-readable error description
+ */
+export const userProfileSchema = z.object({
+  id: z.string().uuid(),
+  unitId: z.string().uuid(),
+  permissions: z.record(z.any()).default({}),
+  lastSignedInAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  deletedAt: z.string().datetime().nullable(),
+  firstName: z.string(),
+  lastName: z.string(),
+  title: z.string().nullable().optional(),
+  email: z.string().email(),
+  city: z.string().nullable().optional(),
+  mobileNumber: z.string().nullable().optional(),
+  pfpUrl: z.string().url().nullable().optional(),
+});
+
+export const getUserResponseSchema = z.object({
+  status: z.number(),
+  data: userProfileSchema.nullable(),
+  error: z
+    .object({
+      message: z.string(),
+    })
+    .nullable(),
+});
+
+/**
+ * Schema for updating user profile information
+ * Represents the request body for updating user profile fields.
+ *
+ * Fields for a Request:
+ * - firstName: string (optional)
+ *    - Minimum 1 character, maximum 255 characters
+ * - lastName: string (optional)
+ *    - Minimum 1 character, maximum 255 characters
+ * - title: string (optional)
+ *    - Maximum 32 characters (e.g., "Dr.", "Mr.", "Ms.")
+ * - email: string (optional)
+ *    - Valid email address format
+ * - city: string (optional)
+ *    - Maximum 32 characters
+ * - mobileNumber: string (optional)
+ *    - Maximum 32 characters
+ */
+export const updateUserSchema = z.object({
+  firstName: z.string().min(1).max(255).optional(),
+  lastName: z.string().min(1).max(255).optional(),
+  title: z.string().max(32).optional(),
+  email: z.string().email().optional(),
+  city: z.string().max(32).optional(),
+  mobileNumber: z.string().max(32).optional(),
+});
+
+/**
+ * Schema for field selection in GET requests.
+ * Represents the `fields` query parameter used to specify which user fields
+ * should be included in the response.
+ *
+ * Fields for Query Parameter:
+ *  - fields (optional):
+ *      - A comma-separated string of field names (e.g. "id,name,pfpUrl")
+ *        → parsed into ["id", "name", "pfpUrl"].
+ *      - If omitted ({}), all fields are returned (no column restriction).
+ */
+export const fieldSelectionSchema = z.object({
+  fields: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      return Array.from(
+        new Set(
+          val
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+        ),
+      );
+    }),
+});
+
+/**
+ * Schema for profile picture upload response
+ * Represents the response structure for profile picture upload operations.
+ *
+ * Fields for a Response:
+ * - data: object | null
+ *    - Contains upload result if successful
+ *    - pfpUrl: string → URL of the uploaded profile picture (valid URL format)
+ *    - null if upload failed
+ * - error: object | null
+ *    - null if no error occurred
+ *    - otherwise, contains:
+ *        - code: string → Error code (e.g., "BAD_REQUEST", "NOT_FOUND")
+ *        - message: string → Human-readable error description
+ */
+export const pfpUploadResponseSchema = z.object({
+  data: z
+    .object({
+      pfpUrl: z.string().url(),
+    })
+    .nullable(),
+  error: z
+    .object({
+      code: z.string(),
+      message: z.string(),
+    })
+    .nullable(),
+});
+
+/**
+ * Schema for success response
+ * Represents the standardized response structure for successful operations.
+ *
+ * Fields for a Response:
+ * - data: object | null
+ *    - Contains operation result if successful
+ *    - success: boolean → Indicates operation success
+ *    - null if operation failed
+ * - error: object | null
+ *    - null if no error occurred
+ *    - otherwise, contains:
+ *        - code: string → Error code (e.g., "NOT_FOUND", "BAD_REQUEST")
+ *        - message: string → Human-readable error description
+ */
+export const successResponseSchema = z.object({
+  data: z
+    .object({
+      success: z.boolean(),
+    })
+    .nullable(),
+  error: z
+    .object({
+      code: z.string(),
+      message: z.string(),
+    })
+    .nullable(),
+});

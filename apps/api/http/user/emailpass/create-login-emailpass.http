@@ -8,8 +8,13 @@ Content-Type: application/json
   "password": "testing124",
   "firstName": "Test",
   "lastName": "User",
+  "title": "Dr.",
+  "city": "Testing City",
+  "mobileNumber": "123-456-7890",
+  "pfpUrl": "https://testing.com",
   "unitId": "{{$dotenv TESTING_UNIT_ID}}"
 }
+
 
 ### Login
 

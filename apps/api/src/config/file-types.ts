@@ -1,4 +1,5 @@
 export enum FILE_TYPES {
-    VIDEO = "video",
-    TRANSCRIPT = "transcript",
+  VIDEO = "video",
+  TRANSCRIPT = "transcript",
+  IMAGE = "image",
 }
