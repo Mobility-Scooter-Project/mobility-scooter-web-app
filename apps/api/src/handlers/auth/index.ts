@@ -3,7 +3,7 @@ import type { Variables } from "src";
 import emailpass from "./emailpass";
 import otp from "./otp";
 import refresh from "./refresh";
-import users from "./users";
+import users from "../users";
 
 const app = new Hono<{ Variables: Variables }>()
   .route("/emailpass", emailpass)

@@ -284,10 +284,7 @@ const app = new Hono<{ Variables: Variables }>()
             schema: {
               type: "object",
               properties: {
-                file: {
-                  type: "string",
-                  format: "binary",
-                },
+                file: { type: "string", format: "binary" },
               },
               required: ["file"],
             },
@@ -298,25 +295,19 @@ const app = new Hono<{ Variables: Variables }>()
         200: {
           description: "Profile picture uploaded successfully",
           content: {
-            "application/json": {
-              schema: resolver(pfpUploadResponseSchema),
-            },
+            "application/json": { schema: resolver(pfpUploadResponseSchema) },
           },
         },
         400: {
           description: "Bad request",
           content: {
-            "application/json": {
-              schema: resolver(pfpUploadResponseSchema),
-            },
+            "application/json": { schema: resolver(pfpUploadResponseSchema) },
           },
         },
         404: {
           description: "User not found",
           content: {
-            "application/json": {
-              schema: resolver(pfpUploadResponseSchema),
-            },
+            "application/json": { schema: resolver(pfpUploadResponseSchema) },
           },
         },
       },
@@ -328,71 +319,17 @@ const app = new Hono<{ Variables: Variables }>()
       const userId = c.get("userId") as string;
       const storageService = await c.get("container").getAsync(StorageService);
 
-      try {
-        const formData = await c.req.formData();
-        const file = formData.get("file") as File;
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File | null;
 
-        if (!file) {
-          return c.json(
-            {
-              status: 400,
-              data: null,
-              error: {
-                code: "BAD_REQUEST",
-                message: "No file provided",
-              },
-            },
-            400,
-          );
-        }
-
-        // Generate unique file path for profile picture
-        const fileExtension = file.name.split(".").pop() || "jpg";
-        const filePath = `users/${userId}/pfp.${fileExtension}`;
-
-        // Upload file to storage
-        const uploadStream = file.stream();
-        await storageService.putObjectStream(
-          filePath,
-          uploadStream,
-          new Date(),
-        );
-
-        // Generate presigned URL for the uploaded file
-        const presignedData =
-          await storageService.generatePresignedGetUrl(filePath);
-
-        // Update user's pfpUrl in database
-        const result = await usersService.updatePfp(
-          db,
-          userId,
-          presignedData.url,
-        );
-
-        if (!result.data) {
-          return c.json(result);
-        }
-
-        return c.json({
-          status: 200,
-          data: {
-            pfpUrl: presignedData.url,
-          },
-          error: null,
-        });
-      } catch (error) {
-        return c.json(
-          {
-            status: 500,
-            data: null,
-            error: {
-              code: "INTERNAL_ERROR",
-              message: "Failed to upload profile picture",
-            },
-          },
-          500,
-        );
-      }
+      // Delegate everything to the service
+      const result = await usersService.updatePfp(
+        db,
+        userId,
+        storageService,
+        file as File,
+      );
+      return c.json(result, 200);
     },
   )
   .delete(
@@ -425,7 +362,8 @@ const app = new Hono<{ Variables: Variables }>()
     async (c) => {
       const db = c.get("db");
       const userId = c.get("userId") as string;
-      const result = await usersService.removePfp(db, userId);
+      const storageService = await c.get("container").getAsync(StorageService);
+      const result = await usersService.removePfp(db, userId, storageService);
       return c.json(result);
     },
   );
