@@ -1,12 +1,15 @@
-@userToken = putYourTokenHere
+@userToken = $dotenv USERTOKEN
 @baseUrl = http://localhost:3000/api/v1
+@apiKey = $dotenv TESTING_API_KEY
 
 ### Upload/replace profile picture
 POST {{baseUrl}}/users/pfp
-Authorization: Bearer {{userToken}}
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
 Content-Type: application/json
 
 ### Remove profile picture
 DELETE {{baseUrl}}/users/pfp
-Authorization: Bearer {{userToken}}
+Authorization: Bearer {{apiKey}}
+X-User: {{token}}
 Content-Type: application/json
