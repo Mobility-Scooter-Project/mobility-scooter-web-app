@@ -12,11 +12,11 @@ export class OtpController {
 
   @Get()
   async getTOTP(@Req() req) {
-    return await this.otp.generateOtp(req.local.userId);
+    return await this.otp.generateOtp(req.locals.userId);
   }
 
   @Post('verify')
   async verifyTOTP(@Req() req, @Body() body: TokenDto) {
-    return await this.otp.verifyOtp(req.local.userId, body.token);
+    return await this.otp.verifyOtp(req.locals.userId, body.token);
   }
 }

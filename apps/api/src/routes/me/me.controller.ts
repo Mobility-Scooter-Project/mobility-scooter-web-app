@@ -7,7 +7,7 @@ export class MeController {
 
   @Get()
   async getProfile(@Req() req) {
-    const id = req.local.userId;
+    const id = req.locals.userId;
     return await this.meService.getProfile(id);
   }
 

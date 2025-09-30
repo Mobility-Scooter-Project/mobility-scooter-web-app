@@ -1,6 +1,6 @@
 import { SCHEMAS } from '@config/schemas';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { IDENTITY_PROVIDERS } from './enums';
+import { IDENTITY_PROVIDERS } from '@config/enums';
 import { CreateUpdateDeleteFields } from '../shared';
 import { User } from './user';
 

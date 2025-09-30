@@ -5,7 +5,7 @@ import config from '@config/constants';
 import { InfraModule } from '@infra/infra.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { createMock } from '@golevelup/ts-jest';
-import { USER_ROLES } from '@src/infra/db/entity/user/enums';
+import { USER_ROLES } from '@config/enums';
 import { Unit } from '@src/infra/db/entity/unit/unit';
 import { BarbicanService } from '@src/infra/openstack/barbican/barbican.service';
 import { DataSource, Repository } from 'typeorm';

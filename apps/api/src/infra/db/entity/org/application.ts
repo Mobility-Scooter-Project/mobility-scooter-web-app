@@ -1,6 +1,6 @@
 import { SCHEMAS } from '@config/schemas';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { APPLICATION_STATUS } from './enums';
+import { APPLICATION_STATUS } from '@config/enums';
 import { CreateUpdateDeleteFields } from '../shared';
 
 @Entity({ schema: SCHEMAS.ORGS })

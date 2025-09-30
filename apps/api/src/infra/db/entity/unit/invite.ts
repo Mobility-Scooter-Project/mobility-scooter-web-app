@@ -1,5 +1,5 @@
 import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { USER_ROLES } from '../user/enums';
+import { USER_ROLES } from '@config/enums';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Unit } from './unit';
 import { User } from '../user/user';

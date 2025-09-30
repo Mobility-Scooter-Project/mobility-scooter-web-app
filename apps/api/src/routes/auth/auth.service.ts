@@ -1,16 +1,16 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/constants';
-
 import { BarbicanService } from '../../infra/openstack/barbican/barbican.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@src/infra/db/entity/user/user';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { UserIdentity } from '@src/infra/db/entity/user/identity';
 import { UserSession } from '@src/infra/db/entity/user/session';
-import { IDENTITY_PROVIDERS } from '@src/infra/db/entity/user/enums';
+import { IDENTITY_PROVIDERS, USER_ROLES } from '@config/enums';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JwtDto } from '@src/middleware/jwt/jwt.dto';
 
 type TokenResponse = {
   token: string;
@@ -105,6 +105,7 @@ export class AuthService {
   /* istanbul ignore next */
   private async _createUserSession(
     userId: string,
+    userRole: USER_ROLES,
     identity = IDENTITY_PROVIDERS.EMAIL,
   ): Promise<RefreshTokenResponse> {
     let session: UserSession | null;
@@ -149,6 +150,7 @@ export class AuthService {
 
     const token = await this.jwt.signAsync({
       userId: userId,
+      userRole: userRole,
       sessionId: session.id,
       exp: Number(Date.now() + 1000 * 60 * 15), // 15 minutes
       iat: Number(new Date().toISOString()),
@@ -216,9 +218,9 @@ export class AuthService {
   public async refreshToken(
     refreshToken: string,
   ): Promise<RefreshTokenResponse> {
-    let payload;
+    let payload: JwtDto | null;
     try {
-      payload = await this.jwt.verify(refreshToken, {
+      payload = await this.jwt.verify<JwtDto>(refreshToken, {
         secret: this.configService.get('jwtSecret'),
       });
     } catch (e) {
@@ -244,7 +246,10 @@ export class AuthService {
       throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
 
-    const newTokens = await this._createUserSession(payload.userId);
+    const newTokens = await this._createUserSession(
+      payload.userId,
+      payload.userRole,
+    );
 
     try {
       // update the new refresh token record to have the same expiry as the old one
@@ -338,7 +343,7 @@ export class AuthService {
       );
     }
 
-    return this._createUserSession(user.id);
+    return this._createUserSession(user.id, user.role);
   }
 
   /**

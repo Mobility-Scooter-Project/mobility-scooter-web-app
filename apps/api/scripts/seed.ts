@@ -5,7 +5,7 @@ import { Org } from "@src/infra/db/entity/org/org";
 import { Unit } from "@src/infra/db/entity/unit/unit";
 import { Department } from "@src/infra/db/entity/org/department";
 import { User } from "@src/infra/db/entity/user/user";
-import { IDENTITY_PROVIDERS, USER_ROLES } from "@src/infra/db/entity/user/enums";
+import { IDENTITY_PROVIDERS, USER_ROLES } from "@config/enums";
 import { UserIdentity } from "@src/infra/db/entity/user/identity";
 
 async function main() {

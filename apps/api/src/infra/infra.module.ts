@@ -7,6 +7,8 @@ import { S3Service } from './openstack/s3/s3.service';
 import { SwiftService } from './openstack/swift/swift.service';
 import { KvService } from './kv/kv.service';
 import { QueueService } from './queue/queue.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RoutePermissions } from './db/entity/user/route-permissions';
 
 /**
  * Combined infrastructure module that provides all core infrastructure services:
@@ -18,7 +20,7 @@ import { QueueService } from './queue/queue.service';
  * and includes queue and database services for a unified infrastructure layer.
  */
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule, TypeOrmModule.forFeature([RoutePermissions])],
   providers: [
     // Basic services
     KeystoneService,
