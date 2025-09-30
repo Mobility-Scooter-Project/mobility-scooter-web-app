@@ -10,7 +10,7 @@ export default new DataSource({
     username: process.env.DATABASE_USER,
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
-    synchronize: process.env.ENVIRONMENT === 'development',
+    synchronize: false, // if this is set to true, updates will run automatically, and generating migrations will become impossible
     migrations: ['./src/infra/db/migrations/*.{ts,js}'],
     entities: ['./src/infra/db/entity/**/*.{ts,js}']
 })

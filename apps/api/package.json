@@ -14,6 +14,7 @@
     "db:seed": "tsx ./scripts/seed.ts",
     "db:migrate": "pnpm typeorm migration:run -d datasource.ts",
     "db:generate": "pnpm typeorm migration:generate -d datasource.ts",
+    "db:update-perms": "tsx ./scripts/upsert-perms.ts",
     "start": "node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest --coverage",
