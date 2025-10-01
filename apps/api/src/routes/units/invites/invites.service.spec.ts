@@ -92,25 +92,21 @@ describe('InvitesService', () => {
         role: null,
       } as unknown as User;
 
-      jest
-        .spyOn(jwtService, 'verifyAsync')
-        .mockResolvedValue({
-          id: mockInvite.id,
-          unitId,
-          role: USER_ROLES.TRAINEE,
-          exp: Math.floor(Date.now() / 1000) + 3600,
-        });
+      jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue({
+        id: mockInvite.id,
+        unitId,
+        role: USER_ROLES.TRAINEE,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      });
       jest
         .spyOn(inviteRepository, 'findOne')
         .mockResolvedValue(mockInvite as UnitInvite);
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
-      jest
-        .spyOn(userRepository, 'save')
-        .mockResolvedValue({
-          ...mockUser,
-          unit: { id: unitId } as any,
-          role: USER_ROLES.TRAINEE,
-        });
+      jest.spyOn(userRepository, 'save').mockResolvedValue({
+        ...mockUser,
+        unit: { id: unitId } as any,
+        role: USER_ROLES.TRAINEE,
+      });
       jest
         .spyOn(inviteRepository, 'delete')
         .mockResolvedValue({ affected: 1, raw: [] });

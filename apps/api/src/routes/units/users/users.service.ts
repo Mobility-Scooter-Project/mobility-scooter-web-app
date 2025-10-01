@@ -12,6 +12,12 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
   ) {}
 
+  /**
+   *  Find a user by their ID.
+   *
+   * @param id - User ID
+   * @returns - User or null if not found
+   */
   public async findById(id: string): Promise<User | null> {
     let user: User | null;
 
@@ -30,6 +36,14 @@ export class UsersService {
     return user;
   }
 
+  /**
+   *  Update a user by their ID.
+   *
+   * @param id - User ID
+   * @param unitId - Unit ID
+   * @param updateData - Data to update
+   * @returns Updated user
+   */
   public async updateById(
     id: string,
     unitId: string,
@@ -66,6 +80,12 @@ export class UsersService {
     return user;
   }
 
+  /**
+   *  Soft delete a user by their ID.
+   *
+   * @param id - User ID
+   * @param unitId - Unit ID
+   */
   public async deleteById(id: string, unitId: string): Promise<void> {
     // error handling is done in updateById
     await this.updateById(id, unitId, { cud: { deletedAt: new Date() } });
