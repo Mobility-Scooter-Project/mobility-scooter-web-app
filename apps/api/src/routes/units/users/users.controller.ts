@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Param, Put } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './users.dto';
 
@@ -13,5 +13,13 @@ export class UsersController {
     @Body() updateData: UpdateUserDto, // Exclude passwordHash from being updated here
   ) {
     return await this.usersService.updateById(userId, unitId, updateData);
+  }
+
+  @Delete(':userId')
+  public async deleteUserById(
+    @Param('unitId') unitId: string,
+    @Param('userId') userId: string,
+  ) {
+    return await this.usersService.deleteById(userId, unitId);
   }
 }
