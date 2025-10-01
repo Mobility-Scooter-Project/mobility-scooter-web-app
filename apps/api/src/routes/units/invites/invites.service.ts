@@ -25,6 +25,16 @@ export class InvitesService {
     private readonly configService: ConfigService<AppConfig>,
   ) {}
 
+  /**
+   *  Create an invite for a user to join a unit with a specific role.
+   *
+   * @param unitId - ID of the unit
+   * @param userId - ID of the user creating the invite
+   * @param role - Role for the invitee
+   * @param email - Email of the invitee
+   * @returns InviteResponse containing the invite token
+   * @throws HttpException with appropriate status code and message on failure
+   */
   public async createInvite(
     unitId: string,
     userId: string,
