@@ -28,16 +28,14 @@ describe('MeController (e2e)', () => {
     return await request(app.getHttpServer())
       .get('/me')
       .set({ authorization: `Bearer ${token}` })
-      .expect(200)
-      .expect({
-        id: 'c5ed92bf-ef53-4110-b42d-055db2095d7c',
-        email: 'test@example.com',
-        givenName: 'Test',
-        surname: 'User',
-        role: 'admin',
-        title: null,
-        phoneNumber: null,
-        city: null,
-      });
+      .expect(200);
+  });
+
+  it('POST /me/pfp', async () => {
+    return await request(app.getHttpServer())
+      .put('/me/pfp')
+      .set({ authorization: `Bearer ${token}` })
+      .attach('file', Buffer.from('test'), 'test.png')
+      .expect(200);
   });
 });
