@@ -60,6 +60,6 @@ export class JwtMiddleware implements NestMiddleware {
       sessionId: payload.sessionId,
     };
 
-    return next();
+    next();
   }
 }

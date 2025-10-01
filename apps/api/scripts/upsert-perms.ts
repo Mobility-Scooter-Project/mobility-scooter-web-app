@@ -13,6 +13,11 @@ const permissions: Partial<RoutePermissions>[] = [
         route: "/api/v1/units/*/users/*",
         method: HTTP_METHODS.DELETE,
         role: [USER_ROLES.ADMIN, USER_ROLES.LEAD]
+    },
+    {
+        route: "/api/v1/units/*/users",
+        method: HTTP_METHODS.GET,
+        role: [USER_ROLES.ADMIN, USER_ROLES.LEAD, USER_ROLES.RESEARCHER, USER_ROLES.TRAINEE]
     }
 ]
 

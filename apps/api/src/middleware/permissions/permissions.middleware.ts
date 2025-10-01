@@ -125,9 +125,6 @@ export class PermissionsMiddleware implements NestMiddleware {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    this.logger.debug(`User role: ${req.locals.userRole}`);
-    this.logger.debug(`Request method: ${req.method}`);
-
     const isAllowed = await this._checkRoutePermissions(
       req.locals.userRole,
       this._reconstructPath(req.path),
@@ -141,6 +138,6 @@ export class PermissionsMiddleware implements NestMiddleware {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    return next();
+    next();
   }
 }

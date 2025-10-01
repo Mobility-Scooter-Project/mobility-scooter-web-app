@@ -1,17 +1,14 @@
-import { Controller, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Patch, Put } from '@nestjs/common';
 
 @Controller('units')
 export class UnitsController {
-  @Get(':unitId/users')
-  async getUsers(@Param('unitId') unitId: string) {
+  @Put(':unitId')
+  async updateUnit() {
     // TODO
   }
 
-  @Patch(':unitId/:userId')
-  async updateUserProfile(
-    @Param('unitId') unitId: string,
-    @Param('userId') userId: string,
-  ) {
+  @Delete(':unitId')
+  async softDeleteUnit() {
     // TODO
   }
 }

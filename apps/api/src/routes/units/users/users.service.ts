@@ -70,4 +70,35 @@ export class UsersService {
     // error handling is done in updateById
     await this.updateById(id, unitId, { cud: { deletedAt: new Date() } });
   }
+
+  public async getByUnitId(unitId: string): Promise<User[]> {
+    let users: User[] | null;
+
+    try {
+      users = await this.usersRepository.find({
+        select: {
+          id: true,
+          email: true,
+          givenName: true,
+          surname: true,
+          role: true,
+          title: true,
+          phoneNumber: true,
+          city: true,
+          unit: true,
+        },
+        where: { unit: { id: unitId } },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to get users by unit ID: ${unitId}`, error);
+      throw new HttpException('Failed to get users', 500);
+    }
+
+    if (!users || users.length == 0) {
+      this.logger.warn(`No users found for unit ID: ${unitId}`);
+      return [];
+    }
+
+    return users;
+  }
 }

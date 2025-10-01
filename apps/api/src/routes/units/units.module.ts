@@ -5,6 +5,7 @@ import { InvitesController } from './invites/invites.controller';
 import { AssignmentsController } from './assignments/assignments.controller';
 import { UsersModule } from './users/users.module';
 import { JwtModule } from '@nestjs/jwt';
+import { UnitsService } from './units.service';
 
 @Module({
   controllers: [
@@ -14,6 +15,7 @@ import { JwtModule } from '@nestjs/jwt';
     AssignmentsController,
   ],
   imports: [UsersModule, JwtModule],
+  providers: [UnitsService],
 })
 export class UnitsModule {
   configure(consumer: MiddlewareConsumer) {
