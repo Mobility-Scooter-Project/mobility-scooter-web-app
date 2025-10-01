@@ -74,7 +74,7 @@ export class PermissionsMiddleware implements NestMiddleware {
       this.logger.error('Error loading permissions into KV', error);
       throw new HttpException('Internal Server Error', 500);
     }
-    this.logger.log('Permissions loaded into KV store');
+    this.logger.error(`${permissions.length} Permissions loaded into KV store`);
   }
 
   private async _checkRoutePermissions(
@@ -102,7 +102,7 @@ export class PermissionsMiddleware implements NestMiddleware {
       }
       permissions = await this._getPermissionsFromKv(path, method);
       if (!permissions) {
-        this.logger.error(
+        this.logger.warn(
           `Permissions still not found after reload for path: ${path} and method: ${method}`,
         );
         return false;
