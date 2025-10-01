@@ -31,3 +31,9 @@ export enum HTTP_METHODS {
   DELETE = 'DELETE',
   PATCH = 'PATCH',
 }
+
+export enum INVITE_STATUS {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REVOKED = 'revoked',
+}

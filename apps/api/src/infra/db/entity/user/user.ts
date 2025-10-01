@@ -19,12 +19,14 @@ export class User {
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
   })
   givenName: string;
 
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
   })
   surname: string;
 
@@ -37,6 +39,7 @@ export class User {
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
   })
   passwordHash: string;
 

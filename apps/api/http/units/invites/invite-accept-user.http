@@ -1,0 +1,24 @@
+### Login
+# @name login
+POST http://localhost:3000/api/v1/auth/email
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "testing124"
+}
+
+### Invite User
+# @name invite
+POST http://localhost:3000/api/v1/units/{{$dotenv TESTING_UNIT_ID}}/invite
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.token}}
+
+{
+  "role": "admin",
+  "email": "test2@example.com"
+}
+
+### Accept Invite
+POST http://localhost:3000/api/v1/units/invites/{{invite.response.body.token}}
+Content-Type: application/json

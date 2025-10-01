@@ -11,9 +11,9 @@ import { RoutePermissions } from '@infra/db/entity/user/route-permissions';
 
 @Module({
   imports: [
-    InfraModule,
     TypeOrmModule.forFeature([User, RoutePermissions]),
     JwtModule,
+    InfraModule,
   ],
   providers: [UsersService],
   controllers: [UsersController],

@@ -5,7 +5,12 @@ import { InvitesController } from './invites/invites.controller';
 import { AssignmentsController } from './assignments/assignments.controller';
 import { UsersModule } from './users/users.module';
 import { JwtModule } from '@nestjs/jwt';
-import { UnitsService } from './units.service';
+import { InvitesService } from './invites/invites.service';
+import { InvitesModule } from './invites/invites.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from '@infra/db/entity/user/user';
+import { InfraModule } from '@infra/infra.module';
+import { UnitInvite } from '@infra/db/entity/unit/invite';
 
 @Module({
   controllers: [
@@ -14,11 +19,13 @@ import { UnitsService } from './units.service';
     InvitesController,
     AssignmentsController,
   ],
-  imports: [UsersModule, JwtModule],
-  providers: [UnitsService],
+  imports: [
+    UsersModule,
+    JwtModule,
+    InvitesModule,
+    InfraModule,
+    TypeOrmModule.forFeature([User, UnitInvite]),
+  ],
+  providers: [InvitesService],
 })
-export class UnitsModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply().forRoutes(UnitsController);
-  }
-}
+export class UnitsModule {}

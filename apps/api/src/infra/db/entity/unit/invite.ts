@@ -1,5 +1,5 @@
 import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { USER_ROLES } from '@config/enums';
+import { INVITE_STATUS, USER_ROLES } from '@config/enums';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Unit } from './unit';
 import { User } from '../user/user';
@@ -25,6 +25,19 @@ export class UnitInvite {
     type: 'text',
   })
   invite_url: string;
+
+  @Column({
+    type: 'enum',
+    enum: INVITE_STATUS,
+    default: INVITE_STATUS.PENDING,
+  })
+  status: INVITE_STATUS;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+  })
+  inviteeEmail: string;
 
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
