@@ -33,6 +33,7 @@ export class PermissionsMiddleware implements NestMiddleware {
    * @returns reconstructed path with dynamic segments replaced by '*'
    */
   private _reconstructPath(path: string): string {
+    path = path.replace('/api/v1', '');
     const segments = path.split('/');
     const reconstructedSegments = segments.map((segment) => {
       if (segment.match(/^\d+$/) || segment.match(/^[0-9a-fA-F-]{36}$/)) {
@@ -163,8 +164,8 @@ export class PermissionsMiddleware implements NestMiddleware {
     );
 
     if (!isAllowed) {
-      this.logger.warn(
-        `User with role ${req.locals.userId} is not authorized to access ${req.path} with method ${req.method}`,
+      this.logger.error(
+        `User with id ${req.locals.userId} is not authorized to access ${req.path} with method ${req.method}`,
       );
       return res.status(403).json({ message: 'Forbidden' });
     }
