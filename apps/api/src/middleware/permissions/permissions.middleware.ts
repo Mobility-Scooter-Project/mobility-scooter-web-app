@@ -26,6 +26,12 @@ export class PermissionsMiddleware implements NestMiddleware {
     this.kv = this.KvService.kv;
   }
 
+  /**
+   *  Helper function to reconstruct the path by replacing dynamic segments with '*'.
+   *
+   * @param path - original request path
+   * @returns reconstructed path with dynamic segments replaced by '*'
+   */
   private _reconstructPath(path: string): string {
     const segments = path.split('/');
     const reconstructedSegments = segments.map((segment) => {
@@ -39,6 +45,13 @@ export class PermissionsMiddleware implements NestMiddleware {
     return res;
   }
 
+  /**
+   *  Helper function to get permissions from KV store.
+   *
+   * @param path - reconstructed request path
+   * @param method - HTTP method of the request
+   * @returns permissions string or null if not found
+   */
   private async _getPermissionsFromKv(
     path: string,
     method: string,
@@ -55,6 +68,9 @@ export class PermissionsMiddleware implements NestMiddleware {
     }
   }
 
+  /**
+   * Helper function to load all permissions from the database into the KV store.
+   */
   private async _loadPermissions() {
     const permissions = await this.routePermissionsRepository.find();
 
@@ -77,6 +93,14 @@ export class PermissionsMiddleware implements NestMiddleware {
     this.logger.error(`${permissions.length} Permissions loaded into KV store`);
   }
 
+  /**
+   *  Helper function to check if a user has permission to access a route.
+   *
+   * @param userRole - role of the user making the request
+   * @param path - reconstructed request path
+   * @param method - HTTP method of the request
+   * @returns boolean indicating if the user has permission to access the route
+   */
   private async _checkRoutePermissions(
     userRole: USER_ROLES,
     path: string,
@@ -116,6 +140,13 @@ export class PermissionsMiddleware implements NestMiddleware {
     return false;
   }
 
+  /**
+   *  Middleware function to check if a user has permission to access a route.
+   *
+   * @param req - the request object
+   * @param res - the response object
+   * @param next - the next middleware function
+   */
   async use(req: TypedRequest, res: Response, next: () => void) {
     // jwt middleware should have already run
     if (!req.locals.userRole) {

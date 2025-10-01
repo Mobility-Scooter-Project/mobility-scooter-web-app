@@ -92,7 +92,7 @@ describe('JwtMiddleware', () => {
 
       await jwtMiddleware.use(req, res, next);
 
-      expect(req.local).toEqual({ userId: 'user1', sessionId: 'session1' });
+      expect(req.locals).toEqual({ userId: 'user1', sessionId: 'session1' });
       expect(next).toHaveBeenCalled();
     });
   });
