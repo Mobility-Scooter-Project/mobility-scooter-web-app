@@ -15,6 +15,11 @@ export class MeService {
     private readonly swiftService: SwiftService,
   ) {}
 
+  /**
+   * Get user profile by user ID
+   * @param userId - ID of the user
+   * @returns User profile or null if not found
+   */
   public async getProfile(userId: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { id: userId },
@@ -31,6 +36,13 @@ export class MeService {
     });
   }
 
+  /**
+   *  Update user profile.
+   *
+   * @param userId - ID of the user
+   * @param updateData - Data to update
+   * @returns
+   */
   public async updateProfile(
     userId: string,
     updateData: Partial<User>,
@@ -39,6 +51,12 @@ export class MeService {
     return this.getProfile(userId);
   }
 
+  /**
+   *  Upload profile picture to OpenStack Swift.
+   *
+   * @param userId - ID of the user
+   * @param file - Profile picture file
+   */
   public async uploadProfilePicture(
     userId: string,
     file: Express.Multer.File,
