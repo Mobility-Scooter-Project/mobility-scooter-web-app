@@ -57,4 +57,30 @@ describe('MeService', () => {
       expect(profile).toEqual(mockProfile);
     });
   });
+
+  describe('updateProfile', () => {
+    it('should update and return user profile', async () => {
+      const userId = '12345';
+      const updateData = {
+        name: 'Updated User',
+        phoneNumber: '0987654321',
+        title: 'Ms.',
+        city: 'Updated City',
+      };
+      const updatedProfile = {
+        id: userId,
+        email: 'test@example.com',
+        ...updateData,
+        role: 'admin',
+      };
+
+      userRepo.update = jest.fn().mockResolvedValue(undefined);
+      userRepo.findOne = jest.fn().mockResolvedValue(updatedProfile);
+
+      const profile = await service.updateProfile(userId, updateData);
+
+      expect(userRepo.update).toHaveBeenCalledWith({ id: userId }, updateData);
+      expect(profile).toEqual(updatedProfile);
+    });
+  });
 });

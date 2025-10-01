@@ -25,4 +25,12 @@ export class MeService {
       },
     });
   }
+
+  public async updateProfile(
+    userId: string,
+    updateData: Partial<User>,
+  ): Promise<User | null> {
+    await this.userRepository.update({ id: userId }, updateData);
+    return this.getProfile(userId);
+  }
 }
