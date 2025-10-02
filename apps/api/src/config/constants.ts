@@ -1,30 +1,51 @@
-import dotenv from "dotenv";
-dotenv.config();
+const config = () => ({
+  jwtSecret: process.env.JWT_SECRET || 'missing JWT_SECRET',
+  baseUrl: process.env.BASE_URL || 'missing BASE_URL',
+  environment: process.env.ENVIRONMENT || 'development',
 
-export const JWT_SECRET = process.env.JWT_SECRET || "missing JWT_SECRET";
-export const BASE_URL = process.env.BASE_URL || "missing BASE_URL";
-export const ENVIRONMENT = process.env.ENVIRONMENT || "development";
+  database: {
+    host: process.env.DATABASE_HOST || 'missing DATABASE_HOST',
+    port: Number(process.env.DATABASE_PORT) || 5432,
+    user: process.env.DATABASE_USER || 'missing DATABASE_USER',
+    password: process.env.DATABASE_PASSWORD || 'missing DATABASE_PASSWORD',
+    database: process.env.DATABASE_NAME || 'missing DATABASE_NAME',
+  },
 
-// Services
-export const DATABASE_URL = process.env.DATABASE_URL || "missing DATABASE_URL";
-export const KV_URL = process.env.KV_URL || "missing KV_URL";
+  kv: {
+    url: process.env.KV_URL || 'missing KV_URL',
+  },
 
-export const STORAGE_HOSTNAME = process.env.STORAGE_HOSTNAME || "missing STORAGE_HOSTNAME";
-export const STORAGE_SECRET = process.env.STORAGE_SECRET || "missing STORAGE_SECRET";
-export const STORAGE_PORT = process.env.STORAGE_PORT || "missing STORAGE_PORT";
-export const STORAGE_ACCESS_KEY =
-  process.env.STORAGE_ACCESS_KEY || "missing STORAGE_ACCESS_KEY";
-export const STORAGE_SECRET_KEY =
-  process.env.STORAGE_SECRET_KEY || "missing STORAGE_SECRET_KEY";
+  storage: {
+    hostname: process.env.STORAGE_HOSTNAME || 'missing STORAGE_HOSTNAME',
+    secret: process.env.STORAGE_SECRET || 'missing STORAGE_SECRET',
+    port: Number(process.env.STORAGE_PORT) || 9000,
+    accessKey: process.env.STORAGE_ACCESS_KEY || 'missing STORAGE_ACCESS_KEY',
+    secretKey: process.env.STORAGE_SECRET_KEY || 'missing STORAGE_SECRET_KEY',
+    bucket:
+      (process.env.ENVIRONMENT || 'development') === 'production'
+        ? 'prod'
+        : 'dev',
+  },
 
-export const STORAGE_BUCKET =  ENVIRONMENT == "production" ? "prod" : "dev";
+  smtp: {
+    host: process.env.SMTP_HOST || 'missing SMTP_HOST',
+  },
 
-export const SMTP_HOST = process.env.SMTP_HOST || "missing SMTP_HOST";
+  vault: {
+    url: process.env.VAULT_URL || 'missing VAULT_URL',
+  },
 
-export const VAULT_URL = process.env.VAULT_URL || "missing VAULT_URL";
+  keystone: {
+    url: process.env.KEYSTONE_URL || 'missing KEYSTONE_URL',
+    clientId: process.env.KEYSTONE_CLIENT_ID || 'missing KEYSTONE_CLIENT_ID',
+    clientSecret:
+      process.env.KEYSTONE_CLIENT_SECRET || 'missing KEYSTONE_CLIENT_SECRET',
+  },
 
-export const KEYSTONE_URL = process.env.KEYSTONE_URL || "missing KEYSTONE_URL";
-export const KEYSTONE_CLIENT_ID = process.env.KEYSTONE_CLIENT_ID || "missing KEYSTONE_CLIENT_ID";
-export const KEYSTONE_CLIENT_SECRET = process.env.KEYSTONE_CLIENT_SECRET || "missing KEYSTONE_CLIENT_SECRET";
+  broker: {
+    url: process.env.BROKER_URL || 'missing BROKER_URL',
+  },
+});
 
-export const BROKER_URL = process.env.BROKER_URL || "missing BROKER_URL"
+export type AppConfig = ReturnType<typeof config>;
+export default config;
