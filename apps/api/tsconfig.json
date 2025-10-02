@@ -1,62 +1,45 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "ts-node": {
+    "require": [
+      "tsconfig-paths/register"
+    ]
+  },
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "strict": true,
-    "skipLibCheck": true,
-    "types": [
-      "node",
-      "jest"
-    ],
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "outDir": "./dist",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "allowJs": true,
-    "baseUrl": ".",
-    "composite": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@src/*": [
-        "src/*"
-      ],
       "@config/*": [
         "src/config/*"
       ],
-      "@services/*": [
-        "src/services/*"
+      "@infra/*": [
+        "src/infra/*"
       ],
-      "@middleware/*": [
-        "src/middleware/*"
+      "@db/*": [
+        "src/infra/db/entity/*"
       ],
-      "@handlers/*": [
-        "src/handlers/*"
-      ],
-      "@lib/*": [
-        "src/lib/*"
-      ],
-      "@integrations/*": [
-        "src/integrations/*"
-      ],
-      "@repositories/*": [
-        "src/repositories/*"
-      ],
-      "@validators/*": [
-        "src/validators/*"
-      ],
-      "@tests/*": [
-        "tests/*"
+      "@src/*": [
+        "src/*"
       ]
     }
-  },
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
-  "include": [
-    "src/**/*",
-    "tests/**/*" 
-  ]
+  }
 }

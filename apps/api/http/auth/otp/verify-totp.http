@@ -1,0 +1,19 @@
+### Login
+# @name login
+POST http://localhost:3000/api/v1/auth/email
+Content-Type: application/json
+
+{
+"email": "test@example.com",
+ "password": "testing124"
+}
+
+### Validate OTP
+# @name validate
+POST http://localhost:3000/api/v1/auth/mfa/verify
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "token": "167525"
+}
