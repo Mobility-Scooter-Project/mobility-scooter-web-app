@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { ExecutionContext, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { InfraModule } from '../infra/infra.module';
@@ -9,7 +9,10 @@ import { MeModule } from './me/me.module';
 import { VideosModule } from './videos/videos.module';
 import config, { AppConfig } from '@config/constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { KvService } from '@infra/kv/kv.service';
 
 @Module({
   imports: [
@@ -31,13 +34,16 @@ import { ThrottlerModule } from '@nestjs/throttler';
         synchronize: configService.get('environment') !== 'production',
       }),
     }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60000,
-          limit: 10,
+    ThrottlerModule.forRootAsync({
+      imports: [InfraModule],
+      inject: [KvService],
+      useFactory: async (KvService: KvService) => ({
+        throttlers: [{ limit: 5, ttl: seconds(60) }],
+        storage: new ThrottlerStorageRedisService(KvService.kv),
+        skipIf: (context: ExecutionContext) => {
+          return process.env.ENVIRONMENT !== 'production';
         },
-      ],
+      }),
     }),
     InfraModule,
     AuthModule,
@@ -47,6 +53,11 @@ import { ThrottlerModule } from '@nestjs/throttler';
     VideosModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

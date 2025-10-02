@@ -12,7 +12,7 @@ describe('UserController (e2e)', () => {
   let token: string;
   let unitId: string;
   let userId: string = '';
-  let inviteeEmail = `invitee${Math.floor(Math.random() * 10000)}@example.com`;
+  const inviteeEmail = `invitee${Math.floor(Math.random() * 10000)}@example.com`;
   let inviteToken: string;
 
   beforeEach(async () => {

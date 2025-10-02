@@ -64,8 +64,8 @@ describe('PermissionsMiddleware', () => {
           userId: 1,
           userRole: USER_ROLES.ADMIN,
         },
-        path: '/api/v1/units/123/users/123',
-        method: 'PUT',
+        path: '/api/v1/units/123/users',
+        method: 'GET',
       };
 
       const res: any = {
@@ -74,6 +74,9 @@ describe('PermissionsMiddleware', () => {
       };
       const next = jest.fn();
 
+      jest
+        .spyOn(middleware as any, '_getPermissionsFromKv')
+        .mockResolvedValue([USER_ROLES.ADMIN]);
       await middleware.use(req, res, next);
 
       expect(next).toHaveBeenCalled();
@@ -83,7 +86,7 @@ describe('PermissionsMiddleware', () => {
       const req: any = {
         locals: {
           userId: 1,
-          userRole: USER_ROLES.ADMIN,
+          userRole: USER_ROLES.TRAINEE,
         },
         path: '/api/v1/units/123/users/123',
         method: 'PUT',
@@ -95,9 +98,13 @@ describe('PermissionsMiddleware', () => {
       };
       const next = jest.fn();
 
+      jest
+        .spyOn(middleware as any, '_getPermissionsFromKv')
+        .mockResolvedValue(USER_ROLES.ADMIN);
+
       await middleware.use(req, res, next);
 
-      expect(next).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
     });
   });
 });

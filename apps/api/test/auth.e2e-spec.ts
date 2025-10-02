@@ -1,11 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import { TestingModule, Test } from '@nestjs/testing';
 import { AppModule } from '@src/routes/app.module';
+import { AuthService } from '@src/routes/auth/auth.service';
+import { UsersService } from '@src/routes/units/users/users.service';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication<App>;
+  let authService: AuthService;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -13,6 +16,7 @@ describe('AuthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    authService = moduleFixture.get<AuthService>(AuthService);
     await app.init();
   });
 
@@ -157,5 +161,15 @@ describe('AuthController (e2e)', () => {
         .send({ token: 'invalidtoken', newPassword: 'newpassword123' })
         .expect(401);
     });
+  });
+
+  afterAll(async () => {
+    //reset the test user's password
+    await request(app.getHttpServer())
+      .patch('/auth/email/reset-password')
+      .send({
+        token: await authService.generateResetPasswordToken('test@example.com'),
+        newPassword: 'testing124',
+      });
   });
 });
