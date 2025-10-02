@@ -9,6 +9,7 @@ import { MeModule } from './me/me.module';
 import { VideosModule } from './videos/videos.module';
 import config, { AppConfig } from '@config/constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -29,6 +30,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         entities: [__dirname + '/../infra/db/entity/**/*.{js,ts}'],
         synchronize: configService.get('environment') !== 'production',
       }),
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
     }),
     InfraModule,
     AuthModule,
