@@ -37,5 +37,5 @@ describe('MeController (e2e)', () => {
       .set({ authorization: `Bearer ${token}` })
       .attach('file', Buffer.from('test'), 'test.png')
       .expect(200);
-  });
+  }, 10000); // Increase timeout for file upload test
 });

@@ -16,7 +16,7 @@ Authorization: Bearer {{login.response.body.token}}
 
 {
   "role": "admin",
-  "email": "test2@example.com"
+  "email": "test-{{$randomInt 0 1000}}@example.com"
 }
 
 ### Accept Invite
