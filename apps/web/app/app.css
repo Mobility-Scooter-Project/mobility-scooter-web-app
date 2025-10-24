@@ -1,3 +1,8 @@
+@source "./**/*.{ts,tsx,js,jsx}";
+@source "../components/**/*.{ts,tsx,js,jsx}";
+@source "../routes/**/*.{ts,tsx,js,jsx}";
+@source "../layouts/**/*.{ts,tsx,js,jsx}";
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,7 +11,7 @@
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  
+
   --text-display: 34px;
   --text-display--line-height: 41px;
   --text-title-1: 28px;
@@ -24,11 +29,18 @@
   --text-subhead--line-height: 20px;
   --text-label: 13px;
   --text-label--line-height: 18px;
+
+  --shadow-sm: 0 0 4px 0 rgb(0 0 0 / 15%);
+  --shadow-focus: 0 0 4px 0 rgb(0 0 0 / 8%);
+  --shadow-lg: inset 0 0 8px 2px rgb(0 0 0 / 40%);
+  --shadow-xl: inset 0 0 8px 2px rgb(0 0 0 / 25%);
+
+  --ring-width-1.5: 1.5px;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-background dark:bg-gray-950;
   @apply text-foreground;
 
   @media (prefers-color-scheme: dark) {
@@ -37,10 +49,15 @@ body {
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: var(--radius); /* 10px */
+  --radius-md: calc(var(--radius) * 2); /* 20px  ← rounded-md */
+  --radius-lg: calc(var(--radius) * 3); /* 30px  ← rounded-lg */
+  --radius-xl: calc(var(--radius) * 4); /* 40px */
+
+  --spacing-4.5: 18px;
+  --border-width-1.5: 1.5px;
+  --underline-offset-1.5: 1.5px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -76,7 +93,7 @@ body {
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: oklch(0.95 0 0);
   --foreground: oklch(0.4819 0 0); /* about #5e5e5e */
   --card: oklch(0.834 0 0); /* about #CECECE */
   --card-foreground: oklch(0.145 0 0);
@@ -152,6 +169,6 @@ body {
   }
 
   .scroll-fade {
-  mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
-}
+    mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+  }
 }
