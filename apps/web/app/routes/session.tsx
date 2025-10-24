@@ -4,6 +4,7 @@ import {
   ResizablePanelGroup,
 } from "~/components/ui/resizable";
 import { Card } from "~/components/ui/card";
+import { AnalysisPanel } from "~/components/session/analysis/AnalysisPanel";
 
 export default function SessionPage() {
   return (
@@ -37,7 +38,7 @@ export default function SessionPage() {
 
         <ResizablePanel defaultSize={25} minSize={20}>
           <Card className="h-full">
-            {/* todo */}
+            <AnalysisPanel />
           </Card>
         </ResizablePanel>
       </ResizablePanelGroup>
