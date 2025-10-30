@@ -112,10 +112,7 @@ const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
           />
 
           {/* Right Element Slot */}
-          {rightElement && (
-            // Use the dynamically chosen class name
-            <span>{rightElement}</span>
-          )}
+          {rightElement && <span>{rightElement}</span>}
         </label>
       </div>
     );
