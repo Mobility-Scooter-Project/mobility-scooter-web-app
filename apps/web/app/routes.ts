@@ -11,6 +11,7 @@ export default [
   route("/", "layouts/AuthLayout.tsx", [
     route("login", "routes/login.tsx"),
     route("signup", "routes/signup.tsx"),
-    route("joinorgapp", "routes/joinorgapp.tsx"),
+    route("join org applications", "routes/joinorgapp.tsx"),
+    route("components", "routes/components.tsx"),
   ]),
 ] satisfies RouteConfig;

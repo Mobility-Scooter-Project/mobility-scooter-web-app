@@ -77,7 +77,7 @@ const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
     const inputId = id || internalId;
 
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 w-full">
         {/* Optional Label */}
         {label && (
           <label

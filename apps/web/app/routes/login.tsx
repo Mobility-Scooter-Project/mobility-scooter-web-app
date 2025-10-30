@@ -19,7 +19,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="bg-card flex p-4.5 gap-4.5 flex-col rounded-lg w-full max-w-md">
+    <div className="bg-card flex p-4.5 gap-4.5 flex-col rounded-lg w-full max-w-md">
       <div className="flex flex-col gap-9 items-start">
         <div className="flex flex-col gap-3">
           <h2 className="text-title-2 font-semibold">Sign In</h2>
@@ -70,6 +70,6 @@ export default function LoginPage() {
 
         <Button>Sign In</Button>
       </div>
-    </main>
+    </div>
   );
 }
