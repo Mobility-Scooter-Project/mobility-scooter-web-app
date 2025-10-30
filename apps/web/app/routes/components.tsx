@@ -10,7 +10,10 @@ export default function ComponentsPage() {
     <div className="bg-card flex p-4.5 gap-9 items-start flex-col rounded-lg w-full max-w-md">
       <div className="flex flex-col gap-3">
         <h2 className="text-title-2 font-semibold">Components</h2>
-        <p className="text-base">Here is a page with all our components.</p>
+        <p className="text-base">
+          Here is a page with all our components. Current set of components are
+          the ones in app/components/
+        </p>
       </div>
 
       <div className="flex flex-col gap-4.5 w-full">
