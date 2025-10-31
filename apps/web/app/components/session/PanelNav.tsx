@@ -13,7 +13,7 @@ export function PanelNav({ tabs }: PanelNavProps) {
   return (
     <TabsList className="flex flex-wrap h-auto justify-start gap-2 rounded-none">
       {tabs.map((tab) => (
-        <TabsTrigger key={tab.value} value={tab.value} className="text-base h-9">
+        <TabsTrigger key={tab.value} value={tab.value} className="text-label h-9">
           {tab.label}
         </TabsTrigger>
       ))}
