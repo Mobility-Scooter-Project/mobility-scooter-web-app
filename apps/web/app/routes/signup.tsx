@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="flex flex-1 flex-col md:flex-row gap-4.5">
         <Button variant={"secondary"} size={"fill"}>
           <Link
-            to={"/"}
+            to={"/create-org-app"}
             className="flex flex-col w-full h-full p-4.5 gap-8 justify-center items-center"
           >
             <h2 className="text-title-2 font-semibold">Create Organization</h2>
@@ -42,7 +42,7 @@ export default function LoginPage() {
         </Button>
         <Button variant={"secondary"} size={"fill"}>
           <Link
-            to={"/"}
+            to={"/join-org-app"}
             className="flex flex-col w-full h-full p-4.5 gap-8 justify-center items-center"
           >
             <h2 className="text-title-2 font-semibold">Join Organization</h2>

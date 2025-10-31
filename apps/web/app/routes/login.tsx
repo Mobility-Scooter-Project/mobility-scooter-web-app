@@ -23,7 +23,7 @@ export default function LoginPage() {
       <div className="flex flex-col gap-9 items-start">
         <div className="flex flex-col gap-3">
           <h2 className="text-title-2 font-semibold">Sign In</h2>
-          <p className="text-base">
+          <p className="text-base text-muted-foreground">
             Sign in to access your organization resources.
           </p>
         </div>
@@ -65,10 +65,12 @@ export default function LoginPage() {
         </div>
 
         <Button className="text-label" variant={"link"} size={"none"} asChild>
-          <Link to={"/"}>Forgot password?</Link>
+          <Link to={"/forgot-password"}>Forgot password?</Link>
         </Button>
 
-        <Button>Sign In</Button>
+        <Button asChild>
+          <Link to={"/"}>Sign In</Link>
+        </Button>
       </div>
     </div>
   );
