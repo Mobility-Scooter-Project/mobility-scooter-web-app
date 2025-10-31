@@ -1,0 +1,21 @@
+### Login
+# @name login
+POST http://localhost:3000/api/v1/auth/email
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "testing124"
+}
+
+### Upload Profile Picture
+PUT http://localhost:3000/api/v1/me/pfp
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Type: image/png
+Content-Disposition: form-data; name="file"; filename="pfp.png"
+
+< ./pfp.png
+------Boundary--
