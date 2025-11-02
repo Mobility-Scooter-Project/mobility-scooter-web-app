@@ -93,9 +93,10 @@ body {
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.95 0 0);
+  --background: oklch(0.95 0 0); /* about #f6f6f6 */
   --foreground: oklch(0.4819 0 0); /* about #5e5e5e */
   --card: oklch(0.834 0 0); /* about #CECECE */
+  --accent: oklch(0.789 0 0); /* about #bababa */
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -105,7 +106,6 @@ body {
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.789 0 0); /* about #bababa */
   --accent-foreground: oklch(0.211 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
