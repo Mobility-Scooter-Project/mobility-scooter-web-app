@@ -1,12 +1,12 @@
 // routes/login.tsx
-import { Bell, Eye, EyeOff } from "lucide-react";
-import * as React from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const toggleVisibility = () => setShowPassword((p) => !p);
 

@@ -2,8 +2,24 @@
 import { Link } from "react-router";
 import { Button } from "~/components/Button";
 import { Checkbox } from "~/components/Checkbox";
+import { useState } from "react";
 
 export default function TermsPage() {
+  // ---- content vars ----
+  const TERMS_SUMMARY = "Terms and conditions yada yada dummy text here";
+  const TERMS_AFTER = "Christmas just a week away!";
+  const BULLETS = [
+    "Can you believe it guys?",
+    "Christmas!",
+    "Just a week away!",
+    "Christmas is in a week!",
+    "Woohoo!",
+    "I am so happy about this information.",
+  ];
+
+  // ---- state ----
+  const [agreed, setAgreed] = useState(false);
+
   return (
     <main className="bg-card flex my-auto p-6 gap-6 flex-col rounded-lg w-full max-w-3xl items-start">
       {/* Header */}
@@ -17,58 +33,49 @@ export default function TermsPage() {
       </div>
 
       {/* Agreement Summary Section */}
-      <div className="flex w-full flex-col gap-3">
-        <h3 className="text-base font-semibold">Agreement Summary</h3>
+      <div className="flex w-full flex-col gap-3 justify-start text-base">
+        <h3 className="font-semibold">Agreement Summary</h3>
 
         {/* Indented content */}
-        <div className="flex flex-col gap-3 px-[18px]">
-          <p className="text-sm text-muted-foreground">
-            Terms and conditions yada yada dummy text here
-          </p>
+        <div className="flex w-full flex-col gap-2 px-4.5 items-start">
+          <p>{TERMS_SUMMARY}</p>
 
-          <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-1">
-            <li>Can you believe it guys?</li>
-            <li>Christmas!</li>
-            <li>Just a week away!</li>
-            <li>Christmas is in a week!</li>
-            <li>Woohoo!</li>
-            <li>I am so happy about this information.</li>
+          <ul className="list-disc pl-6">
+            {BULLETS.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
           </ul>
 
-          <p className="text-sm text-muted-foreground">
-            Christmas just a week away!
-          </p>
-
-          <Button
-            variant="link"
-            size="none"
-            className="text-sm self-start text-muted-foreground"
-          >
-            View full terms here.
-          </Button>
+          <p>{TERMS_AFTER}</p>
         </div>
       </div>
+
+      <Button variant="link" size="none" className="text-label">
+        View full terms here.
+      </Button>
 
       {/* Confirmation Section */}
       <div className="flex w-full flex-col gap-3">
         <h3 className="text-base font-semibold">Confirmation</h3>
-
-        <Checkbox
-          className="size-4 border-border shrink-0"
-          containerClassName="flex items-center gap-3 cursor-pointer select-none"
-          labelClassName="text-base leading-none"
-        >
+        <Checkbox checked={agreed} onCheckedChange={(val) => setAgreed(!!val)}>
           I have read and agree to the Terms and Conditions.
         </Checkbox>
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex w-full gap-3 mt-3">
-        <Button variant="secondary" className="flex-1 min-w-0" asChild>
-          <Link to="/add-member">Back</Link>
+      <div className="flex flex-row w-full gap-3">
+        <Button variant="secondary" asChild>
+          <Link to="">Back</Link>
         </Button>
-        <Button className="flex-1 min-w-0" asChild>
-          <Link to="/confirmation">Finish Setup</Link>
+
+        <Button asChild disabled={!agreed}>
+          <Link
+            to={agreed ? "/confirmation" : "#"}
+            aria-disabled={!agreed}
+            className={!agreed ? "pointer-events-none opacity-60" : ""}
+          >
+            Finish Setup
+          </Link>
         </Button>
       </div>
     </main>

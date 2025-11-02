@@ -18,10 +18,6 @@ export default function AuthLayout() {
       to: "/login",
       msg: "Remember your password? Sign in here.",
     },
-    "/verify-email": {
-      to: "/verify-email",
-      msg: "Didn’t receive an email? Resend link.",
-    },
   };
 
   const { to, msg } = underlinkMap[path] ?? {
