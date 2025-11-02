@@ -6,13 +6,13 @@ import { TextInput } from "~/components/TextInput";
 
 export default function AddMemberPage() {
   return (
-    <main className="bg-card flex my-auto p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-title-2 font-semibold">
+      <div>
+        <h2 className="text-title-2 font-semibold mb-3">
           Department and Member Setup
         </h2>
-        <p className="text-base">
+        <p>
           Add your hospital’s main departments and invite key team members to
           get started. You can edit these later in the admin dashboard.
         </p>
@@ -20,7 +20,7 @@ export default function AddMemberPage() {
 
       {/* Departments Section */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Departments</h3>
+        <h3 className="font-semibold">Departments</h3>
 
         <Button
           variant="link"
@@ -30,13 +30,13 @@ export default function AddMemberPage() {
           <Plus className="size-4" /> New Department
         </Button>
 
-        <div className="flex flex-col gap-3">
+        <div>
           {/* Department row 1 */}
           <TextInput
             type="text"
             value="Department 1"
             variant="form"
-            className="bg-white h-14"
+            className="bg-white h-14 mb-3"
             readOnly
             rightElement={
               <div className="flex items-center gap-2 mr-1.5">
@@ -45,7 +45,7 @@ export default function AddMemberPage() {
                   aria-label="Delete Department 1"
                   className="rounded-full p-1 hover:bg-muted"
                 >
-                  <Trash2 className="size-4 text-muted-foreground" />
+                  <Trash2 className="size-4 cursor-pointer" />
                 </button>
               </div>
             }
@@ -65,7 +65,7 @@ export default function AddMemberPage() {
                   aria-label="Delete Department 2"
                   className="rounded-full p-1 hover:bg-muted"
                 >
-                  <Trash2 className="size-4 text-muted-foreground" />
+                  <Trash2 className="size-4 cursor-pointer" />
                 </button>
               </div>
             }
@@ -75,7 +75,7 @@ export default function AddMemberPage() {
 
       {/* Members Section */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Members</h3>
+        <h3 className="font-semibold">Members</h3>
 
         <Button
           variant="link"
@@ -85,25 +85,23 @@ export default function AddMemberPage() {
           <Plus className="size-4" /> New Member
         </Button>
 
-        <div className="flex flex-col gap-3">
+        <div>
           {/* Member row 1 */}
           <TextInput
             type="email"
             value="email@domain.com"
             variant="form"
-            className="bg-white h-14"
+            className="bg-white h-14 mb-3"
             readOnly
             rightElement={
               <div className="flex items-center gap-2 mr-1.5">
-                <p className="text-base text-muted-foreground mr-2">
-                  role here
-                </p>
+                <p className="text-muted-foreground mr-2">role here</p>
                 <button
                   type="button"
                   aria-label="Remove Member"
                   className="rounded-full p-1 hover:bg-muted"
                 >
-                  <Trash2 className="size-4 text-muted-foreground" />
+                  <Trash2 className="size-4 cursor-pointer" />
                 </button>
               </div>
             }
@@ -118,15 +116,13 @@ export default function AddMemberPage() {
             readOnly
             rightElement={
               <div className="flex items-center gap-2 mr-1.5">
-                <p className="text-base text-muted-foreground mr-2">
-                  role here
-                </p>
+                <p className="text-muted-foreground mr-2">role here</p>
                 <button
                   type="button"
                   aria-label="Remove Member"
                   className="rounded-full p-1 hover:bg-muted"
                 >
-                  <Trash2 className="size-4 text-muted-foreground" />
+                  <Trash2 className="size-4 cursor-pointer" />
                 </button>
               </div>
             }
@@ -135,12 +131,12 @@ export default function AddMemberPage() {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex w-full gap-3 mt-4">
+      <div className="flex w-full gap-3">
         <Button variant="secondary" className="flex-1" asChild>
-          <Link to="/create-org">Back</Link>
+          <Link to={"/create-org"}>Back</Link>
         </Button>
         <Button className="flex-1" asChild>
-          <Link to="/terms">Continue</Link>
+          <Link to={"/terms"}>Continue</Link>
         </Button>
       </div>
     </main>

@@ -5,13 +5,13 @@ import { TextInput } from "~/components/TextInput";
 
 export default function JoinOrgAppPage() {
   return (
-    <main className="bg-card flex my-auto p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl justify-start items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] justify-start items-start">
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-title-2 font-semibold">
+      <div className="flex flex-col">
+        <h2 className="text-title-2 font-semibold mb-3">
           Request to Join Organization
         </h2>
-        <p className="text-base text-muted-foreground">
+        <p>
           Request access to your organization’s workspace. Once approved, you’ll
           get a one-time magic link to register your account.
         </p>
@@ -19,9 +19,9 @@ export default function JoinOrgAppPage() {
 
       {/* Applicant Information */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Applicant Information</h3>
+        <h3 className="font-semibold">Applicant Information</h3>
 
-        <div className="flex w-full flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <TextInput
             label="First name"
             id="first-name"
@@ -50,9 +50,9 @@ export default function JoinOrgAppPage() {
 
       {/* Organization Information */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Organization Information</h3>
+        <h3 className="font-semibold">Organization Information</h3>
 
-        <div className="flex w-full flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <TextInput
             label="Hospital"
             id="hospital"
@@ -95,7 +95,7 @@ export default function JoinOrgAppPage() {
       </Button>
 
       <Button asChild>
-        <Link to="/verify-email">Submit Application</Link>
+        <Link to={"/verify-email"}>Submit Application</Link>
       </Button>
     </main>
   );

@@ -78,13 +78,13 @@ export default function CreateOrgAppPage() {
   const d = hasSize ? roundedRectPath(w, h, r, inset) : "";
 
   return (
-    <main className="bg-card flex my-auto p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-title-2 font-semibold">
+      <div>
+        <h2 className="text-title-2 font-semibold mb-3">
           Create Organization Application
         </h2>
-        <p className="text-base text-muted-foreground">
+        <p>
           Complete this form to apply for your hospital or organization
           registration. All applications are reviewed and verified before
           approval.
@@ -92,39 +92,38 @@ export default function CreateOrgAppPage() {
       </div>
 
       {/* Organization Information */}
-      <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Organization Information</h3>
+      <div className="flex flex-col w-full gap-4.5">
+        <h3 className="font-semibold">Organization Information</h3>
+        <div className="flex flex-col gap-3">
+          <TextInput
+            label="Organization legal name"
+            id="org-name"
+            type="text"
+            placeholder="e.g., Pee Pee Poo Poo Medical Center"
+            variant="form"
+          />
 
-        <TextInput
-          label="Organization legal name"
-          id="org-name"
-          type="text"
-          placeholder="e.g., Pee Pee Poo Poo Medical Center"
-          variant="form"
-        />
+          <TextInput
+            label="Organization web domain"
+            id="org-domain"
+            type="text"
+            placeholder="e.g., peepeepoopoo.org"
+            variant="form"
+          />
 
-        <TextInput
-          label="Organization web domain"
-          id="org-domain"
-          type="text"
-          placeholder="e.g., peepeepoopoo.org"
-          variant="form"
-        />
-
-        <TextInput
-          label="Admin contact email"
-          id="admin-email"
-          type="email"
-          placeholder="Enter email..."
-          variant="form"
-        />
+          <TextInput
+            label="Admin contact email"
+            id="admin-email"
+            type="email"
+            placeholder="Enter email..."
+            variant="form"
+          />
+        </div>
       </div>
 
       {/* Upload Verification Documents */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">
-          Upload Verification Documents
-        </h3>
+        <h3 className="font-semibold">Upload Verification Documents</h3>
 
         <div className="flex w-full flex-col gap-2 cursor-pointer group">
           <p className="text-label text-foreground">

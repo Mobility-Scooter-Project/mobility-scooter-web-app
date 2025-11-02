@@ -21,11 +21,11 @@ export default function TermsPage() {
   const [agreed, setAgreed] = useState(false);
 
   return (
-    <main className="bg-card flex my-auto p-6 gap-6 flex-col rounded-lg w-full max-w-3xl items-start">
+    <main className="bg-card flex p-6 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
       {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h2 className="text-title-2 font-semibold">Terms & Conditions</h2>
-        <p className="text-base">
+      <div>
+        <h2 className="text-title-2 font-semibold mb-3">Terms & Conditions</h2>
+        <p>
           Please review and agree to the terms and conditions for your account.
           These outline your responsibilities as a member and the platform's
           data policies.
@@ -33,7 +33,7 @@ export default function TermsPage() {
       </div>
 
       {/* Agreement Summary Section */}
-      <div className="flex w-full flex-col gap-3 justify-start text-base">
+      <div className="flex w-full flex-col gap-3 justify-start">
         <h3 className="font-semibold">Agreement Summary</h3>
 
         {/* Indented content */}
@@ -48,15 +48,16 @@ export default function TermsPage() {
 
           <p>{TERMS_AFTER}</p>
         </div>
+        <div>
+          <Button variant="link" size="none" className="text-label">
+            View full terms here.
+          </Button>
+        </div>
       </div>
 
-      <Button variant="link" size="none" className="text-label">
-        View full terms here.
-      </Button>
-
       {/* Confirmation Section */}
-      <div className="flex w-full flex-col gap-3">
-        <h3 className="text-base font-semibold">Confirmation</h3>
+      <div>
+        <h3 className="font-semibold mb-3">Confirmation</h3>
         <Checkbox checked={agreed} onCheckedChange={(val) => setAgreed(!!val)}>
           I have read and agree to the Terms and Conditions.
         </Checkbox>
@@ -65,7 +66,7 @@ export default function TermsPage() {
       {/* Navigation Buttons */}
       <div className="flex flex-row w-full gap-3">
         <Button variant="secondary" asChild>
-          <Link to="">Back</Link>
+          <Link to={"/"}>Back</Link>
         </Button>
 
         <Button asChild disabled={!agreed}>

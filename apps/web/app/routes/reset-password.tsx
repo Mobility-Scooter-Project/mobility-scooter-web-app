@@ -23,73 +23,70 @@ export default function ResetPasswordPage() {
     };
 
   return (
-    <div className="bg-card flex p-4.5 gap-4.5 flex-col rounded-lg w-full max-w-lg">
-      <div className="flex flex-col gap-9 items-start">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-title-2 font-semibold">Reset Password</h2>
-          <p className="text-base text-muted-foreground">
-            Enter and confirm a new password for {`{email@email.com}`}.
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col gap-3">
-          <TextInput
-            label="Password"
-            id="password"
-            placeholder="Enter password..."
-            variant="form"
-            type={show.password ? "text" : "password"}
-            onKeyDown={onPwKeyDown("password")}
-            rightElement={
-              <Button
-                onClick={() => toggle("password")}
-                aria-pressed={show.password}
-                aria-label={show.password ? "Hide password" : "Show password"}
-                title={show.password ? "Hide password" : "Show password"}
-                variant="inline"
-                size="inline"
-                className="mr-2.5"
-              >
-                {show.password ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </Button>
-            }
-          />
-
-          <TextInput
-            label="Confirm Password"
-            id="confirm-password"
-            placeholder="Re-enter password..."
-            variant="form"
-            type={show.confirm ? "text" : "password"}
-            onKeyDown={onPwKeyDown("confirm")}
-            rightElement={
-              <Button
-                onClick={() => toggle("confirm")}
-                aria-pressed={show.confirm}
-                aria-label={show.confirm ? "Hide password" : "Show password"}
-                title={show.confirm ? "Hide password" : "Show password"}
-                variant="inline"
-                size="inline"
-                className="mr-2.5"
-              >
-                {show.confirm ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </Button>
-            }
-          />
-        </div>
-
-        <Button asChild>
-          <Link to="/reset-confirmation">Update Password</Link>
-        </Button>
+    <main className="bg-card flex flex-col gap-9 p-4.5 rounded-lg w-full max-w-[480px]">
+      <div>
+        <h2 className="text-title-2 font-semibold mb-3">Reset Password</h2>
+        <p>Enter and confirm a new password for {`{email@email.com}`}.</p>
       </div>
-    </div>
+
+      <div>
+        <TextInput
+          label="Password"
+          id="password"
+          placeholder="Enter password..."
+          variant="form"
+          className="mb-4.5"
+          type={show.password ? "text" : "password"}
+          onKeyDown={onPwKeyDown("password")}
+          rightElement={
+            <Button
+              onClick={() => toggle("password")}
+              aria-pressed={show.password}
+              aria-label={show.password ? "Hide password" : "Show password"}
+              title={show.password ? "Hide password" : "Show password"}
+              variant="inline"
+              size="inline"
+              className="mr-2.5"
+            >
+              {show.password ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+            </Button>
+          }
+        />
+
+        <TextInput
+          label="Confirm Password"
+          id="confirm-password"
+          placeholder="Re-enter password..."
+          variant="form"
+          type={show.confirm ? "text" : "password"}
+          onKeyDown={onPwKeyDown("confirm")}
+          rightElement={
+            <Button
+              onClick={() => toggle("confirm")}
+              aria-pressed={show.confirm}
+              aria-label={show.confirm ? "Hide password" : "Show password"}
+              title={show.confirm ? "Hide password" : "Show password"}
+              variant="inline"
+              size="inline"
+              className="mr-2.5"
+            >
+              {show.confirm ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+            </Button>
+          }
+        />
+      </div>
+
+      <Button asChild>
+        <Link to="/reset-confirmation">Update Password</Link>
+      </Button>
+    </main>
   );
 }
