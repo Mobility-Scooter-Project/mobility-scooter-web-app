@@ -19,89 +19,81 @@ export default function CreateOrgAppPage() {
   };
 
   return (
-    <main className="bg-card flex my-auto p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
-      <div className="flex flex-col gap-3">
-        <h2 className="text-title-2 font-semibold">Create Organization</h2>
-        <p className="text-base">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
+      <div>
+        <h2 className="text-title-2 font-semibold mb-3">Create Organization</h2>
+        <p>
           Your organization details have been verified. Please confirm your
           information to finish setting up your account.
         </p>
       </div>
 
-      <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Hospital Information</h3>
+      <div>
+        <h3 className="font-semibold mb-4.5">Hospital Information</h3>
 
-        <div className="flex w-full flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Organization legal name</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">Pee Pee Poo Poo Medical Center</p>
-            </div>
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-label mb-2">Organization legal name</p>
+            <p className="pl-4 pr-3 py-2">Pee Pee Poo Poo Medical Center</p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Organization web domain</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">peepeepoopoo.org</p>
-            </div>
+          <div>
+            <p className="text-label mb-2">Organization web domain</p>
+            <p className="pl-4 pr-3 py-2">peepeepoopoo.org</p>
           </div>
         </div>
       </div>
 
       {/* Account Information */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Account Information</h3>
+        <h3 className="font-semibold">Account Information</h3>
 
-        <div className="flex w-full flex-col gap-3">
-          <TextInput
-            label="First name"
-            id="first-name"
-            type="text"
-            placeholder="Enter first name..."
-            variant="form"
-          />
+        <TextInput
+          label="First name"
+          id="first-name"
+          type="text"
+          placeholder="Enter first name..."
+          variant="form"
+        />
 
-          <TextInput
-            label="Last name"
-            id="last-name"
-            type="text"
-            placeholder="Enter last name..."
-            variant="form"
-          />
+        <TextInput
+          label="Last name"
+          id="last-name"
+          type="text"
+          placeholder="Enter last name..."
+          variant="form"
+        />
 
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Primary Email</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">johnpoo@gmail.com</p>
-            </div>
-          </div>
-
-          <TextInput
-            label="Password (min 8 characters, min 1 number or symbol)"
-            id="password"
-            placeholder="Create a secure password..."
-            variant="form"
-            type={showPassword ? "text" : "password"}
-            onKeyDown={onPwKeyDown}
-            rightElement={
-              <Button
-                onClick={toggleVisibility}
-                aria-pressed={showPassword}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                title={showPassword ? "Hide password" : "Show password"}
-                variant={"inline"}
-                size={"inline"}
-                className="mr-2.5"
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </Button>
-            }
-          />
+        <div>
+          <p className="text-label mb-2">Primary Email</p>
+          <p className="pl-4 pr-3 py-2">johnpoo@gmail.com</p>
         </div>
+
+        <TextInput
+          label="Password (min 8 characters, min 1 number or symbol)"
+          id="password"
+          placeholder="Create a secure password..."
+          variant="form"
+          type={showPassword ? "text" : "password"}
+          onKeyDown={onPwKeyDown}
+          rightElement={
+            <Button
+              onClick={toggleVisibility}
+              aria-pressed={showPassword}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+              variant={"inline"}
+              size={"inline"}
+              className="mr-2.5"
+            >
+              {showPassword ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+            </Button>
+          }
+        />
       </div>
 
       <Button asChild>

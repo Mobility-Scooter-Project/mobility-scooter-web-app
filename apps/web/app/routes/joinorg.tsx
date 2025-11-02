@@ -19,11 +19,11 @@ export default function JoinrgAppPage() {
   };
 
   return (
-    <main className="bg-card flex my-auto p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col w-full rounded-lg max-w-[750px] items-start">
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-title-2 font-semibold">Join Organization</h2>
-        <p className="text-base">
+      <div>
+        <h2 className="text-title-2 font-semibold mb-3">Join Organization</h2>
+        <p>
           Welcome, {`{Full Name}`}! You’ve been invited to join{" "}
           {`{Hospital Name}`}. Review your assigned details and complete your
           account setup to continue.
@@ -31,42 +31,35 @@ export default function JoinrgAppPage() {
       </div>
 
       {/* Hospital Information */}
-      <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Hospital Information</h3>
+      <div className="flex flex-col gap-4.5">
+        <h3 className="font-semibold">Hospital Information</h3>
+        <p>
+          These details were assigned by your organization’s administrator and
+          cannot be changed. If anything looks incorrect, please contact your
+          hospital admin.
+        </p>
 
-        <div className="flex w-full flex-col gap-3">
-          <p className="text-base">
-            These details were assigned by your organization’s administrator and
-            cannot be changed. If anything looks incorrect, please contact your
-            hospital admin.
-          </p>
-
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Organization</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">Pee Pee Poo Poo Medical Center</p>
-            </div>
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-label mb-2">Organization</p>
+            <p className="pl-4 pr-3 py-2">Pee Pee Poo Poo Medical Center</p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Department</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">Poo Poo Department</p>
-            </div>
+          <div>
+            <p className="text-label mb-2">Department</p>
+            <p className="pl-4 pr-3 py-2">Poo Poo Department</p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Role</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">Researcher</p>
-            </div>
+          <div>
+            <p className="text-label mb-2">Role</p>
+            <p className="pl-4 pr-3 py-2">Researcher</p>
           </div>
         </div>
       </div>
 
       {/* Account Information */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Account Information</h3>
+        <h3 className="font-semibold">Account Information</h3>
 
         <div className="flex w-full flex-col gap-3">
           <TextInput
@@ -85,11 +78,9 @@ export default function JoinrgAppPage() {
             variant="form"
           />
 
-          <div className="flex flex-col gap-2">
-            <p className="text-label">Primary Email</p>
-            <div className="flex h-10 px-4 items-center justify-start">
-              <p className="text-base">johnpoo@gmail.com</p>
-            </div>
+          <div>
+            <p className="text-label mb-2">Primary Email</p>
+            <p className="pl-4 pr-3 py-2">johnpoo@gmail.com</p>
           </div>
 
           <TextInput
