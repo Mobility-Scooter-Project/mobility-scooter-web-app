@@ -36,18 +36,12 @@ export default function AddMemberPage() {
             type="text"
             value="Department 1"
             variant="form"
-            className="bg-white h-14 mb-3"
+            className="bg-white p-4.5 h-14 mb-3"
             readOnly
             rightElement={
-              <div className="flex items-center gap-2 mr-1.5">
-                <button
-                  type="button"
-                  aria-label="Delete Department 1"
-                  className="rounded-full p-1 hover:bg-muted"
-                >
-                  <Trash2 className="size-4 cursor-pointer" />
-                </button>
-              </div>
+              <Button variant="inline" className="h-4 w-4 m-1" asChild>
+                <Trash2 />
+              </Button>
             }
           />
 
@@ -56,18 +50,12 @@ export default function AddMemberPage() {
             type="text"
             value="Department 2"
             variant="form"
-            className="bg-white h-14"
+            className="bg-white p-4.5 h-14"
             readOnly
             rightElement={
-              <div className="flex items-center gap-2 mr-1.5">
-                <button
-                  type="button"
-                  aria-label="Delete Department 2"
-                  className="rounded-full p-1 hover:bg-muted"
-                >
-                  <Trash2 className="size-4 cursor-pointer" />
-                </button>
-              </div>
+              <Button variant="inline" className="h-4 w-4 m-1" asChild>
+                <Trash2 />
+              </Button>
             }
           />
         </div>
@@ -91,20 +79,9 @@ export default function AddMemberPage() {
             type="email"
             value="email@domain.com"
             variant="form"
-            className="bg-white h-14 mb-3"
+            className="bg-white h-14 mb-3 p-4.5"
             readOnly
-            rightElement={
-              <div className="flex items-center gap-2 mr-1.5">
-                <p className="text-muted-foreground mr-2">role here</p>
-                <button
-                  type="button"
-                  aria-label="Remove Member"
-                  className="rounded-full p-1 hover:bg-muted"
-                >
-                  <Trash2 className="size-4 cursor-pointer" />
-                </button>
-              </div>
-            }
+            rightElement={<p className="text-foreground">role here</p>}
           />
 
           {/* Member row 2 */}
@@ -112,20 +89,9 @@ export default function AddMemberPage() {
             type="email"
             value="email@domain.com"
             variant="form"
-            className="bg-white h-14"
+            className="bg-white h-14 p-4.5"
             readOnly
-            rightElement={
-              <div className="flex items-center gap-2 mr-1.5">
-                <p className="text-muted-foreground mr-2">role here</p>
-                <button
-                  type="button"
-                  aria-label="Remove Member"
-                  className="rounded-full p-1 hover:bg-muted"
-                >
-                  <Trash2 className="size-4 cursor-pointer" />
-                </button>
-              </div>
-            }
+            rightElement={<p className="text-foreground">role here</p>}
           />
         </div>
       </div>
