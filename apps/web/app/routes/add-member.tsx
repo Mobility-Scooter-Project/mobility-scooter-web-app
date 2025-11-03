@@ -22,12 +22,13 @@ export default function AddMemberPage() {
       <div className="flex w-full flex-col gap-4.5">
         <h3 className="font-semibold">Departments</h3>
 
-        <Button
-          variant="link"
-          size="none"
-          className="flex items-center py-2 px-4 gap-2 text-foreground self-start"
-        >
-          <Plus className="size-4" /> New Department
+        <Button variant="link" size="none" className="flex self-start">
+          <Link
+            to="/overlay"
+            className="flex items-center py-2 px-4 gap-2 text-foreground"
+          >
+            <Plus className="size-4" /> New Department
+          </Link>
         </Button>
 
         <div>
@@ -40,7 +41,7 @@ export default function AddMemberPage() {
             readOnly
             rightElement={
               <Button variant="inline" className="h-4 w-4 m-1" asChild>
-                <Trash2 />
+                <Trash2 className="size-4" />
               </Button>
             }
           />
@@ -54,7 +55,7 @@ export default function AddMemberPage() {
             readOnly
             rightElement={
               <Button variant="inline" className="h-4 w-4 m-1" asChild>
-                <Trash2 />
+                <Trash2 className="size-4" />
               </Button>
             }
           />
@@ -65,12 +66,13 @@ export default function AddMemberPage() {
       <div className="flex w-full flex-col gap-4.5">
         <h3 className="font-semibold">Members</h3>
 
-        <Button
-          variant="link"
-          size="none"
-          className="flex items-center py-2 px-4 gap-2 text-foreground self-start"
-        >
-          <Plus className="size-4" /> New Member
+        <Button variant="link" size="none" className="flex self-start">
+          <Link
+            className="flex items-center py-2 px-4 gap-2 text-foreground"
+            to="/overlay"
+          >
+            <Plus className="size-4" /> New Member
+          </Link>
         </Button>
 
         <div>
