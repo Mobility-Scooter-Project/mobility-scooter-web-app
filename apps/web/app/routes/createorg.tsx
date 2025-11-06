@@ -19,7 +19,7 @@ export default function CreateOrgAppPage() {
   };
 
   return (
-    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
       <div>
         <h2 className="text-title-2 font-semibold mb-3">Create Organization</h2>
         <p>
@@ -82,7 +82,7 @@ export default function CreateOrgAppPage() {
               aria-pressed={showPassword}
               aria-label={showPassword ? "Hide password" : "Show password"}
               title={showPassword ? "Hide password" : "Show password"}
-              variant={"inline"}
+              variant={"ghost"}
               size={"inline"}
               className="mr-2.5"
             >

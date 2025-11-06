@@ -26,8 +26,8 @@ export default function AuthLayout() {
   };
 
   return (
-    <div className="h-full w-full px-4.5 py-9 flex overflow-auto">
-      <main className="flex w-full items-center flex-col gap-4.5 my-auto">
+    <div className="h-full w-full px-4.5 flex">
+      <main className="flex w-full items-center flex-col gap-4.5 py-9 my-auto">
         <Outlet />
         <Button className="text-label" variant="link" size="none" asChild>
           <Link to={to}>{msg}</Link>

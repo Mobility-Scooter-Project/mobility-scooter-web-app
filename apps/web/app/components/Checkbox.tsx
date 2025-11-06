@@ -36,7 +36,7 @@ function Checkbox({
           id={checkboxId}
           {...props}
           className={cn(
-            "peer grid place-items-center size-6 rounded-full border-[1.5px] border-accent cursor-pointer group-hover:shadow-sm",
+            "peer grid place-items-center size-6 rounded-full border-[1.5px] border-foreground cursor-pointer group-hover:shadow-sm",
             className
           )}
         >

@@ -40,7 +40,7 @@ export default function AddMemberPage() {
             className="bg-white p-4.5 h-14 mb-3"
             readOnly
             rightElement={
-              <Button variant="inline" className="h-4 w-4 m-1" asChild>
+              <Button variant="ghost" className="h-4 w-4 m-1" asChild>
                 <Trash2 className="size-4" />
               </Button>
             }
@@ -54,7 +54,7 @@ export default function AddMemberPage() {
             className="bg-white p-4.5 h-14"
             readOnly
             rightElement={
-              <Button variant="inline" className="h-4 w-4 m-1" asChild>
+              <Button variant="ghost" className="h-4 w-4 m-1" asChild>
                 <Trash2 className="size-4" />
               </Button>
             }

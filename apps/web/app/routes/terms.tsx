@@ -21,10 +21,10 @@ export default function TermsPage() {
   const [agreed, setAgreed] = useState(false);
 
   return (
-    <main className="bg-card flex p-6 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
+    <main className="bg-card flex p-6 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
       {/* Header */}
-      <div>
-        <h2 className="text-title-2 font-semibold mb-3">Terms & Conditions</h2>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-title-2 font-semibold">Terms & Conditions</h2>
         <p>
           Please review and agree to the terms and conditions for your account.
           These outline your responsibilities as a member and the platform's
@@ -56,8 +56,8 @@ export default function TermsPage() {
       </div>
 
       {/* Confirmation Section */}
-      <div>
-        <h3 className="font-semibold mb-3">Confirmation</h3>
+      <div className="flex flex-col gap-3">
+        <h3 className="font-semibold">Confirmation</h3>
         <Checkbox checked={agreed} onCheckedChange={(val) => setAgreed(!!val)}>
           I have read and agree to the Terms and Conditions.
         </Checkbox>
@@ -65,11 +65,11 @@ export default function TermsPage() {
 
       {/* Navigation Buttons */}
       <div className="flex flex-row w-full gap-3">
-        <Button variant="secondary" asChild>
+        <Button size={"fill"} variant="secondary" asChild>
           <Link to={"/"}>Back</Link>
         </Button>
 
-        <Button asChild disabled={!agreed}>
+        <Button size={"fill"} asChild disabled={!agreed}>
           <Link
             to={agreed ? "/confirmation" : "#"}
             aria-disabled={!agreed}

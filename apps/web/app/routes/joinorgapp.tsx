@@ -5,10 +5,10 @@ import { TextInput } from "~/components/TextInput";
 
 export default function JoinOrgAppPage() {
   return (
-    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] justify-start items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl justify-start items-start">
       {/* Header */}
-      <div className="flex flex-col">
-        <h2 className="text-title-2 font-semibold mb-3">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-title-2 font-semibold">
           Request to Join Organization
         </h2>
         <p>
@@ -94,7 +94,7 @@ export default function JoinOrgAppPage() {
         </Link>
       </Button>
 
-      <Button asChild>
+      <Button size={"fill"} asChild>
         <Link to={"/verify-email"}>Submit Application</Link>
       </Button>
     </main>
