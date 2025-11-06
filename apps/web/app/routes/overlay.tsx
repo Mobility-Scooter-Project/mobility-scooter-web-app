@@ -68,7 +68,7 @@ export default function OverlayModal() {
           <div className="flex justify-between mb-3">
             <h2 className="text-title-2 font-semibold">Invite Member</h2>
             {/* X Close Button */}
-            <Button variant="inline" className="w-auto h-auto" onClick={close}>
+            <Button variant="ghost" className="w-auto h-auto" onClick={close}>
               <X className="text-foreground size-4" />
             </Button>
           </div>
@@ -103,7 +103,7 @@ export default function OverlayModal() {
             placeholder="Select department"
             variant="form"
             rightElement={
-              <Button variant="inline" className="py-2 px-4" asChild>
+              <Button variant="ghost" className="py-2 px-4" asChild>
                 <ChevronDown className="size-4 text-foreground" />
               </Button>
             }
@@ -115,7 +115,7 @@ export default function OverlayModal() {
             placeholder="Select role"
             variant="form"
             rightElement={
-              <Button variant="inline" className="py-2 px-4" asChild>
+              <Button variant="ghost" className="py-2 px-4" asChild>
                 <ChevronDown className="size-4 text-foreground" />
               </Button>
             }
@@ -133,7 +133,7 @@ export default function OverlayModal() {
             variant="default"
             readOnly
             rightElement={
-              <Button variant="inline" className="py-2 px-4" asChild>
+              <Button variant="ghost" className="py-2 px-4" asChild>
                 <ChevronDown className="size-4 text-foreground" />
               </Button>
             }

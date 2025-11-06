@@ -19,59 +19,57 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-card flex p-4.5 gap-4.5 flex-col rounded-lg w-full max-w-md">
-      <div className="flex flex-col gap-9 items-start">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-title-2 font-semibold">Sign In</h2>
-          <p className="text-base text-muted-foreground">
-            Sign in to access your organization resources.
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col gap-3">
-          <TextInput
-            label="Email"
-            id="email"
-            type="email"
-            placeholder="Enter email..."
-            variant="form"
-          />
-
-          <TextInput
-            label="Password"
-            id="password"
-            placeholder="Enter password..."
-            variant="form"
-            type={showPassword ? "text" : "password"}
-            onKeyDown={onPwKeyDown}
-            rightElement={
-              <Button
-                onClick={toggleVisibility}
-                aria-pressed={showPassword}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                title={showPassword ? "Hide password" : "Show password"}
-                variant={"inline"}
-                size={"inline"}
-                className="mr-2.5"
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </Button>
-            }
-          />
-        </div>
-
-        <Button className="text-label" variant={"link"} size={"none"} asChild>
-          <Link to={"/forgot-password"}>Forgot password?</Link>
-        </Button>
-
-        <Button asChild>
-          <Link to={"/"}>Sign In</Link>
-        </Button>
+    <div className="bg-card flex p-4.5 gap-9 flex-col items-start rounded-lg w-full max-w-lg">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-title-2 font-semibold">Sign In</h2>
+        <p className="text-base text-muted-foreground">
+          Sign in to access your organization resources.
+        </p>
       </div>
+
+      <div className="flex w-full flex-col gap-3">
+        <TextInput
+          label="Email"
+          id="email"
+          type="email"
+          placeholder="Enter email..."
+          variant="form"
+        />
+
+        <TextInput
+          label="Password"
+          id="password"
+          placeholder="Enter password..."
+          variant="form"
+          type={showPassword ? "text" : "password"}
+          onKeyDown={onPwKeyDown}
+          rightElement={
+            <Button
+              onClick={toggleVisibility}
+              aria-pressed={showPassword}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+              variant={"ghost"}
+              size={"inline"}
+              className="mr-2.5"
+            >
+              {showPassword ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+            </Button>
+          }
+        />
+      </div>
+
+      <Button className="text-label" variant={"link"} size={"none"} asChild>
+        <Link to={"/forgot-password"}>Forgot password?</Link>
+      </Button>
+
+      <Button size={"fill"} asChild>
+        <Link to={"/"}>Sign In</Link>
+      </Button>
     </div>
   );
 }

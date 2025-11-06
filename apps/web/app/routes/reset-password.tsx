@@ -24,18 +24,17 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="bg-card flex flex-col gap-9 p-4.5 rounded-lg w-full max-w-[480px]">
-      <div>
-        <h2 className="text-title-2 font-semibold mb-3">Reset Password</h2>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-title-2 font-semibold">Reset Password</h2>
         <p>Enter and confirm a new password for {`{email@email.com}`}.</p>
       </div>
 
-      <div>
+      <div className="flex flex-col w-full gap-3">
         <TextInput
           label="Password"
           id="password"
           placeholder="Enter password..."
           variant="form"
-          className="mb-4.5"
           type={show.password ? "text" : "password"}
           onKeyDown={onPwKeyDown("password")}
           rightElement={
@@ -44,7 +43,7 @@ export default function ResetPasswordPage() {
               aria-pressed={show.password}
               aria-label={show.password ? "Hide password" : "Show password"}
               title={show.password ? "Hide password" : "Show password"}
-              variant="inline"
+              variant="ghost"
               size="inline"
               className="mr-2.5"
             >
@@ -70,7 +69,7 @@ export default function ResetPasswordPage() {
               aria-pressed={show.confirm}
               aria-label={show.confirm ? "Hide password" : "Show password"}
               title={show.confirm ? "Hide password" : "Show password"}
-              variant="inline"
+              variant="ghost"
               size="inline"
               className="mr-2.5"
             >
