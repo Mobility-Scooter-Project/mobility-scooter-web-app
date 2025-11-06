@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/ui/icon";
 import { AnnotationCard } from "./AnnotationCard";
@@ -9,6 +10,7 @@ const mockAnnotations = [
     timestamp: "00:00 - 01:01",
     author: "Garrett Lo",
     date: "Sep 25",
+    description: "",
   },
   {
     id: 2,
@@ -16,7 +18,7 @@ const mockAnnotations = [
     timestamp: "00:00 - 01:01",
     author: "Garrett Lo",
     date: "Sep 25, 2024",
-    description: undefined,
+    description: "",
   },
   {
     id: 3,
@@ -65,28 +67,78 @@ const mockAnnotations = [
 ];
 
 export function AnnotationContent() {
+  const [annotations, setAnnotations] = useState(mockAnnotations);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const handleSelect = (id: number) => setSelectedId(id);
+  const handleDeselect = () => setSelectedId(null);
+
+  const handleTitleChange = (id: number, next: string) => {
+    setAnnotations((list) =>
+      list.map((a) => (a.id === id ? { ...a, title: next } : a))
+    );
+  };
+
+  const handleDescriptionChange = (id: number, next: string) => {
+    setAnnotations((list) =>
+      list.map((a) => (a.id === id ? { ...a, description: next } : a))
+    );
+  };
+
+  const handleNewAnnotation = () => {
+    const nextId = annotations.length
+      ? Math.max(...annotations.map((a) => a.id)) + 1
+      : 1;
+    const newItem = {
+      id: nextId,
+      title: "",
+      timestamp: "00:00 - 00:00",
+      author: "Garrett Lo",
+      date: `${new Date()
+        .toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+        .replace(",", "")}`,
+      description: "",
+    };
+    setAnnotations([newItem, ...annotations]);
+    setSelectedId(nextId);
+  };
+
+  const effectiveSelectedId = selectedId ?? null;
+
   return (
     <div>
       <Button
         variant="ghost"
         className="text-foreground w-auto px-4 mt-2 mb-5"
+        onClick={handleNewAnnotation}
       >
         <Icon name="Plus" />
         <span>New Annotation</span>
       </Button>
 
-        <section className="flex flex-col gap-2">
-          {mockAnnotations.map((annotation) => (
-            <AnnotationCard
-              key={annotation.id}
-              title={annotation.title}
-              timestamp={annotation.timestamp}
-              author={annotation.author}
-              date={annotation.date}
-              description={annotation.description}
-            />
-          ))}
-        </section>
+      <section className="flex flex-col gap-2">
+        {annotations.map((annotation) => (
+          <AnnotationCard
+            key={annotation.id}
+            title={annotation.title}
+            timestamp={annotation.timestamp}
+            author={annotation.author}
+            date={annotation.date}
+            description={annotation.description ?? ""}
+            selected={effectiveSelectedId === annotation.id}
+            onSelect={() => handleSelect(annotation.id)}
+            onDeselect={handleDeselect}
+            onTitleChange={(next) => handleTitleChange(annotation.id, next)}
+            onDescriptionChange={(next) =>
+              handleDescriptionChange(annotation.id, next)
+            }
+          />
+        ))}
+      </section>
     </div>
   );
 }
