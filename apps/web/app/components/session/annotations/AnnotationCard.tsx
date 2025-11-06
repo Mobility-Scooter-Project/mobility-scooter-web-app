@@ -35,14 +35,14 @@ export function AnnotationCard({
   // deselect on outside click
   useEffect(() => {
     if (!selected) return;
-    const onDocMouseDown = (e: MouseEvent) => {
+    const onDocClick = (e: MouseEvent) => {
       const el = rootRef.current;
       if (el && !el.contains(e.target as Node)) {
         onDeselect();
       }
     };
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
   }, [selected, onDeselect]);
 
   const showTextarea = selected || description.trim().length > 0;
@@ -54,7 +54,7 @@ export function AnnotationCard({
         "transition-all duration-200 border border-primary/50",
         selected ? "opacity-100" : "border-transparent"
       )}
-      onMouseDown={(e) => {
+      onClick={(e) => {
         if (!selected) onSelect();
       }}
     >

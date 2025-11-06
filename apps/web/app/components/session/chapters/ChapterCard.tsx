@@ -41,12 +41,12 @@ export function ChapterCard({
 
   useEffect(() => {
     if (!selected) return;
-    const onDocMouseDown = (e: MouseEvent) => {
+    const onDocClick = (e: MouseEvent) => {
       const el = rootRef.current;
       if (el && !el.contains(e.target as Node)) onDeselect();
     };
-    document.addEventListener("click", onDocMouseDown);
-    return () => document.removeEventListener("click", onDocMouseDown);
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
   }, [selected, onDeselect]);
 
   const showTextarea = selected || description.trim().length > 0;
