@@ -64,7 +64,7 @@ const mockAnnotations = [
   },
 ];
 
-export function AnalysisContent() {
+export function AnnotationContent() {
   return (
     <div>
       <Button
