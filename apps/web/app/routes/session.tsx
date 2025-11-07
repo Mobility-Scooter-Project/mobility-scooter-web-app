@@ -8,6 +8,7 @@ import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { AnalysisPanel } from "~/components/session/AnalysisPanel";
 import { SessionsPanel } from "~/components/session/SessionsPanel";
+import { ViewPanel } from "~/components/session/ViewPanel";
 import { useState } from "react";
 
 /**
@@ -65,7 +66,9 @@ export default function SessionPage() {
         <ResizableHandle className="w-4 bg-background" />
 
         <ResizablePanel defaultSize={55} minSize={30}>
-          <Card className="h-full">{/* todo */}</Card>
+          <Card className="h-full">
+            <ViewPanel />
+          </Card>
         </ResizablePanel>
 
         <ResizableHandle className="w-4 bg-background" />
