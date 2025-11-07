@@ -10,18 +10,16 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-foreground text-background hover:bg-foreground/80 shadow-sm",
-        secondary:
-          "bg-background text-foreground hover:bg-background/80 shadow-sm",
-        inline: "text-foreground hover:bg-accent/40",
+        secondary: "bg-background hover:bg-background/80 shadow-sm",
+        ghost: "hover:bg-accent/40",
         link: "text-foreground underline-offset-1.5 hover:underline hover:opacity-60",
-        ghost: "hover:bg-accent/60",
-        outline: "border border-accent hover:bg-accent/50",
       },
       size: {
-        default: "h-10 w-full rounded-md",
+        default: "h-10 rounded-md px-4 self-start",
+        fill: "h-10 w-full rounded-md px-4",
         inline: "size-8 rounded-full",
-        icon: "size-10 rounded-md",
-        fill: "h-full w-full rounded-md",
+        icon: "size-10 shrink-0 rounded-md",
+        expand: "h-full w-full rounded-md",
         none: "",
       },
     },

@@ -1,27 +1,27 @@
 // routes/joinorgapp.tsx
-import { Home, Search, User } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
 
 export default function JoinOrgAppPage() {
   return (
-    <main className="bg-card flex my-auto p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
-      <div className="flex flex-col gap-9 items-start">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-title-2 font-semibold">
-            Request to Join Organization
-          </h2>
-          <p className="text-base">
-            Request access to your organization’s workspace. Once approved,
-            you’ll get a one-time magic link to register your account.
-          </p>
-        </div>
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl justify-start items-start">
+      {/* Header */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-title-2 font-semibold">
+          Request to Join Organization
+        </h2>
+        <p>
+          Request access to your organization’s workspace. Once approved, you’ll
+          get a one-time magic link to register your account.
+        </p>
       </div>
 
+      {/* Applicant Information */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Applicant Information</h3>
-        <div className="flex w-full flex-col gap-3">
+        <h3 className="font-semibold">Applicant Information</h3>
+
+        <div className="flex flex-col gap-3">
           <TextInput
             label="First name"
             id="first-name"
@@ -29,6 +29,7 @@ export default function JoinOrgAppPage() {
             placeholder="Enter first name..."
             variant="form"
           />
+
           <TextInput
             label="Last name"
             id="last-name"
@@ -36,6 +37,7 @@ export default function JoinOrgAppPage() {
             placeholder="Enter last name..."
             variant="form"
           />
+
           <TextInput
             label="Email"
             id="email"
@@ -46,17 +48,19 @@ export default function JoinOrgAppPage() {
         </div>
       </div>
 
+      {/* Organization Information */}
       <div className="flex w-full flex-col gap-4.5">
-        <h3 className="text-base font-semibold">Organization Information</h3>
-        <div className="flex w-full flex-col gap-3">
+        <h3 className="font-semibold">Organization Information</h3>
+
+        <div className="flex flex-col gap-3">
           <TextInput
             label="Hospital"
             id="hospital"
-            type="search"
+            type="text"
             placeholder="Search for your organization..."
             variant="form"
-            rightElement={<Search className="size-4 mr-4.5 text-accent" />}
           />
+
           <TextInput
             label="Department (Optional)"
             id="department"
@@ -64,6 +68,7 @@ export default function JoinOrgAppPage() {
             placeholder="Enter department..."
             variant="form"
           />
+
           <TextInput
             label="Intended Role (Optional)"
             id="role"
@@ -71,6 +76,7 @@ export default function JoinOrgAppPage() {
             placeholder="Enter role..."
             variant="form"
           />
+
           <TextInput
             label="Message (Optional)"
             id="message"
@@ -81,13 +87,16 @@ export default function JoinOrgAppPage() {
         </div>
       </div>
 
+      {/* CTA */}
       <Button className="text-label" variant={"link"} size={"none"} asChild>
-        <Link to={"/"}>
+        <Link to={"/create-org-app"}>
           Can’t find your organization? Apply to create one here.
         </Link>
       </Button>
 
-      <Button>Submit Application</Button>
+      <Button size={"fill"} asChild>
+        <Link to={"/verify-email"}>Submit Application</Link>
+      </Button>
     </main>
   );
 }
