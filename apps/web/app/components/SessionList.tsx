@@ -3,7 +3,11 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { Icon } from "~/components/ui/icon";
 
 // proof of concept, not final
-export function SessionList({ sessions: sessions }: { sessions: { id: string; date: string }[] }) {
+export function SessionList({
+  sessions: sessions,
+}: {
+  sessions: { id: string; date: string }[];
+}) {
   const activeSessionId = "some-active-id";
 
   return (
@@ -13,7 +17,7 @@ export function SessionList({ sessions: sessions }: { sessions: { id: string; da
           <Icon name="Plus" size="secondary" className="mr-2" />
           New Session
         </Button>
-        
+
         {sessions.map((session) => (
           <Button
             key={session.id}

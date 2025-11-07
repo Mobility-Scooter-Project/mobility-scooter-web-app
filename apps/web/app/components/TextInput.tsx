@@ -70,14 +70,27 @@ export interface TextInputProps
 
 const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
   (
-    { className, variant, label, children, id, rightElement, ...props },
+    {
+      className,
+      variant,
+      label,
+      children,
+      id,
+      rightElement,
+      readOnly,
+      ...props
+    },
     ref
   ) => {
     const internalId = React.useId();
     const inputId = id || internalId;
+    const isRO = !!readOnly;
+
+    // When readOnly, we render a <div> wrapper so clicks on the wrapper don't focus the input.
+    const WrapperTag: "label" | "div" = isRO ? "div" : "label";
 
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 w-full">
         {/* Optional Label */}
         {label && (
           <label
@@ -89,12 +102,16 @@ const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
         )}
 
         {/* Wrapper */}
-        <label
-          htmlFor={inputId}
+        <WrapperTag
+          {...(!isRO ? { htmlFor: inputId } : {})}
           className={cn(
             wrapperVariants({ variant }),
-            "cursor-text",
+            // original behavior
+            !isRO && "cursor-text",
             rightElement ? "pr-0" : "pr-4.5",
+            // readOnly overrides: no border/hover/focus chrome, neutral cursor
+            isRO &&
+              "border-transparent hover:shadow-none focus-within:shadow-none cursor-default",
             className
           )}
         >
@@ -106,17 +123,20 @@ const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
           {/* The Input Element */}
           <input
             id={inputId}
-            className={"text-base " + cn(inputVariants({ variant }))}
+            className={cn(
+              "text-base",
+              inputVariants({ variant }),
+              // keep text readable; prevent hover/focus visuals via wrapper already
+              isRO && "bg-transparent"
+            )}
             ref={ref}
+            readOnly={isRO}
             {...props}
           />
 
           {/* Right Element Slot */}
-          {rightElement && (
-            // Use the dynamically chosen class name
-            <span>{rightElement}</span>
-          )}
-        </label>
+          {rightElement && <span>{rightElement}</span>}
+        </WrapperTag>
       </div>
     );
   }
