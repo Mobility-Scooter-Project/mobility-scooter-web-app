@@ -1,7 +1,7 @@
-import { Card } from "~/components/ui/card";
+import { Card } from "~/components/Card";
 import { Button } from "~/components/Button";
-import { Icon } from "~/components/ui/icon";
-import { Textarea } from "~/components/ui/textarea";
+import { Icon } from "~/components/Icon";
+import { TextArea } from "~/components/TextArea";
 import { useEffect, useRef } from "react";
 import { cn } from "~/lib/utils";
 
@@ -50,7 +50,8 @@ export function AnnotationCard({
   return (
     <Card
       ref={rootRef}
-      className={cn("bg-background flex flex-col gap-1 p-4 rounded-md shadow-sm cursor-default",
+      className={cn(
+        "bg-background flex flex-col gap-1 p-4 rounded-md shadow-sm cursor-default",
         "transition-all duration-200 border border-primary/50",
         selected ? "opacity-100" : "border-transparent"
       )}
@@ -60,7 +61,7 @@ export function AnnotationCard({
     >
       <header className="flex items-center justify-between gap-2">
         {/* title */}
-        <Textarea
+        <TextArea
           autoFocus
           rows={1}
           placeholder="Write title here..."
@@ -70,9 +71,8 @@ export function AnnotationCard({
         />
 
         <Button
-          variant="inline"
-          size="inline"
-          className="text-muted-foreground hover:bg-accent/30"
+          variant="ghost"
+          className="size-8"
           onMouseDown={(e) => {
             e.stopPropagation();
           }}
@@ -89,7 +89,7 @@ export function AnnotationCard({
       {/* description */}
       {showTextarea ? (
         selected ? (
-          <Textarea
+          <TextArea
             placeholder="Write here..."
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}

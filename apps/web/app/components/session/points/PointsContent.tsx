@@ -1,5 +1,5 @@
 import { Button } from "~/components/Button";
-import { Icon } from "~/components/ui/icon";
+import { Icon } from "~/components/Icon";
 import { cn } from "~/lib/utils";
 import { usePoints } from "~/hooks/usePoints";
 
@@ -17,9 +17,9 @@ export function PointsContent() {
   return (
     <div className="flex flex-col gap-3">
       {/* header */}
-      <header className="flex justify-between my-3">
-        <span className="text-subhead text-foreground pl-3">All Points</span>
-        <Button variant="inline" size="inline" onClick={toggleAllVisibility}>
+      <header className="flex justify-between my-3 items-center">
+        <span className="text-foreground pl-3">All Points</span>
+        <Button variant="ghost" onClick={toggleAllVisibility}>
           <Icon name={allVisible ? "Eye" : "EyeOff"} />
         </Button>
       </header>
@@ -30,27 +30,28 @@ export function PointsContent() {
           <Button
             key={point.id}
             variant="outline"
-            size="default"
-            onClick={() => handlePointSelect(point.id)}
+            onClick={() => handlePointSelect(point.id, point.status)}
             className={cn(
-              "h-14 justify-between px-4 text-base font-semibold hover:bg-background/60",
+              "h-14 w-full justify-between px-4 font-semibold hover:bg-background/60",
               "transition-all duration-50",
               
               point.status === "visible" && "bg-background text-foreground",
               point.status === "hidden" && "bg-background text-foreground/50",
               point.status === "available" &&
-                "bg-card border-2 text-foreground hover:bg-background/20",
+                "bg-card text-foreground hover:bg-background/20", // available = exists but no (points) data
               
               selectedId === point.id
-                ? "border-primary/50 border-2" // Selected style
-                : "border-transparent" // Default style
+              ? "border-primary/50 border-2" // Selected style
+              : point.status === "available"
+              ? "border-2" // Available (but not selected) style
+              : "border-transparent" // Default style
             )}
           >
             <span>{point.name}</span>
             
             <Button
-              variant="inline"
-              size="inline"
+              variant="ghost"
+              size="icon"
               onClick={(e) => handleVisibilityToggle(e, point.id)}
               className={cn(
                 "rounded-full hover:bg-accent/30",

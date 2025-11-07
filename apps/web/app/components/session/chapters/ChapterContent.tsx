@@ -1,5 +1,5 @@
 import { Button } from "~/components/Button";
-import { Icon } from "~/components/ui/icon";
+import { Icon } from "~/components/Icon";
 import { ChapterCard } from "./ChapterCard";
 import { useChapters } from "~/hooks/useChapters";
 
@@ -20,8 +20,8 @@ export function ChapterContent() {
   return (
     <div>
       <Button
-        variant="inline"
-        className="text-muted-foreground w-auto px-4 mb-3"
+        variant="ghost"
+        className="text-foreground my-3"
         onClick={handleNewChapter}
       >
         <Icon name="ListPlus" />

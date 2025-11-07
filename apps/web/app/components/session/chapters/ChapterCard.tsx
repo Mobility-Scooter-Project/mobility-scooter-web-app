@@ -1,8 +1,8 @@
 import { cn } from "~/lib/utils";
-import { Card } from "~/components/ui/card";
+import { Card } from "~/components/Card";
 import { Button } from "~/components/Button";
-import { Icon } from "~/components/ui/icon";
-import { Textarea } from "~/components/ui/textarea";
+import { Icon } from "~/components/Icon";
+import { TextArea } from "~/components/TextArea";
 import { useEffect, useRef } from "react";
 
 interface ChapterCardProps {
@@ -65,8 +65,7 @@ export function ChapterCard({
     >
       {/* settings button */}
       <Button
-        variant="inline"
-        size="inline"
+        variant="ghost"
         className="absolute top-3 right-3 text-muted-foreground hover:bg-accent/30"
       >
         <Icon name="EllipsisVertical" />
@@ -80,7 +79,7 @@ export function ChapterCard({
       />
 
       {/* title */}
-      <Textarea
+      <TextArea
         autoFocus
         rows={1}
         placeholder="Write title here..."
@@ -119,7 +118,7 @@ export function ChapterCard({
       {/* description */}
       {showTextarea ? (
         selected ? (
-          <Textarea
+          <TextArea
             placeholder="Write here..."
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}

@@ -1,5 +1,5 @@
 import { Button } from "~/components/Button";
-import { Icon } from "~/components/ui/icon";
+import { Icon } from "~/components/Icon";
 import { AnnotationCard } from "./AnnotationCard";
 import { useAnnotations } from "~/hooks/useAnnotations";
 
@@ -19,8 +19,8 @@ export function AnnotationContent() {
   return (
     <div>
       <Button
-        variant="inline"
-        className="text-foreground w-auto px-4 mt-2 mb-5"
+        variant="ghost"
+        className="text-foreground my-3"
         onClick={handleNewAnnotation}
       >
         <Icon name="Plus" />

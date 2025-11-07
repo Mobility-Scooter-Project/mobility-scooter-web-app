@@ -1,6 +1,6 @@
-import { Tabs, TabsContent } from "~/components/ui/tabs";
+import { Tabs, TabsContent } from "~/components/Tabs";
 import { PanelNav } from "~/components/session/PanelNav";
-import { ScrollArea } from "~/components/ui/scroll-area";
+import { ScrollArea } from "~/components/ScrollArea";
 import { AnnotationContent } from "./annotations/AnnotationContent";
 import { ChapterContent } from "./chapters/ChapterContent";
 import { PointsContent } from "./points/PointsContent";
@@ -24,9 +24,7 @@ export function AnalysisPanel() {
       <PanelNav tabs={panelTabs} />
 
       <TabsContent value="analysis" className="overflow-hidden">
-        <ScrollArea className="h-full">
-          {/* to do */}
-        </ScrollArea>
+        <ScrollArea className="h-full">{/* to do */}</ScrollArea>
       </TabsContent>
 
       <TabsContent value="chapters" className="overflow-hidden">
@@ -48,17 +46,12 @@ export function AnalysisPanel() {
       </TabsContent>
 
       <TabsContent value="comments" className="overflow-hidden">
-        <ScrollArea className="h-full">
-          {/* to do */}
-        </ScrollArea>
+        <ScrollArea className="h-full">{/* to do */}</ScrollArea>
       </TabsContent>
 
       <TabsContent value="logs" className="overflow-hidden">
-        <ScrollArea className="h-full">
-          {/* to do */}
-        </ScrollArea>
+        <ScrollArea className="h-full">{/* to do */}</ScrollArea>
       </TabsContent>
-
     </Tabs>
   );
 }

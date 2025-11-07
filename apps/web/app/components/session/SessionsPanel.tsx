@@ -1,11 +1,9 @@
-import { SearchInput } from "../SearchInput";
-import { Icon } from "~/components/ui/icon";
-import { ScrollArea } from "../ui/scroll-area";
+import { Icon } from "~/components/Icon";
+import { ScrollArea } from "../ScrollArea";
 import { cn } from "~/lib/utils";
-// Import Tabs components
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/Tabs";
 import { Button } from "~/components/Button";
-import { ViewPanel } from "./ViewPanel";
+import { TextInput } from "../TextInput";
 
 type MockSession = {
   id: number;
@@ -56,7 +54,9 @@ export function SessionsPanel({
 }: SessionsPanelProps) {
   return (
     <main className="flex flex-col h-full">
-      <SearchInput />
+      <TextInput id="text" type="text" placeholder="Search here...">
+        <Icon name="Search" />
+      </TextInput>
 
       <Tabs
         value={activeSessionId}
@@ -66,12 +66,9 @@ export function SessionsPanel({
         <ScrollArea className="h-full">
           <div className="flex flex-col">
             {/* new session button */}
-            <Button
-              variant="inline"
-              className="text-base text-foreground w-auto px-4 mt-6 mb-4 justify-start"
-            >
+            <Button variant="ghost" className="text-foreground mt-6 mb-4">
               <Icon name="SquarePen" />
-              <span className="ml-2">New Session</span>
+              <span>New Session</span>
             </Button>
 
             {/* sessions list */}

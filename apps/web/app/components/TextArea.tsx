@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "~/lib/utils";
 
-export function Textarea({
+export function TextArea({
   className,
   ...props
 }: React.ComponentProps<"textarea">) {
@@ -16,8 +16,8 @@ export function Textarea({
     rafId.current = requestAnimationFrame(() => {
       // account for border-box so borders aren’t clipped
       const borderOffset = el.offsetHeight - el.clientHeight;
-      el.style.height = "auto";            // allow shrink on rewrap
-      el.style.overflowY = "hidden";       // avoid flicker during measure
+      el.style.height = "auto"; // allow shrink on rewrap
+      el.style.overflowY = "hidden"; // avoid flicker during measure
       el.style.height = `${el.scrollHeight + borderOffset}px`;
     });
   }, []);

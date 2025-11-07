@@ -2,17 +2,17 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "~/components/ui/resizable";
-import { Card } from "~/components/ui/card";
+} from "~/components/Resizable";
+import { Card } from "~/components/Card";
 import { Button } from "~/components/Button";
-import { Icon } from "~/components/ui/icon";
+import { Icon } from "~/components/Icon";
 import { AnalysisPanel } from "~/components/session/AnalysisPanel";
 import { SessionsPanel } from "~/components/session/SessionsPanel";
 import { useState } from "react";
 
 /**
  * Main session page layout with resizable panels for sessions, main content, and analysis.
- * 
+ *
  * TODO: Needs the following object data:
  *  - Session data (id, age, gender, date) -> Views -> Media/Videos
  *  - Analysis data
@@ -22,7 +22,8 @@ import { useState } from "react";
 export default function SessionPage() {
   const [activeSessionId, setActiveSessionId] = useState<string>("1"); // NOTE: id is a string, might be subject to change
 
-  const handleSessionSelect = (id: string) => { // might instead re-call a data fetch
+  const handleSessionSelect = (id: string) => {
+    // might instead re-call a data fetch
     setActiveSessionId(id);
   };
 
@@ -33,13 +34,14 @@ export default function SessionPage() {
           <div className="flex gap-12 items-center pl-6">
             <span className="font-semibold">Session</span>
             <span>ID 123456</span> {/* TODO: patient ID */}
-            <span>Age 00</span> {/* TODO: dynamic age */}
-            <span>Female</span> {/* TODO: dynamic gender */}
+            <span>Age 00</span> {/* TODO: dynamic age ^ */}
+            <span>Female</span> {/* TODO: dynamic gender ^ */}
           </div>
 
           <div className="flex gap-6 items-center">
-            <span>09/24/2025</span>
-            <Button variant="inline" className="w-auto px-2.5 justify-start"> {/* NOTE: button hover style looks off imo, change later */}
+            <span>09/24/2025</span> {/* TODO: date from session */}
+            <Button variant="ghost" className="size-8">
+              {/* NOTE: button hover style looks off imo, change later */}
               <Icon name="ChevronRight" className="size-5" />
             </Button>
           </div>
@@ -53,7 +55,10 @@ export default function SessionPage() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={15} minSize={15}>
           <Card className="h-full">
-            <SessionsPanel activeSessionId={activeSessionId} onSessionSelect={handleSessionSelect} />
+            <SessionsPanel
+              activeSessionId={activeSessionId}
+              onSessionSelect={handleSessionSelect}
+            />
           </Card>
         </ResizablePanel>
 

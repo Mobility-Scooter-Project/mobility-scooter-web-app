@@ -52,7 +52,8 @@ export function usePoints() {
     );
   };
 
-  const handlePointSelect = (id: number) => {
+  const handlePointSelect = (id: number, status: PointStatus) => {
+    if (status === "available") return;
     setSelectedId((prevId) => (prevId === id ? null : id));
   };
 
