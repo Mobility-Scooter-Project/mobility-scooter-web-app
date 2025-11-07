@@ -4,7 +4,7 @@ import * as React from "react";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "~/components/Button";
 import { Calendar } from "~/components/Calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/Popover";
 import { TextInput } from "./TextInput";
 
 /* ---------- helpers ---------- */
