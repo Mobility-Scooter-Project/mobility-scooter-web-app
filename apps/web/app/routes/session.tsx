@@ -9,7 +9,8 @@ import { Icon } from "~/components/Icon";
 import { AnalysisPanel } from "~/components/session/AnalysisPanel";
 import { SessionsPanel } from "~/components/session/SessionsPanel";
 import { ViewPanel } from "~/components/session/ViewPanel";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { type ImperativePanelGroupHandle } from "react-resizable-panels";
 
 /**
  * Main session page layout with resizable panels for sessions, main content, and analysis.
@@ -22,11 +23,11 @@ import { useState } from "react";
  */
 export default function SessionPage() {
   const [activeSessionId, setActiveSessionId] = useState<string>("1"); // NOTE: id is a string, might be subject to change
+  const DEFAULT_SIZES = [15, 55, 30];
 
-  const handleSessionSelect = (id: string) => {
-    // might instead re-call a data fetch
-    setActiveSessionId(id);
-  };
+  const panelRef = useRef<ImperativePanelGroupHandle>(null);
+  const resetLayout = () => panelRef.current?.setLayout(DEFAULT_SIZES);
+  const handleSessionSelect = (id: string) => setActiveSessionId(id);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -53,8 +54,12 @@ export default function SessionPage() {
         </div>
       </header>
 
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={15} minSize={15}>
+      <ResizablePanelGroup
+        ref={panelRef}
+        direction="horizontal"
+        className="flex-1"
+      >
+        <ResizablePanel defaultSize={DEFAULT_SIZES[0]} minSize={15}>
           <Card className="h-full">
             <SessionsPanel
               activeSessionId={activeSessionId}
@@ -63,17 +68,23 @@ export default function SessionPage() {
           </Card>
         </ResizablePanel>
 
-        <ResizableHandle className="w-4 bg-background" />
+        <ResizableHandle
+          className="w-4 bg-background"
+          onDoubleClick={resetLayout}
+        />
 
-        <ResizablePanel defaultSize={55} minSize={30}>
+        <ResizablePanel defaultSize={DEFAULT_SIZES[1]} minSize={30}>
           <Card className="h-full">
             <ViewPanel />
           </Card>
         </ResizablePanel>
 
-        <ResizableHandle className="w-4 bg-background" />
+        <ResizableHandle
+          className="w-4 bg-background"
+          onDoubleClick={resetLayout}
+        />
 
-        <ResizablePanel defaultSize={30} minSize={20}>
+        <ResizablePanel defaultSize={DEFAULT_SIZES[2]} minSize={20}>
           <Card className="h-full">
             <AnalysisPanel />
           </Card>
