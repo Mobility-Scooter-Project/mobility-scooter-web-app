@@ -4,11 +4,7 @@ import * as React from "react";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "~/components/Button";
 import { Calendar } from "~/components/Calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/popover";
 import { TextInput } from "./TextInput";
 
 /* ---------- helpers ---------- */
@@ -85,6 +81,7 @@ export function DatePickerInput() {
       <TextInput
         label="Date Picker With Input"
         id="date"
+        className="w-60"
         value={value}
         variant="form"
         placeholder="MM/DD/YYYY"
