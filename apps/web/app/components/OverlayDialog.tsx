@@ -40,7 +40,7 @@ export function OverlayDialog({
         {/* Full-screen centering layer (NOT Content) */}
         <div
           className={cn(
-            "fixed inset-0 z-[1000] grid place-items-center",
+            "fixed inset-0 z-1000 grid place-items-center",
             containerClassName
           )}
         >
