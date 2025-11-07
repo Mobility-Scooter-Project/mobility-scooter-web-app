@@ -1,12 +1,16 @@
 // routes/add-member.tsx
 import { Link } from "react-router";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, PlusIcon, Trash2 } from "lucide-react";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
+import { OverlayCard } from "~/components/OverlayCard";
+import { useState } from "react";
 
 export default function AddMemberPage() {
+  const [openOverlay, setOpenOverlay] = useState(false);
+
   return (
-    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-[750px] items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col rounded-lg w-full max-w-3xl items-start">
       {/* Header */}
       <div>
         <h2 className="text-title-2 font-semibold mb-3">
@@ -66,14 +70,21 @@ export default function AddMemberPage() {
       <div className="flex w-full flex-col gap-4.5">
         <h3 className="font-semibold">Members</h3>
 
-        <Button variant="link" size="none" className="flex self-start">
-          <Link
-            className="flex items-center py-2 px-4 gap-2 text-foreground"
-            to="/overlay"
-          >
-            <Plus className="size-4" /> New Member
-          </Link>
+        <Button variant="ghost" onClick={() => setOpenOverlay(true)}>
+          <PlusIcon className="size-4" />
+          Add Member
         </Button>
+
+        <OverlayCard
+          open={openOverlay}
+          onClose={() => setOpenOverlay(false)}
+          title="Overlay Card Dialog"
+          subtitle="Form for inviting new user"
+          contentClassName="max-w-3xl"
+          bodyClassName="gap-9"
+        >
+          <Button size={"fill"}>Submit</Button>
+        </OverlayCard>
 
         <div>
           {/* Member row 1 */}
