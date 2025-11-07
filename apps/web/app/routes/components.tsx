@@ -1,5 +1,18 @@
 // routes/components.tsx
-import { CalendarIcon, Eye, Search, X } from "lucide-react";
+import {
+  Calculator,
+  Calendar1,
+  CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  CreditCard,
+  Eye,
+  Search,
+  Settings,
+  Smile,
+  User,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "~/components/Button";
@@ -8,7 +21,6 @@ import { FileUpload } from "~/components/FileUpload";
 import { OverlayCard } from "~/components/OverlayCard";
 import { TextInput } from "~/components/TextInput";
 import { format } from "date-fns";
-
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -24,12 +36,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "~/components/ContextMenu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
-
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/Popover";
 import { DatePickerInput } from "~/components/DatePickerInput";
 import { Calendar } from "~/components/Calendar";
 import {
@@ -50,8 +57,20 @@ import {
   DropdownMenuTrigger,
 } from "~/components/Dropdown";
 import type { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
+import { Combobox } from "~/components/Combobox";
+import { Toggle } from "~/components/Toggle";
 
 type Checked = DropdownMenuCheckboxItemProps["checked"];
+
+type Framework = { value: string; label: string };
+const frameworks: Framework[] = [
+  { value: "next.js", label: "Next.js" },
+  { value: "react-router", label: "React Router" },
+  { value: "sveltekit", label: "SvelteKit" },
+  { value: "nuxt.js", label: "Nuxt.js" },
+  { value: "remix", label: "Remix" },
+  { value: "astro", label: "Astro" },
+];
 
 export default function ComponentsPage() {
   const [openOverlay, setOpenOverlay] = useState(false);
@@ -61,6 +80,8 @@ export default function ComponentsPage() {
 
   const [showCheckboxOne, setShowCheckboxOne] = useState<Checked>(true);
   const [showCheckboxTwo, setShowCheckboxTwo] = useState<Checked>(false);
+
+  const [fw, setFw] = useState<Framework | null>(null);
 
   return (
     <div className="bg-card flex p-4.5 gap-9 items-start flex-col rounded-lg w-full max-w-3xl">
@@ -124,11 +145,18 @@ export default function ComponentsPage() {
         />
       </div>
 
+      <div className="flex flex-col gap-4.5 w-full">
+        <h3 className="text-base font-semibold">Toggle Variants</h3>
+        <Toggle>Toggle Default</Toggle>
+        <Toggle variant={"outline"}>Toggle Outline</Toggle>
+      </div>
+
       <div className="flex flex-col gap-4.5 w-full items-center">
         <h3 className="text-base font-semibold self-start">Button Variants</h3>
         <Button>Default Button</Button>
         <Button variant={"secondary"}>Secondary Button</Button>
         <Button variant={"ghost"}>Ghost Button</Button>
+        <Button variant={"outline"}>Outline Button</Button>
         <Button size={"fill"}>Size Fill</Button>
         <Button>
           <Search className="size-4 text-accent" />
@@ -277,6 +305,18 @@ export default function ComponentsPage() {
 
       <div className="flex w-full flex-col gap-4.5">
         <h3 className="font-semibold">Combobox</h3>
+
+        <Combobox
+          items={frameworks}
+          value={fw}
+          onChange={setFw}
+          contentClassName="w-52"
+        >
+          <Button variant="outline" className="w-52 justify-between">
+            {fw ? fw.label : "Select framework"}
+            <ChevronsUpDown className="opacity-50" />
+          </Button>
+        </Combobox>
       </div>
 
       <div className="flex w-full flex-col gap-4.5">
@@ -285,10 +325,10 @@ export default function ComponentsPage() {
         <Popover>
           <PopoverTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               data-empty={!date}
               size={"default"}
-              className="data-[empty=true]:text-foreground self-start"
+              className="data-[empty=true]:text-foreground w-60 justify-start"
             >
               <CalendarIcon />
               {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -378,7 +418,7 @@ export default function ComponentsPage() {
           onClose={() => setOpenOverlay(false)}
           title="Overlay Card Dialog"
           subtitle="Invite a team member to join your organization. The recipient will get a one-time magic link to create their account. Embedded information will not be editable by recipient."
-          cardClassName="max-w-3xl"
+          contentClassName="max-w-3xl"
           bodyClassName="gap-9"
         >
           <TextInput variant="form" label="Email" />

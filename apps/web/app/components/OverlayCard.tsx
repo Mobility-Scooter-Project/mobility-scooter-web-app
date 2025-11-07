@@ -19,7 +19,6 @@ export function OverlayCard({
   onClose,
   closeOnBackdrop,
   closeOnEsc,
-  containerClassName,
   backdropClassName,
   contentClassName,
   cardClassName,
@@ -34,7 +33,6 @@ export function OverlayCard({
       onClose={onClose}
       closeOnBackdrop={closeOnBackdrop}
       closeOnEsc={closeOnEsc}
-      containerClassName={containerClassName}
       backdropClassName={backdropClassName}
       contentClassName={contentClassName}
     >
