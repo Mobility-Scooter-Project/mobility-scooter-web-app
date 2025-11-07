@@ -14,7 +14,7 @@ export function SearchInput({ className, ...props }: SearchInputProps) {
       />
       <Input
         className={cn(
-          "pl-9 border-1 border-foreground/30 rounded-full md:text-base md:text-foreground",
+          "pl-9 border-1.5 border-foreground/30 rounded-full md:text-base md:text-foreground",
           "placeholder:text-base placeholder:text-foreground/50",
           "focus-visible:ring-0",
           className
