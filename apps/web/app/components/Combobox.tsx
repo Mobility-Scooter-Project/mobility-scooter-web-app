@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/Popover";
 import {
   Command,
   CommandEmpty,
