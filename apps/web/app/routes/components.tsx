@@ -34,11 +34,14 @@ import { DatePickerInput } from "~/components/DatePickerInput";
 import { Calendar } from "~/components/Calendar";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuSub,
@@ -46,11 +49,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "~/components/Dropdown";
+import type { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
+
+type Checked = DropdownMenuCheckboxItemProps["checked"];
 
 export default function ComponentsPage() {
   const [openOverlay, setOpenOverlay] = useState(false);
   const [openDropdownOverlay, setOpenDropdownOverlay] = useState(false);
   const [date, setDate] = useState<Date>();
+  const [dropdownRadioPosition, setDropdownRadioPosition] = useState("top");
+
+  const [showCheckboxOne, setShowCheckboxOne] = useState<Checked>(true);
+  const [showCheckboxTwo, setShowCheckboxTwo] = useState<Checked>(false);
 
   return (
     <div className="bg-card flex p-4.5 gap-9 items-start flex-col rounded-lg w-full max-w-3xl">
@@ -177,29 +187,24 @@ export default function ComponentsPage() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent className="w-60" align="start">
-            <DropdownMenuLabel>Dropdown Menu Label</DropdownMenuLabel>
-
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 Menu Item
                 {/* <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut> */}
               </DropdownMenuItem>
-              <DropdownMenuItem disabled>
-                Menu Item 2<DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
-              </DropdownMenuItem>
               <DropdownMenuItem>
                 Menu Item With Keyboard Shortcut
                 <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
               </DropdownMenuItem>
-            </DropdownMenuGroup>
+              <DropdownMenuItem disabled>
+                Menu Item Disabled
+                <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
-
-            <DropdownMenuGroup>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>Submenu List</DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuSubContent>
+                  <DropdownMenuSubContent className="w-52">
                     <DropdownMenuItem>Submenu Item 1</DropdownMenuItem>
                     <DropdownMenuItem>Submenu Item 2</DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -212,14 +217,47 @@ export default function ComponentsPage() {
             <DropdownMenuSeparator />
 
             <DropdownMenuGroup>
+              <DropdownMenuLabel>Dropdown Menu Label</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => setOpenDropdownOverlay(true)}>
                 Open Overlay
+              </DropdownMenuItem>
+              <DropdownMenuItem inset>
+                Menu Item Inset
+                <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem>
+            <DropdownMenuCheckboxItem
+              checked={showCheckboxOne}
+              onCheckedChange={setShowCheckboxOne}
+            >
+              Status Bar
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={showCheckboxTwo}
+              onCheckedChange={setShowCheckboxTwo}
+              disabled
+            >
+              Activity Bar
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuRadioGroup
+              value={dropdownRadioPosition}
+              onValueChange={setDropdownRadioPosition}
+            >
+              <DropdownMenuRadioItem value="top">Top</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="bottom">
+                Bottom
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem variant="destructive">
               Destructive
               <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
             </DropdownMenuItem>
