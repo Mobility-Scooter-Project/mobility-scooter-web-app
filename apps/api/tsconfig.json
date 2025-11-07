@@ -1,10 +1,9 @@
 {
   "ts-node": {
-    "require": [
-      "tsconfig-paths/register"
-    ]
+    "require": ["tsconfig-paths/register"]
   },
   "compilerOptions": {
+    "composite": true,
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
@@ -28,18 +27,10 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@config/*": [
-        "src/config/*"
-      ],
-      "@infra/*": [
-        "src/infra/*"
-      ],
-      "@db/*": [
-        "src/infra/db/entity/*"
-      ],
-      "@src/*": [
-        "src/*"
-      ]
+      "@config/*": ["src/config/*"],
+      "@infra/*": ["src/infra/*"],
+      "@db/*": ["src/infra/db/entity/*"],
+      "@src/*": ["src/*"]
     }
   }
 }
