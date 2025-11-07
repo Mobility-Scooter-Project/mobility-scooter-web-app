@@ -50,7 +50,7 @@ export function OverlayCard({
             <div className="flex w-full min-w-0 flex-col mt-4.5 mx-4.5 gap-2">
               {title ? (
                 <DialogPrimitive.Title asChild>
-                  <h3 className="text-title-2 font-semibold whitespace-normal break-words text-pretty">
+                  <h3 className="text-title-2 font-semibold whitespace-normal wrap-break-word text-pretty">
                     {title}
                   </h3>
                 </DialogPrimitive.Title>
@@ -63,7 +63,7 @@ export function OverlayCard({
 
               {subtitle ? (
                 <DialogPrimitive.Description asChild>
-                  <p className="text-base text-foreground/80 whitespace-normal break-words text-pretty leading-relaxed">
+                  <p className="text-base text-foreground/80 whitespace-normal wrap-break-word text-pretty leading-relaxed">
                     {subtitle}
                   </p>
                 </DialogPrimitive.Description>
