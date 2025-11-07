@@ -19,7 +19,7 @@ export function PointsContent() {
       {/* header */}
       <header className="flex justify-between my-3">
         <span className="text-subhead text-foreground pl-3">All Points</span>
-        <Button variant="ghost" size="inline" onClick={toggleAllVisibility}>
+        <Button variant="inline" size="inline" onClick={toggleAllVisibility}>
           <Icon name={allVisible ? "Eye" : "EyeOff"} />
         </Button>
       </header>
@@ -49,7 +49,7 @@ export function PointsContent() {
             <span>{point.name}</span>
             
             <Button
-              variant="ghost"
+              variant="inline"
               size="inline"
               onClick={(e) => handleVisibilityToggle(e, point.id)}
               className={cn(

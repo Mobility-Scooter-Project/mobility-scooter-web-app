@@ -5,6 +5,7 @@ import { cn } from "~/lib/utils";
 // Import Tabs components
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { Button } from "~/components/Button";
+import { ViewPanel } from "./ViewPanel";
 
 type MockSession = {
   id: number;
@@ -25,7 +26,7 @@ const mockSessions: MockSession[] = [
   },
   {
     id: 3,
-    date: "09/24/2025", // Changed one date to match the active session in the image
+    date: "09/24/2025",
     notification: false,
   },
   {
@@ -66,7 +67,7 @@ export function SessionsPanel({
           <div className="flex flex-col">
             {/* new session button */}
             <Button
-              variant="ghost"
+              variant="inline"
               className="text-base text-foreground w-auto px-4 mt-6 mb-4 justify-start"
             >
               <Icon name="SquarePen" />
@@ -100,16 +101,6 @@ export function SessionsPanel({
             </TabsList>
           </div>
         </ScrollArea>
-
-        {mockSessions.map((session) => (
-          <TabsContent
-            key={`content-${session.id}`}
-            value={session.id.toString()}
-            className="hidden"
-          >
-            {/* video content */}
-          </TabsContent>
-        ))}
       </Tabs>
     </main>
   );

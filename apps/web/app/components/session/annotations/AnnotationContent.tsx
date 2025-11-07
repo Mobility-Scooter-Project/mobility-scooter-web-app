@@ -19,7 +19,7 @@ export function AnnotationContent() {
   return (
     <div>
       <Button
-        variant="ghost"
+        variant="inline"
         className="text-foreground w-auto px-4 mt-2 mb-5"
         onClick={handleNewAnnotation}
       >

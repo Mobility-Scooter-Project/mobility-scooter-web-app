@@ -70,7 +70,7 @@ export function AnnotationCard({
         />
 
         <Button
-          variant="ghost"
+          variant="inline"
           size="inline"
           className="text-muted-foreground hover:bg-accent/30"
           onMouseDown={(e) => {

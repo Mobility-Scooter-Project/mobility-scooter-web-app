@@ -20,7 +20,7 @@ export function ChapterContent() {
   return (
     <div>
       <Button
-        variant="ghost"
+        variant="inline"
         className="text-muted-foreground w-auto px-4 mb-3"
         onClick={handleNewChapter}
       >

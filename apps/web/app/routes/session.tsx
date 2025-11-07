@@ -14,7 +14,7 @@ import { useState } from "react";
  * Main session page layout with resizable panels for sessions, main content, and analysis.
  * 
  * TODO: Needs the following object data:
- *  - Session data (id, age, gender, date)
+ *  - Session data (id, age, gender, date) -> Views -> Media/Videos
  *  - Analysis data
  *  - Chapters data
  *  - Points data
@@ -32,14 +32,14 @@ export default function SessionPage() {
         <section className="bg-card flex h-12 flex-1 items-center rounded-full p-4 text-subhead text-foreground justify-between">
           <div className="flex gap-12 items-center pl-6">
             <span className="font-semibold">Session</span>
-            <span>ID {activeSessionId}</span>
+            <span>ID 123456</span> {/* TODO: patient ID */}
             <span>Age 00</span> {/* TODO: dynamic age */}
             <span>Female</span> {/* TODO: dynamic gender */}
           </div>
 
           <div className="flex gap-6 items-center">
             <span>09/24/2025</span>
-            <Button variant="ghost" className="w-auto px-4 justify-start"> {/* NOTE: button hover style looks off imo, change later */}
+            <Button variant="inline" className="w-auto px-2.5 justify-start"> {/* NOTE: button hover style looks off imo, change later */}
               <Icon name="ChevronRight" className="size-5" />
             </Button>
           </div>
