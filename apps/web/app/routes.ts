@@ -24,7 +24,6 @@ export default [
     route("reset-password", "routes/reset-password.tsx"),
     route("reset-confirmation", "routes/reset-confirmation.tsx"),
     route("link-expired", "routes/link-expired.tsx"),
-    route("overlay", "routes/overlay.tsx"),
     route("components", "routes/components.tsx"),
   ]),
 ] satisfies RouteConfig;
