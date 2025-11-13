@@ -4,6 +4,8 @@ import { SessionList } from "~/components/SessionList";
 import { SearchInput } from "~/components/SearchInput";
 import { userAuthStore } from "~/lib/authStore";
 import type { Route } from "./+types/home";
+import { Button } from "~/components/Button";
+import { Link } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -16,9 +18,15 @@ export default function Home() {
   // TODO: use clearAccessToken when implementing logout button
   const { accessToken, clearAccessToken } = userAuthStore();
 
+  // TODO: This is just a placeholder, replace with fallback UI for user not logged in
   if (!accessToken) {
-    // TODO: This is just a placeholder, replace with fallback UI for user not logged in
-    return <p>You must log in first.</p>;
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Button size={"fill"} asChild>
+          <Link to={"/login"}>User Not Logged In. Please Go back</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
