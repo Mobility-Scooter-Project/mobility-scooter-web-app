@@ -6,12 +6,22 @@ export async function loginAction({ request }: ActionFunctionArgs) {
   const email = String(fd.get("email") ?? "");
   const password = String(fd.get("password") ?? "");
 
-  const res = await fetch("http://localhost:3000/api/v1/auth/email", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  let res: Response;
+  try {
+    // try to authenticate with backend API
+    res = await fetch("http://localhost:3000/api/v1/auth/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (err) {
+    console.error("Login request failed:", err);
+    return {
+      error: "Unable to reach authentication server. Is the backend running?",
+    };
+  }
 
+  // Handle invalid authentication
   if (!res.ok) {
     let msg = "";
     try {
@@ -20,14 +30,20 @@ export async function loginAction({ request }: ActionFunctionArgs) {
     return { error: msg || "Invalid email or password." };
   }
 
-  const { token } = await res.json();
+  // API returns JSON { token, refreshToken } (referenced from server _createUserSession)
+  const data = await res.json();
 
+  const refreshToken: string | null =
+    data?.refreshToken ?? data?.refresh ?? null;
+
+  // expiration
+  const maxAge = 30 * 24 * 60 * 60;
   // Save token to local storage
-  userAuthStore.getState().setAccessToken(token);
+  userAuthStore.getState().setAccessToken(data.token);
 
   return redirect("/", {
     headers: {
-      "Set-Cookie": `auth=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`,
+      "Set-Cookie": `auth=${data.token}; Path=/; HttpOnly; SameSite=Lax; Secure`,
     },
   });
 }
