@@ -1,51 +1,12 @@
 // routes/login.tsx
 import { Eye, EyeOff } from "lucide-react";
 import { useState, type KeyboardEventHandler } from "react";
-import {
-  Form,
-  Link,
-  redirect,
-  useActionData,
-  type ActionFunctionArgs,
-} from "react-router";
+import { Form, Link, useActionData } from "react-router";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
+import { loginAction } from "~/lib/loginAction";
 
-export async function action({ request }: ActionFunctionArgs) {
-  const fd = await request.formData();
-  const email = String(fd.get("email") ?? "");
-  const password = String(fd.get("password") ?? "");
-
-  const res = await fetch("http://localhost:3000/api/v1/auth/email", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    let msg = "";
-    try {
-      msg = (await res.json())?.error ?? "";
-    } catch {}
-    return { error: msg || "Invalid email or password." };
-  }
-
-  const data = await res.json();
-
-  return redirect("/", {
-    headers: {
-      "Set-Cookie": `auth=${data.token}; Path=/; HttpOnly; SameSite=Lax; Secure`,
-    },
-  });
-}
-
-// TODO: make util to set JWT auth token before redirecting
-// read token from query params, saves to local storage, redirects to dashboard
-
-// handle if refresh token is invalidated, start by checking status of token
-// AFTER validate if token is expired
-
-// add rate limiting?
+export const action = loginAction;
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);

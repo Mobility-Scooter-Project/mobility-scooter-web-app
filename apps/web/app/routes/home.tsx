@@ -2,6 +2,7 @@ import { Card } from "~/components/ui/card";
 import { Icon } from "~/components/ui/icon";
 import { SessionList } from "~/components/SessionList";
 import { SearchInput } from "~/components/SearchInput";
+import { userAuthStore } from "~/lib/authStore";
 import type { Route } from "./+types/home";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,6 +13,14 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  // TODO: use clearAccessToken when implementing logout button
+  const { accessToken, clearAccessToken } = userAuthStore();
+
+  if (!accessToken) {
+    // TODO: This is just a placeholder, replace with fallback UI for user not logged in
+    return <p>You must log in first.</p>;
+  }
+
   return (
     <main>
       <section>
