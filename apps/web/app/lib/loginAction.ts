@@ -1,33 +1,33 @@
 import { redirect, type ActionFunctionArgs } from "react-router";
 import { userAuthStore } from "~/lib/authStore";
+import { API_BASE_URL } from "~/config/constants";
 
 export async function loginAction({ request }: ActionFunctionArgs) {
   const fd = await request.formData();
-  const email = String(fd.get("email") ?? "");
-  const password = String(fd.get("password") ?? "");
+  const email = fd.get("email") ?? "";
+  const password = fd.get("password") ?? "";
 
   let res: Response;
+
+  // try to connect backend API
   try {
-    // try to authenticate with backend API
-    res = await fetch("http://localhost:3000/api/v1/auth/email", {
+    res = await fetch(`${API_BASE_URL}/auth/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
   } catch (err) {
-    console.error("Login request failed:", err);
-    return {
-      error: "Unable to reach authentication server. Is the backend running?",
-    };
-  }
-
-  // Handle invalid authentication
-  if (!res.ok) {
-    let msg = "";
-    try {
-      msg = (await res.json())?.error ?? "";
-    } catch {}
-    return { error: msg || "Invalid email or password." };
+    console.error("Error: ", err);
+    throw new Response(
+      JSON.stringify({
+        code: "NETWORK_ERROR",
+        message: "Unable to contact API.",
+      }),
+      {
+        status: 502,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   // API returns JSON { token, refreshToken } (referenced from server _createUserSession)
@@ -36,10 +36,9 @@ export async function loginAction({ request }: ActionFunctionArgs) {
   const refreshToken: string | null =
     data?.refreshToken ?? data?.refresh ?? null;
 
-  // expiration
-  const maxAge = 30 * 24 * 60 * 60;
   // Save token to local storage
   userAuthStore.getState().setAccessToken(data.token);
+  userAuthStore.getState().setRefreshToken(refreshToken);
 
   return redirect("/", {
     headers: {
