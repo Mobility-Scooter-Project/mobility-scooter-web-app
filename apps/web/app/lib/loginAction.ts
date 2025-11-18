@@ -1,5 +1,5 @@
 import { redirect, type ActionFunctionArgs } from "react-router";
-import { userAuthStore } from "~/lib/authStore";
+import { userAuthStore } from "~/lib/auth";
 import { API_BASE_URL } from "~/config/constants";
 
 export async function loginAction({ request }: ActionFunctionArgs) {
@@ -9,7 +9,6 @@ export async function loginAction({ request }: ActionFunctionArgs) {
 
   let res: Response;
 
-  // try to connect backend API
   try {
     res = await fetch(`${API_BASE_URL}/auth/email`, {
       method: "POST",
@@ -17,20 +16,19 @@ export async function loginAction({ request }: ActionFunctionArgs) {
       body: JSON.stringify({ email, password }),
     });
   } catch (err) {
-    console.error("Error: ", err);
-    throw new Response(
-      JSON.stringify({
-        code: "NETWORK_ERROR",
-        message: "Unable to contact API.",
-      }),
-      {
-        status: 502,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    console.error("Error contacting API:", err);
+    return { error: "Unable to contact API" };
   }
 
-  // API returns JSON { token, refreshToken } (referenced from server _createUserSession)
+  if (!res.ok) {
+    let msg = "";
+    try {
+      msg = (await res.json())?.error ?? "";
+    } catch {}
+    return { error: msg || "Invalid email or password." };
+  }
+
+  // Success: API returns JSON { token, refreshToken } (referenced from server _createUserSession)
   const data = await res.json();
 
   const refreshToken: string | null =
