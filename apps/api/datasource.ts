@@ -27,5 +27,4 @@ if (process.env.DATABASE_URL) {
     })
 }
 
-console.log(datasource)
 export default datasource;
