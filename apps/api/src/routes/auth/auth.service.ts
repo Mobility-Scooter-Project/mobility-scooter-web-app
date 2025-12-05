@@ -11,6 +11,8 @@ import { IDENTITY_PROVIDERS, USER_ROLES } from '@config/enums';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtDto } from '@src/middleware/jwt/jwt.dto';
+import { KvService } from '@infra/kv/kv.service';
+import Redis from 'ioredis';
 
 type TokenResponse = {
   token: string;
@@ -22,6 +24,7 @@ type RefreshTokenResponse = TokenResponse & {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private kv: Redis;
 
   constructor(
     private readonly configService: ConfigService<AppConfig>,
@@ -30,9 +33,11 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepository: Repository<RefreshToken>,
-    private readonly vault: BarbicanService,
+    private readonly kvService: KvService,
     private readonly jwt: JwtService,
-  ) {}
+  ) {
+    this.kv = kvService.kv;
+  }
 
   /**
    * Create a new user with a hashed password and an associated UserIdentity.
@@ -401,7 +406,9 @@ export class AuthService {
 
     if (user) {
       try {
-        await this.vault.createPasswordResetToken(token, id);
+        const key = `reset_password_token::${user.id}`;
+        await this.kv.set(key, token);
+        await this.kv.expire(key, 60 * 15); // 15 minutes
       } catch (e) {
         throw new HttpException(
           'Error storing reset password token',
@@ -481,7 +488,7 @@ export class AuthService {
     }
 
     try {
-      await this.vault.markPasswordResetTokenUsed(token, userId);
+      await this.kv.del(`reset_password_token::${userId}`);
     } catch (e) {
       throw new HttpException(
         e.message,
