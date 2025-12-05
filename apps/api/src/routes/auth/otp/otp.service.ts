@@ -1,19 +1,23 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { BarbicanService } from '@infra/openstack/barbican/barbican.service';
 import * as OTPAuth from 'otpauth';
 import { Repository } from 'typeorm';
 import { User } from '@infra/db/entity/user/user';
 import { InjectRepository } from '@nestjs/typeorm';
+import { KvService } from '@infra/kv/kv.service';
+import Redis from 'ioredis';
 
 @Injectable()
 export class OtpService {
   private logger = new Logger(OtpService.name);
+  private kv: Redis;
 
   constructor(
-    private readonly vault: BarbicanService,
+    private readonly kvService: KvService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-  ) {}
+  ) {
+    this.kv = kvService.kv;
+  }
 
   /**
    * Retrieve the user's email address by user ID.
@@ -83,7 +87,9 @@ export class OtpService {
 
     const secret = totp.secret.base32;
     try {
-      await this.vault.createOtpSecret(userId, secret);
+      const key = `otp::${userId}`;
+      await this.kv.set(key, secret);
+      await this.kv.expire(key, 60 * 10); // expire after 10 minutes
     } catch (error) {
       this.logger.error(
         `Error storing OTP secret for userId ${userId}: ${error.message}`,
@@ -122,7 +128,11 @@ export class OtpService {
    */
   public async verifyOtp(userId: string, token: string): Promise<boolean> {
     const email = await this._getUserEmailById(userId);
-    const secret = await this.vault.getOtpSecretByUserId(userId);
+    const secret = await this.kv.get(`otp::${userId}`);
+
+    if (!secret) {
+      return false;
+    }
 
     const totp = new OTPAuth.TOTP({
       issuer: 'MSWA',
