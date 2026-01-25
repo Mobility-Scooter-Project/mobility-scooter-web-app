@@ -4,9 +4,56 @@ import { useState, type KeyboardEventHandler } from "react";
 import { Form, Link, useActionData } from "react-router";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
-import { loginAction } from "~/lib/loginAction";
+import { redirect, type ActionFunctionArgs } from "react-router";
+import { userAuthStore } from "~/lib/auth";
+import { API_BASE_URL } from "~/config/constants";
 
-export const action = loginAction;
+// TODO: make util to set JWT auth token before redirecting
+// read token from query params, saves to local storage, redirects to dashboard
+
+// handle if refresh token is invalidated, start by checking status of token
+// AFTER validate if token is expired
+
+// add rate limiting?
+export async function loginAction({ request }: ActionFunctionArgs) {
+  const fd = await request.formData();
+  const email = fd.get("email") ?? "";
+  const password = fd.get("password") ?? "";
+
+  let res: Response;
+
+  try {
+    res = await fetch(`${API_BASE_URL}/auth/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (err) {
+    console.error("Error contacting API:", err);
+    return { error: "Unable to contact API" };
+  }
+
+  if (!res.ok) {
+    let msg = "";
+    try {
+      msg = (await res.json())?.error ?? "";
+    } catch {}
+    return { error: msg || "Invalid email or password." };
+  }
+
+  // Success: API returns JSON { token, refreshToken } (referenced from server _createUserSession)
+  const data = await res.json();
+  const token: string = data?.token;
+  const refreshToken: string = data?.refreshToken ?? data?.refresh;
+  // Save token to local storage
+  userAuthStore.getState().signIn(token, refreshToken);
+
+  return redirect("/", {
+    headers: {
+      "Set-Cookie": `auth=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`,
+    },
+  });
+}
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);

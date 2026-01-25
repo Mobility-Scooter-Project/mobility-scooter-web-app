@@ -2,10 +2,7 @@ import { Card } from "~/components/ui/card";
 import { Icon } from "~/components/ui/icon";
 import { SessionList } from "~/components/SessionList";
 import { SearchInput } from "~/components/SearchInput";
-import { userAuthStore, isTokenExpired } from "~/lib/auth";
 import type { Route } from "./+types/home";
-import { Button } from "~/components/Button";
-import { Link } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -15,22 +12,6 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  const { accessToken, refreshToken, clearAccessToken, clearRefreshToken } =
-    userAuthStore();
-
-  if (isTokenExpired(accessToken)) {
-    return (
-      // Fallback UI if access token is expired or missing
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Button size={"fill"} asChild>
-          <Link to={"/login"}>User Not Logged In. Please Go back</Link>
-        </Button>
-      </div>
-    );
-  }
-  // TODO: implement refresh token logic
-  // TODO: use clearAccessToken when implementing logout button
-
   return (
     <main>
       <section>
