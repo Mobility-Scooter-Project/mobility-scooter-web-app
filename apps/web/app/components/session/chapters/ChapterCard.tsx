@@ -6,6 +6,7 @@ import { TextArea } from "~/components/TextArea";
 import { useEffect, useRef } from "react";
 
 interface ChapterCardProps {
+  id: number;
   thumbnailUrl: string;
   title: string;
   timestamp: string;
@@ -15,14 +16,15 @@ interface ChapterCardProps {
   description: string; // empty string means no description
   selected: boolean;
 
-  onSelect: () => void;
+  onSelect: (id: number) => void;
   onDeselect: () => void;
-  onTitleChange: (next: string) => void;
-  onDescriptionChange: (next: string) => void;
-  onScoreChange: (newScore: number) => void;
+  onTitleChange: (id: number, next: string) => void;
+  onDescriptionChange: (id: number, next: string) => void;
+  onScoreChange: (id: number, newScore: number) => void;
 }
 
 export function ChapterCard({
+  id,
   thumbnailUrl,
   title,
   timestamp,
@@ -60,7 +62,7 @@ export function ChapterCard({
         selected ? "opacity-100" : "border-transparent"
       )}
       onClick={() => {
-        if (!selected) onSelect();
+        if (!selected) onSelect(id);
       }}
     >
       {/* settings button */}
@@ -84,7 +86,7 @@ export function ChapterCard({
         rows={1}
         placeholder="Write title here..."
         value={title}
-        onChange={(e) => onTitleChange(e.target.value)}
+        onChange={(e) => onTitleChange(id, e.target.value)}
         className="text-headline font-semibold text-foreground mt-4 p-0 border-0 rounded-none focus-within:shadow-none bg-transparent resize-none leading-tight placeholder:text-foreground/70 placeholder:font-normal"
       />
 
@@ -107,7 +109,7 @@ export function ChapterCard({
               size="inline"
               variant="outline"
               className={cn(score === num && "bg-accent hover:bg-accent")}
-              onClick={() => onScoreChange(num)}
+              onClick={() => onScoreChange(id, num)}
             >
               {num}
             </Button>
@@ -121,7 +123,7 @@ export function ChapterCard({
           <TextArea
             placeholder="Write here..."
             value={description}
-            onChange={(e) => onDescriptionChange(e.target.value)}
+            onChange={(e) => onDescriptionChange(id, e.target.value)}
             className="border-0 rounded-none focus-within:shadow-none p-0 placeholder:text-foreground/70 mt-2"
           />
         ) : (

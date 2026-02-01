@@ -1,18 +1,18 @@
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
-import { cn } from "~/lib/utils";
-import { usePoints } from "~/hooks/usePoints";
+import { usePointStore } from "~/stores/usePointsStore";
+import { PointToggle } from "./PointsToggle";
 
 export function PointsContent() {
+  const points = usePointStore((state) => state.points);
+  const allVisible = usePointStore((state) => state.allVisible);
+  const selectedId = usePointStore((state) => state.selectedId);
   const {
-    points,
-    allVisible,
-    selectedId,
     toggleAllVisibility,
     handleVisibilityToggle,
     handlePointSelect,
-    getIconForStatus
-  } = usePoints();
+    getIconForStatus,
+  } = usePointStore((state) => state.actions);
 
   return (
     <div className="flex flex-col gap-3">
@@ -27,42 +27,14 @@ export function PointsContent() {
       {/* points */}
       <section className="flex flex-col gap-2">
         {points.map((point) => (
-          <Button
+          <PointToggle
             key={point.id}
-            variant="outline"
-            onClick={() => handlePointSelect(point.id, point.status)}
-            className={cn(
-              "h-14 w-full justify-between px-4 font-semibold hover:bg-background/60",
-              "transition-all duration-50",
-              
-              point.status === "visible" && "bg-background text-foreground",
-              point.status === "hidden" && "bg-background text-foreground/50",
-              point.status === "available" &&
-                "bg-card text-foreground hover:bg-background/20", // available = exists but no (points) data
-              
-              selectedId === point.id
-              ? "border-primary/50 border-2" // Selected style
-              : point.status === "available"
-              ? "border-2" // Available (but not selected) style
-              : "border-transparent" // Default style
-            )}
-          >
-            <span>{point.name}</span>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => handleVisibilityToggle(e, point.id)}
-              className={cn(
-                "rounded-full hover:bg-accent/30",
-                point.status === "hidden" && "text-foreground/50"
-              )}
-            >
-              <Icon
-                name={getIconForStatus(point.status)}
-              />
-            </Button>
-          </Button>
+            point={point}
+            selected={selectedId === point.id}
+            getIconForStatus={getIconForStatus}
+            onSelect={handlePointSelect}
+            onToggle={handleVisibilityToggle}
+          />
         ))}
       </section>
     </div>

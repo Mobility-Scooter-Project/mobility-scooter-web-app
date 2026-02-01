@@ -1,21 +1,26 @@
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { AnnotationCard } from "./AnnotationCard";
-import { useAnnotations } from "~/hooks/useAnnotations";
+import { useAnnotationStore } from "~/stores/useAnnotationStore";
 
 export function AnnotationContent() {
+  // states
+  const annotations = useAnnotationStore((state) => state.annotations);
+  const selectedId = useAnnotationStore((state) => state.selectedId);
+
+  // actions
   const {
-    annotations,
-    selectedId,
     handleSelect,
     handleDeselect,
     handleTitleChange,
     handleDescriptionChange,
     handleNewAnnotation,
-  } = useAnnotations();
+  } = useAnnotationStore((state) => state.actions);
 
+  // just to ensure it's not undefined
   const effectiveSelectedId = selectedId ?? null;
 
+  // render component
   return (
     <div>
       <Button
@@ -30,19 +35,19 @@ export function AnnotationContent() {
       <section className="flex flex-col gap-2">
         {annotations.map((annotation) => (
           <AnnotationCard
+            id={annotation.id}
             key={annotation.id}
             title={annotation.title}
-            timestamp={annotation.timestamp}
+            startTime={annotation.startTime}
+            endTime={annotation.endTime}
             author={annotation.author}
             date={annotation.date}
             description={annotation.description ?? ""}
             selected={effectiveSelectedId === annotation.id}
-            onSelect={() => handleSelect(annotation.id)}
+            onSelect={handleSelect}
             onDeselect={handleDeselect}
-            onTitleChange={(next) => handleTitleChange(annotation.id, next)}
-            onDescriptionChange={(next) =>
-              handleDescriptionChange(annotation.id, next)
-            }
+            onTitleChange={handleTitleChange}
+            onDescriptionChange={handleDescriptionChange}
           />
         ))}
       </section>

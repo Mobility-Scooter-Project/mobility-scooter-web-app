@@ -1,57 +1,56 @@
 import { Icon } from "~/components/Icon";
 import { ScrollArea } from "../ScrollArea";
 import { cn } from "~/lib/utils";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/Tabs";
+import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
 import { Button } from "~/components/Button";
 import { TextInput } from "../TextInput";
 
-type MockSession = {
-  id: number;
-  date: string;
-  notification: boolean;
-};
-
-const mockSessions: MockSession[] = [
-  {
-    id: 1,
-    date: "09/15/2025",
-    notification: true,
-  },
-  {
-    id: 2,
-    date: "09/10/2025",
-    notification: true,
-  },
-  {
-    id: 3,
-    date: "09/24/2025",
-    notification: false,
-  },
-  {
-    id: 4,
-    date: "08/05/2025",
-    notification: false,
-  },
-  {
-    id: 5,
-    date: "08/05/2025",
-    notification: false,
-  },
-];
-
-interface SessionsPanelProps {
-  activeSessionId: string;
-  onSessionSelect: (id: string) => void;
-}
+import { useSessionStore } from "~/stores/useSessionStore";
+import { useChapterStore } from "~/stores/useChapterStore";
+import { useAnnotationStore } from "~/stores/useAnnotationStore";
+import { usePointStore } from "~/stores/usePointsStore";
 
 /**
  * Left-side panel component for displaying sessions for this user
  * Ordered by most recent. Sessions w/ notifications appear at the top.
  */
-export function SessionsPanel({
-  activeSessionId,
-  onSessionSelect,
-}: SessionsPanelProps) {
+export function SessionsPanel() {
+  // Global session state
+  const sessions = useSessionStore((state) => state.sessions);
+  const activeSessionId = useSessionStore((state) => state.activeSessionId);
+  const setSessionId = useSessionStore(
+    (state) => state.actions.setActiveSessionId
+  );
+
+  // Actions for other stores
+  const setChapters = useChapterStore((state) => state.actions.setChapters);
+  const setAnnotations = useAnnotationStore(
+    (state) => state.actions.setAnnotations
+  );
+  const setPoints = usePointStore((state) => state.actions.setPoints);
+
+  const handleSessionSelect = (idStr: string) => {
+    const id = Number(idStr);
+    setSessionId(idStr);
+
+    // Find the session data
+    const session = sessions.find((s) => s.id === id);
+    if (session && session.views.length > 0) {
+      // Default to the first view when switching sessions
+      const firstView = session.views[0];
+      setChapters(firstView.chapters);
+      setAnnotations(firstView.annotations);
+      setPoints(firstView.points);
+    } else {
+        // Clear if no views exist
+        setChapters([]);
+        setAnnotations([]);
+        setPoints([]);
+    }
+  };
+
+  const reversedSessions = [...sessions].sort((a, b) => b.id - a.id);
+
   return (
     <main className="flex flex-col h-full">
       <TextInput id="text" type="text" placeholder="Search here...">
@@ -60,7 +59,7 @@ export function SessionsPanel({
 
       <Tabs
         value={activeSessionId}
-        onValueChange={onSessionSelect}
+        onValueChange={handleSessionSelect}
         className="flex flex-col flex-1"
       >
         <ScrollArea className="h-full">
@@ -73,7 +72,7 @@ export function SessionsPanel({
 
             {/* sessions list */}
             <TabsList className="flex flex-col h-auto justify-start gap-0.5 rounded-none p-0 w-full items-start">
-              {mockSessions.map((session) => (
+              {reversedSessions.map((session) => (
                 <TabsTrigger
                   key={session.id}
                   value={session.id.toString()} // id as string

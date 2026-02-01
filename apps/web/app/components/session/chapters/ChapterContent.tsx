@@ -1,19 +1,19 @@
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { ChapterCard } from "./ChapterCard";
-import { useChapters } from "~/hooks/useChapters";
+import { useChapterStore } from "~/stores/useChapterStore";
 
 export function ChapterContent() {
+  const chapters = useChapterStore((state) => state.chapters);
+  const selectedId = useChapterStore((state) => state.selectedId);
   const {
-    chapters,
-    selectedId,
     handleSelect,
     handleDeselect,
     handleScoreChange,
     handleTitleChange,
     handleDescriptionChange,
     handleNewChapter,
-  } = useChapters();
+  } = useChapterStore((state) => state.actions);
 
   const effectiveSelectedId = selectedId ?? null;
 
@@ -32,6 +32,7 @@ export function ChapterContent() {
         {chapters.map((chapter) => (
           <ChapterCard
             key={chapter.id}
+            id={chapter.id}
             thumbnailUrl={chapter.thumbnailUrl}
             title={chapter.title}
             timestamp={chapter.timestamp}
@@ -40,15 +41,11 @@ export function ChapterContent() {
             score={chapter.score}
             description={chapter.description}
             selected={effectiveSelectedId === chapter.id}
-            onSelect={() => handleSelect(chapter.id)}
+            onSelect={handleSelect}
             onDeselect={handleDeselect}
-            onTitleChange={(next) => handleTitleChange(chapter.id, next)}
-            onDescriptionChange={(next) =>
-              handleDescriptionChange(chapter.id, next)
-            }
-            onScoreChange={(newScore) =>
-              handleScoreChange(chapter.id, newScore)
-            }
+            onTitleChange={handleTitleChange}
+            onDescriptionChange={handleDescriptionChange}
+            onScoreChange={handleScoreChange}
           />
         ))}
       </section>

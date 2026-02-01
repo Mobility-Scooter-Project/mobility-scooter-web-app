@@ -4,6 +4,7 @@ import { ScrollArea } from "~/components/ScrollArea";
 import { AnnotationContent } from "./annotations/AnnotationContent";
 import { ChapterContent } from "./chapters/ChapterContent";
 import { PointsContent } from "./points/PointsContent";
+import { usePanelStore } from "~/stores/usePanelStore";
 
 const panelTabs = [
   { value: "analysis", label: "Analysis" },
@@ -19,8 +20,11 @@ const panelTabs = [
  * Name is probably subject to change
  */
 export function AnalysisPanel() {
+  const activeTab = usePanelStore((state) => state.activeTab);
+  const setActiveTab = usePanelStore((state) => state.setActiveTab);
+
   return (
-    <Tabs defaultValue="analysis" className="flex flex-col h-full p-2 gap-2">
+    <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="flex flex-col h-full p-2 gap-2">
       <PanelNav tabs={panelTabs} />
 
       <TabsContent value="analysis" className="overflow-hidden">
