@@ -53,15 +53,5 @@ describe('BarbicanService', () => {
     expect(service).toBeDefined();
   });
 
-  // These tests are technically integration tests since they hit real OpenStack services, but mocking HTTP calls is too complex for now.
-  it('should upsert a secret', async () => {
-    await service.upsertSecret('test/path', 'test-key', 'test-secret');
-  });
-
-  it('should get a secret', async () => {
-    const secret = await service.readSecret('test/path', 'test-key');
-    expect(secret).toBe('test-secret');
-  });
-
   // The other methods are ommitted as they are wrappers around the above methods.
 });
