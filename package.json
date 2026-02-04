@@ -18,10 +18,15 @@
     "supportedArchitectures": {
       "os": [
         "linux",
-        "win32"
+        "win32",
+        "darwin"
       ],
       "cpu": [
-        "x64"
+        "x64",
+        "arm64"
+      ],
+      "libc": [
+        "glibc"
       ]
     }
   }
