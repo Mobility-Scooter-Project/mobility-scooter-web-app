@@ -13,5 +13,16 @@
     "husky": "^9.1.7",
     "turbo": "latest"
   },
-  "packageManager": "pnpm@10.28.2"
+  "packageManager": "pnpm@10.28.2",
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": [
+        "linux",
+        "win32"
+      ],
+      "cpu": [
+        "x64"
+      ]
+    }
+  }
 }
