@@ -4,6 +4,7 @@ import { Plus, PlusIcon, Trash2 } from "lucide-react";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
 import { OverlayCard } from "~/components/OverlayCard";
+import OverlayModal from "~/components/OverlayModal";
 import { useState } from "react";
 
 export default function AddMemberPage() {
@@ -26,13 +27,9 @@ export default function AddMemberPage() {
       <div className="flex w-full flex-col gap-4.5">
         <h3 className="font-semibold">Departments</h3>
 
-        <Button variant="link" size="none" className="flex self-start">
-          <Link
-            to="/overlay"
-            className="flex items-center py-2 px-4 gap-2 text-foreground"
-          >
-            <Plus className="size-4" /> New Department
-          </Link>
+        <Button variant="ghost" onClick={() => setOpenOverlay(true)}>
+          <PlusIcon className="size-4" />
+          New Department
         </Button>
 
         <div>
@@ -72,18 +69,18 @@ export default function AddMemberPage() {
 
         <Button variant="ghost" onClick={() => setOpenOverlay(true)}>
           <PlusIcon className="size-4" />
-          Add Member
+          New Member
         </Button>
 
         <OverlayCard
           open={openOverlay}
           onClose={() => setOpenOverlay(false)}
-          title="Overlay Card Dialog"
-          subtitle="Form for inviting new user"
-          contentClassName="max-w-3xl"
+          title="Invite Member"
+          subtitle="Invite a team member to join your organization. The recipient will get a one-time magic link to create their account. Embedded information will not be editable by recipient."
+          contentClassName="max-w-3xl rounded-lg w-full"
           bodyClassName="gap-9"
         >
-          <Button size={"fill"}>Submit</Button>
+          <OverlayModal />
         </OverlayCard>
 
         <div>

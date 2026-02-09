@@ -1,4 +1,5 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
+import { requireAuthLoader } from "./lib/auth";
 
 export default [
   route("/", "layouts/AppLayout.tsx", [
@@ -12,7 +13,7 @@ export default [
     route("login", "routes/login.tsx"),
     route("signup", "routes/signup.tsx"),
     route("join-org-app", "routes/joinorgapp.tsx"),
-    route("create-org-app", "routes/createorgapp.tsx"),
+    route("create-org-app", "routes/createorgapp.tsx"), //protected (users)
     route("verify-email", "routes/verify-email.tsx"),
     route("email-verified", "routes/email-verified.tsx"),
     route("join-org", "routes/joinorg.tsx"),
@@ -24,7 +25,6 @@ export default [
     route("reset-password", "routes/reset-password.tsx"),
     route("reset-confirmation", "routes/reset-confirmation.tsx"),
     route("link-expired", "routes/link-expired.tsx"),
-    route("overlay", "routes/overlay.tsx"),
     route("components", "routes/components.tsx"),
   ]),
 ] satisfies RouteConfig;
