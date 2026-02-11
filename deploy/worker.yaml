@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: mswa-worker
   namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: "msp:mswa-worker-deploy"
 spec:
   destination:
     namespace: mswa
