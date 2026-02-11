@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Icon } from "~/components/Icon";
 import { ScrollArea } from "../ScrollArea";
 import { cn } from "~/lib/utils";
@@ -6,54 +6,42 @@ import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
 import { Button } from "~/components/Button";
 import { TextInput } from "../TextInput";
 import { NewSessionDialog } from "./NewSessionDialog";
-
 import { useSessionStore } from "~/stores/useSessionStore";
-import { useChapterStore } from "~/stores/useChapterStore";
-import { useAnnotationStore } from "~/stores/useAnnotationStore";
-import { usePointStore } from "~/stores/usePointsStore";
 
+/**
+ * Left-most container, displays a searchable, scrollable list of available sessions.
+ * - Allows selection of the active session, which drives the content in the other panels.
+ * - Displays notifications for sessions with new activity.
+ * - Contains a button to create a new session.
+ */
 export function SessionsPanel() {
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
 
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
-  
   const { setActiveSessionId, markAsRead } = useSessionStore((state) => state.actions);
-
-  const setChapters = useChapterStore((state) => state.actions.setChapters);
-  const setAnnotations = useAnnotationStore((state) => state.actions.setAnnotations);
-  const setPoints = usePointStore((state) => state.actions.setPoints);
 
   const handleSessionSelect = (idStr: string) => {
     const id = Number(idStr);
     
-    // Clear notification if exists
+    // Clear notification logic
     const session = sessions.find((s) => s.id === id);
     if (session?.notification) {
       markAsRead(id);
     }
 
     setActiveSessionId(idStr);
-
-    if (session && session.views.length > 0) {
-      const firstView = session.views[0];
-      setChapters(firstView.chapters);
-      setAnnotations(firstView.annotations);
-      setPoints(firstView.points);
-    } else {
-        setChapters([]);
-        setAnnotations([]);
-        setPoints([]);
-    }
   };
 
   // Sort: Notifications first, then by ID descending
-  const sortedSessions = [...sessions].sort((a, b) => {
-    if (a.notification !== b.notification) {
-      return a.notification ? -1 : 1;
-    }
-    return b.id - a.id;
-  });
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      if (a.notification !== b.notification) {
+        return a.notification ? -1 : 1;
+      }
+      return b.id - a.id;
+    });
+  }, [sessions]);
 
   return (
     <main className="flex flex-col h-full">

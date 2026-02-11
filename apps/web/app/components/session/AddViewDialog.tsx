@@ -12,44 +12,52 @@ interface AddViewDialogProps {
   sessionId: number;
 }
 
+/**
+ * Dialog for adding a new camera angle/view to an existing session.
+ * Requires a title and a video file.
+ */
 export function AddViewDialog({ open, onOpenChange, sessionId }: AddViewDialogProps) {
   const addView = useSessionStore((state) => state.actions.addView);
 
-  // Form State
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  const resetForm = () => {
-    setTitle("");
-    setFile(null);
+  const handleClose = () => {
+    onOpenChange(false);
+    // Small delay to prevent UI flicker before dialog closes
+    setTimeout(() => {
+      setTitle("");
+      setFile(null);
+    }, 200);
   };
 
   const handleSubmit = () => {
-    if (title && file) {
-      addView(sessionId, { label: title, file });
-      resetForm();
-      onOpenChange(false);
-    }
+    if (!title.trim() || !file) return;
+
+    addView(sessionId, { label: title, file });
+    handleClose();
   };
 
-  const isValid = title.trim() !== "" && file !== null;
+  const isValid = title.trim().length > 0 && file !== null;
 
   return (
     <OverlayCard
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={handleClose}
       title={<span className="pl-1">Upload Additional Session Media</span>}
       contentClassName="sm:max-w-[600px]"
       bodyClassName="flex flex-col gap-6"
     >
       {/* Media Title */}
       <div className="flex flex-col gap-2 w-full">
-        <Label>Media Title</Label>
+        <Label htmlFor="view-title">Media Title</Label>
         <TextInput
-          placeholder="Title Entered Here"
+          id="view-title"
+          placeholder="e.g., Side Angle, Wide Shot..."
           variant="form"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          autoFocus
         />
       </div>
 

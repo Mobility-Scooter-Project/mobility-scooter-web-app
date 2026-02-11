@@ -3,6 +3,9 @@ import { Icon } from "~/components/Icon";
 import { ChapterCard } from "./ChapterCard";
 import { useChapterStore } from "~/stores/useChapterStore";
 
+/**
+ * Render the list of chapters for the active session and view.
+ */
 export function ChapterContent() {
   const chapters = useChapterStore((state) => state.chapters);
   const selectedId = useChapterStore((state) => state.selectedId);
@@ -14,7 +17,7 @@ export function ChapterContent() {
     handleDescriptionChange,
     handleTimestampChange,
     handleNewChapter,
-    handleDeleteChapter, // Imported
+    handleDeleteChapter,
   } = useChapterStore((state) => state.actions);
 
   const effectiveSelectedId = selectedId ?? null;
@@ -49,7 +52,7 @@ export function ChapterContent() {
             onDescriptionChange={handleDescriptionChange}
             onScoreChange={handleScoreChange}
             onTimestampChange={handleTimestampChange}
-            onDelete={handleDeleteChapter} // Passed prop
+            onDelete={handleDeleteChapter}
           />
         ))}
       </section>

@@ -1,8 +1,8 @@
+import { memo, useEffect, useRef, useState } from "react";
 import { Card } from "~/components/Card";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { TextArea } from "~/components/TextArea";
-import { memo, useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
 import { useVideoStore } from "~/stores/useVideoStore";
 import type { Annotation } from "~/data/mock-session-data";
@@ -12,6 +12,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "~/components/Dropdown";
+import { useAutoDeselect } from "~/hooks/useAutoDeselect";
+import { TimeInput } from "../common/TimeInput";
+import { getDigitsFromSeconds, timeStringToSeconds, formatTimeDigits } from "~/lib/formatters";
 
 interface AnnotationCardProps {
   id: number;
@@ -20,92 +23,20 @@ interface AnnotationCardProps {
   endTime: number; // in seconds
   author: string;
   date: string;
-  description: string; // empty string means no description
+  description: string;
   selected: boolean;
-
   onSelect: (id: number) => void;
   onDeselect: () => void;
   onTitleChange: (id: number, next: string) => void;
   onDescriptionChange: (id: number, next: string) => void;
   onUpdate: (id: number, updates: Partial<Annotation>) => void;
-  onDelete: (id: number) => void; // New prop
+  onDelete: (id: number) => void;
 }
 
-// ... helper functions (toSeconds, formatDigits, getDigitsFromSeconds) same as before ...
-// Helper: Convert formatted time string (H:MM:SS or MM:SS) to seconds
-function toSeconds(timeStr: string) {
-  const parts = timeStr.split(":").map(Number);
-  let seconds = 0;
-  if (parts.length === 3) {
-    seconds += parts[0] * 3600;
-    seconds += parts[1] * 60;
-    seconds += parts[2];
-  } else if (parts.length === 2) {
-    seconds += parts[0] * 60;
-    seconds += parts[1];
-  }
-  return seconds;
-}
-
-// Helper: Format raw digit string to time string
-function formatDigits(digits: string) {
-  const val = parseInt(digits || "0", 10);
-  if (isNaN(val)) return "00:00";
-
-  const sStr = digits.slice(-2).padStart(2, "0");
-  const remainder = digits.slice(0, -2);
-  const mStr = remainder.slice(-2).padStart(2, "0");
-  const hStr = remainder.slice(0, -2);
-
-  if (hStr.length > 0) {
-    return `${parseInt(hStr, 10)}:${mStr}:${sStr}`;
-  }
-  return `${mStr}:${sStr}`;
-}
-
-// Helper: Extract raw digits from seconds (for initializing state)
-function getDigitsFromSeconds(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-
-  if (h > 0)
-    return `${h}${String(m).padStart(2, "0")}${String(s).padStart(2, "0")}`;
-  return `${m}${String(s).padStart(2, "0")}`;
-}
-
-const TimeInput = ({
-  value,
-  onChange,
-  onBlur,
-  onKeyDown,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  onBlur: () => void;
-  onKeyDown: (e: React.KeyboardEvent) => void;
-}) => {
-  const displayValue = formatDigits(value);
-  const widthClass = displayValue.length > 5 ? "w-[7ch]" : "w-[5ch]";
-
-  return (
-    <input
-      className={cn(
-        "bg-transparent border-b border-muted-foreground/30 hover:border-foreground focus:border-foreground rounded-none px-0 py-0 text-center outline-none focus:ring-0 transition-all tabular-nums text-label text-muted-foreground focus:text-foreground",
-        widthClass,
-      )}
-      value={displayValue}
-      onChange={(e) => {
-        const raw = e.target.value.replace(/\D/g, "");
-        if (raw.length <= 6) onChange(parseInt(raw || "0", 10).toString());
-      }}
-      onBlur={onBlur}
-      onKeyDown={onKeyDown}
-      onClick={(e) => e.stopPropagation()}
-    />
-  );
-};
-
+/**
+ * A card representing a specific time range annotation.
+ * Allows editing of title, description, start time, and end time.
+ */
 export const AnnotationCard = memo(
   ({
     id,
@@ -129,42 +60,23 @@ export const AnnotationCard = memo(
     const [startDigits, setStartDigits] = useState("");
     const [endDigits, setEndDigits] = useState("");
 
+    // Sync state when props change (external updates or slider moves)
     useEffect(() => {
       setStartDigits(getDigitsFromSeconds(startTime));
       setEndDigits(getDigitsFromSeconds(endTime));
     }, [startTime, endTime]);
 
-    useEffect(() => {
-      if (!selected) return;
-      const onDocClick = (e: MouseEvent) => {
-        const el = rootRef.current;
-        const target = e.target as HTMLElement;
-
-        // If clicking inside card or inside a dropdown portal, don't deselect
-        if (el && el.contains(target)) return;
-        if (target.closest("[data-radix-portal]")) return;
-
-        onDeselect();
-      };
-      document.addEventListener("mousedown", onDocClick);
-      return () => document.removeEventListener("mousedown", onDocClick);
-    }, [selected, onDeselect]);
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        (e.currentTarget as HTMLElement).blur();
-      }
-    };
+    // Hook: Handle clicking outside to deselect
+    useAutoDeselect(rootRef, selected, onDeselect);
 
     const commitStart = () => {
-      const seconds = toSeconds(formatDigits(startDigits));
+      const seconds = timeStringToSeconds(formatTimeDigits(startDigits));
       const maxDuration = videoDuration > 0 ? videoDuration : Infinity;
 
       let newStart = Math.min(Math.max(0, seconds), maxDuration);
       if (newStart > endTime) newStart = endTime;
 
-      const digits = getDigitsFromSeconds(newStart);
-      setStartDigits(digits);
+      setStartDigits(getDigitsFromSeconds(newStart));
 
       if (newStart !== startTime) {
         onUpdate(id, { startTime: newStart });
@@ -172,14 +84,13 @@ export const AnnotationCard = memo(
     };
 
     const commitEnd = () => {
-      const seconds = toSeconds(formatDigits(endDigits));
+      const seconds = timeStringToSeconds(formatTimeDigits(endDigits));
       const maxDuration = videoDuration > 0 ? videoDuration : Infinity;
 
       let newEnd = Math.min(Math.max(0, seconds), maxDuration);
       if (newEnd < startTime) newEnd = startTime;
 
-      const digits = getDigitsFromSeconds(newEnd);
-      setEndDigits(digits);
+      setEndDigits(getDigitsFromSeconds(newEnd));
 
       if (newEnd !== endTime) {
         onUpdate(id, { endTime: newEnd });
@@ -196,9 +107,7 @@ export const AnnotationCard = memo(
           "transition-all duration-200 border border-primary/50",
           selected ? "opacity-100" : "border-transparent",
         )}
-        onClick={(e) => {
-          if (!selected) onSelect(id);
-        }}
+        onClick={() => !selected && onSelect(id)}
       >
         <header className="flex items-center justify-between gap-2">
           <TextArea
@@ -241,14 +150,12 @@ export const AnnotationCard = memo(
               value={startDigits}
               onChange={setStartDigits}
               onBlur={commitStart}
-              onKeyDown={handleKeyDown}
             />
             <span>-</span>
             <TimeInput
               value={endDigits}
               onChange={setEndDigits}
               onBlur={commitEnd}
-              onKeyDown={handleKeyDown}
             />
           </div>
           <span>•</span>

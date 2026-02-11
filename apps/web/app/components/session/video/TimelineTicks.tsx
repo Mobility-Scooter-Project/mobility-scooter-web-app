@@ -4,6 +4,11 @@ interface TimelineTicksProps {
   duration: number; // in seconds
 }
 
+/**
+ * Renders tick marks along the video timeline.
+ * - Small ticks every 15 seconds.
+ * - Larger ticks every 60 seconds (1 minute).
+ */
 export function TimelineTicks({ duration }: TimelineTicksProps) {
   const numSmallTicks = Math.ceil(duration / 15);
 

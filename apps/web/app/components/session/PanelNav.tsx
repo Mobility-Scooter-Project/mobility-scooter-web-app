@@ -1,14 +1,17 @@
 import { TabsList, TabsTrigger } from "~/components/Tabs";
 
-type PanelTab = {
+export type PanelTabItem = {
   value: string;
   label: string;
 };
 
 interface PanelNavProps {
-  tabs: PanelTab[];
+  tabs: readonly PanelTabItem[];
 }
 
+/**
+ * A navigational header for session panels (Analysis, etc.).
+ */
 export function PanelNav({ tabs }: PanelNavProps) {
   return (
     <TabsList className="flex flex-wrap h-auto justify-start gap-2 rounded-none">

@@ -1,9 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Card } from "~/components/Card";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { TextArea } from "~/components/TextArea";
-import { useEffect, useRef, useState } from "react";
 import { useVideoStore } from "~/stores/useVideoStore";
 import {
   DropdownMenu,
@@ -12,70 +12,37 @@ import {
   DropdownMenuItem,
 } from "~/components/Dropdown";
 
+// Shared Utilities (Ensure these are imported from where you placed them)
+import { useAutoDeselect } from "~/hooks/useAutoDeselect";
+import { TimeInput } from "../common/TimeInput";
+import { 
+  formatTimeDigits, 
+  timeStringToSeconds, 
+  getDigitsFromSeconds 
+} from "~/lib/formatters";
+
 interface ChapterCardProps {
   id: number;
   thumbnailUrl: string;
   title: string;
-  timestamp: string;
+  timestamp: string; // "MM:SS" or "H:MM:SS"
   author: string;
   lastUpdated: string;
   score?: number | null;
   description: string;
   selected: boolean;
-
   onSelect: (id: number) => void;
   onDeselect: () => void;
   onTitleChange: (id: number, next: string) => void;
   onDescriptionChange: (id: number, next: string) => void;
   onScoreChange: (id: number, newScore: number) => void;
   onTimestampChange: (id: number, next: string) => void;
-  onDelete: (id: number) => void; // New prop
+  onDelete: (id: number) => void;
 }
 
-// ... helper functions (toSeconds, fromSeconds, formatDigits) same as before ...
-// Helper: Convert formatted time string (H:MM:SS or MM:SS) to seconds
-function toSeconds(timeStr: string) {
-  const parts = timeStr.split(":").map(Number);
-  let seconds = 0;
-  if (parts.length === 3) {
-    seconds += parts[0] * 3600;
-    seconds += parts[1] * 60;
-    seconds += parts[2];
-  } else if (parts.length === 2) {
-    seconds += parts[0] * 60;
-    seconds += parts[1];
-  }
-  return seconds;
-}
-
-// Helper: Convert seconds to H:MM:SS or MM:SS
-function fromSeconds(totalSeconds: number, forceHours = false) {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.floor(totalSeconds % 60);
-
-  if (h > 0 || forceHours) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-// Helper: Format raw digit string to time string
-function formatDigits(digits: string) {
-  const val = parseInt(digits || "0", 10);
-  if (isNaN(val)) return "00:00";
-
-  const sStr = digits.slice(-2).padStart(2, "0");
-  const remainder = digits.slice(0, -2);
-  const mStr = remainder.slice(-2).padStart(2, "0");
-  const hStr = remainder.slice(0, -2);
-
-  if (hStr.length > 0) {
-    return `${parseInt(hStr, 10)}:${mStr}:${sStr}`;
-  }
-  return `${mStr}:${sStr}`;
-}
-
+/**
+ * A card representing a video chapter (timestamp bookmark).
+ */
 export function ChapterCard({
   id,
   thumbnailUrl,
@@ -96,57 +63,39 @@ export function ChapterCard({
 }: ChapterCardProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoDuration = useVideoStore((state) => state.duration);
+  
   const [digits, setDigits] = useState("");
 
+  // Sync state when timestamp prop changes (external update)
   useEffect(() => {
     const raw = timestamp.replace(/\D/g, "");
-    setDigits(parseInt(raw, 10).toString());
+    setDigits(parseInt(raw || "0", 10).toString());
   }, [timestamp]);
 
-  useEffect(() => {
-    if (!selected) return;
-    const onDocClick = (e: MouseEvent) => {
-      // Allow dropdown clicks to propagate, don't deselect immediately
-      const el = rootRef.current;
-      const target = e.target as HTMLElement;
-
-      // If clicking inside card or inside a dropdown portal, don't deselect
-      if (el && el.contains(target)) return;
-      if (target.closest("[data-radix-portal]")) return;
-
-      onDeselect();
-    };
-    document.addEventListener("mousedown", onDocClick); // Use mousedown for better handling with dropdowns
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [selected, onDeselect]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = e.target.value;
-    const raw = newVal.replace(/\D/g, "");
-    if (raw.length > 6) return;
-    setDigits(parseInt(raw || "0", 10).toString());
-  };
+  // Hook: Handle clicking outside to deselect
+  useAutoDeselect(rootRef, selected, onDeselect);
 
   const commitChange = () => {
-    const formatted = formatDigits(digits);
-    const seconds = toSeconds(formatted);
-    const maxSeconds = videoDuration > 0 ? videoDuration : Infinity;
+    // 1. Parse current digits to seconds
+    const seconds = timeStringToSeconds(formatTimeDigits(digits));
+    
+    // 2. Clamp to duration
+    const maxDuration = videoDuration > 0 ? videoDuration : Infinity;
+    const clampedSeconds = Math.min(Math.max(0, seconds), maxDuration);
 
-    let finalValue = formatted;
-
-    if (seconds > maxSeconds) {
-      finalValue = fromSeconds(maxSeconds);
-      setDigits(finalValue.replace(/\D/g, ""));
-    }
-
-    if (finalValue !== timestamp) {
-      onTimestampChange(id, finalValue);
+    // 3. Normalize BACK to digits (Fixes "00:99" -> "0139")
+    const newDigits = getDigitsFromSeconds(clampedSeconds);
+    
+    // Update local state and notify parent
+    setDigits(newDigits);
+    
+    const formatted = formatTimeDigits(newDigits);
+    if (formatted !== timestamp) {
+      onTimestampChange(id, formatted);
     }
   };
 
   const showTextarea = selected || description.trim().length > 0;
-  const displayValue = formatDigits(digits);
-  const inputWidth = displayValue.length > 5 ? "w-[72px]" : "w-[60px]";
 
   return (
     <Card
@@ -156,9 +105,7 @@ export function ChapterCard({
         "transition-all duration-200 border border-primary/50",
         selected ? "opacity-100" : "border-transparent",
       )}
-      onClick={() => {
-        if (!selected) onSelect(id);
-      }}
+      onClick={() => !selected && onSelect(id)}
     >
       <div className="absolute top-3 right-3 z-10">
         <DropdownMenu>
@@ -202,22 +149,17 @@ export function ChapterCard({
         className="text-headline font-semibold text-foreground mt-4 p-0 border-0 rounded-none focus-within:shadow-none bg-transparent resize-none leading-tight placeholder:text-foreground/70"
       />
 
-      <section className="flex items-center gap-2 text-label text-muted-foreground">
-        <input
-          className={cn(
-            "bg-card rounded-full px-3 py-1 text-center outline-none focus:ring-1 focus:ring-ring transition-all tabular-nums",
-            inputWidth,
-          )}
-          value={displayValue}
-          onChange={handleChange}
-          onBlur={commitChange}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.currentTarget.blur();
-            }
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
+      <section className="flex items-center gap-2 text-label text-muted-foreground mt-1">
+        {/* Pill-shaped Time Input */}
+        <div className="flex items-center justify-center bg-card rounded-full px-2 py-0.5 border border-transparent hover:border-border transition-colors">
+            <TimeInput
+            value={digits}
+            onChange={setDigits}
+            onBlur={commitChange}
+            className="text-foreground font-medium" 
+            />
+        </div>
+        
         <span>•</span>
         <span>{author}</span>
         <span>•</span>

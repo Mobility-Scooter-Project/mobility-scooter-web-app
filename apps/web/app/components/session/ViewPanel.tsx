@@ -1,79 +1,36 @@
 import { ScrollArea } from "~/components/ScrollArea";
 import { VideoContainer } from "~/components/session/video/VideoContainer";
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { Toggle } from "~/components/Toggle";
 import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { AddViewDialog } from "./AddViewDialog";
-
 import { useSessionStore } from "~/stores/useSessionStore";
-import { useChapterStore } from "~/stores/useChapterStore";
-import { useAnnotationStore } from "~/stores/useAnnotationStore";
-import { usePointStore } from "~/stores/usePointsStore";
+import { useSessionDataSync } from "~/hooks/useSessionDataSync";
+import { VIEW_TOGGLES, type ViewToggleKey } from "~/config/session-constants";
 
-const viewToggles = [{ key: "annotations", label: "Annotations" }];
-
-type ToggleKeys = (typeof viewToggles)[number]["key"];
-
+/**
+ * Middle container responsible for video playback and view controls.
+ * - Displays the video player for the active view and provides toggles for overlaying data (e.g. Annotations, Points).
+ * - Contains a tab list for switching between multiple views within the same session.
+ */
 export function ViewPanel() {
-  const sessions = useSessionStore((state) => state.sessions);
+  const { activeSession, activeViewId, setActiveViewId } = useSessionDataSync();
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
 
-  const loadChapters = useChapterStore((state) => state.actions.loadChapters);
-  const setAnnotations = useAnnotationStore(
-    (state) => state.actions.setAnnotations,
-  );
-  const setPoints = usePointStore((state) => state.actions.setPoints);
-
-  const activeSession = useMemo(
-    () => sessions.find((s) => s.id.toString() === activeSessionId.toString()),
-    [sessions, activeSessionId],
-  );
-
   const [isAddViewOpen, setIsAddViewOpen] = useState(false);
-  const [activeViewId, setActiveViewId] = useState<string>("");
-  const [pressedToggles, setPressedToggles] = useState<Record<string, boolean>>(
-    {
-      gait: false,
-      posture: true,
-      sway: false,
-      motion: false,
-      points: false,
-      smartphone: false,
-      gyroscope: false,
-      annotations: true,
-    },
+  
+  // Initialize toggles from config
+  const [pressedToggles, setPressedToggles] = useState<Record<string, boolean>>(() =>
+    VIEW_TOGGLES.reduce((acc, t) => ({ ...acc, [t.key]: t.default }), {})
   );
-
-  useEffect(() => {
-    if (activeSession && activeSession.views.length > 0) {
-      // If the currently selected view ID doesn't exist in the new session's views, 
-      // default to the first one.
-      const viewExists = activeSession.views.some(v => v.id === activeViewId);
-      if (!viewExists || activeViewId === "") {
-         setActiveViewId(activeSession.views[0].id);
-      }
-    } else {
-      setActiveViewId("");
-    }
-  }, [activeSession, activeViewId]);
-
-  useEffect(() => {
-    if (!activeSession || !activeViewId) return;
-    const view = activeSession.views.find((v) => v.id === activeViewId);
-    if (view) {
-      loadChapters(activeSession.id, activeViewId);
-      setAnnotations(view.annotations);
-      setPoints(view.points);
-    }
-  }, [activeViewId, activeSession, loadChapters, setAnnotations, setPoints]);
 
   const currentView = activeSession?.views.find((v) => v.id === activeViewId);
   const viewTitle = currentView ? currentView.label : "No View Selected";
   const videoSrc = currentView ? currentView.videoUrl : undefined;
 
-  const handleToggleChange = (key: ToggleKeys) => {
+  const handleToggleChange = (key: ViewToggleKey) => {
     setPressedToggles((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -109,11 +66,11 @@ export function ViewPanel() {
       </header>
 
       <section className="flex flex-wrap gap-3 px-2">
-        {viewToggles.map((toggle) => (
+        {VIEW_TOGGLES.map((toggle) => (
           <Toggle
             key={toggle.key}
-            pressed={pressedToggles[toggle.key as ToggleKeys]}
-            onPressedChange={() => handleToggleChange(toggle.key as ToggleKeys)}
+            pressed={pressedToggles[toggle.key]}
+            onPressedChange={() => handleToggleChange(toggle.key)}
             className="text-foreground"
           >
             {toggle.label}
@@ -127,7 +84,6 @@ export function ViewPanel() {
         </div>
       </ScrollArea>
 
-      {/* Add View Dialog */}
       <AddViewDialog 
         open={isAddViewOpen} 
         onOpenChange={setIsAddViewOpen}

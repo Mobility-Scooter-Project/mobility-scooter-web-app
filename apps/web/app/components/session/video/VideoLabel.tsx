@@ -19,6 +19,9 @@ interface VideoLabelProps {
   ) => void;
 }
 
+/**
+ * A label component that appears on the video timeline for annotations, risks, or drawings.
+ */
 export function VideoLabel({
   id,
   startTime,

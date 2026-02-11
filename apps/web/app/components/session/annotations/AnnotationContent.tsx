@@ -3,6 +3,9 @@ import { Icon } from "~/components/Icon";
 import { AnnotationCard } from "./AnnotationCard";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 
+/**
+ * Render the list of annotations for the active session and view.
+ */
 export function AnnotationContent() {
   // states
   const annotations = useAnnotationStore((state) => state.annotations);
@@ -16,7 +19,7 @@ export function AnnotationContent() {
     handleDescriptionChange,
     handleNewAnnotation,
     updateAnnotation,
-    handleDeleteAnnotation, // Imported
+    handleDeleteAnnotation,
   } = useAnnotationStore((state) => state.actions);
 
   // just to ensure it's not undefined
@@ -51,7 +54,7 @@ export function AnnotationContent() {
             onTitleChange={handleTitleChange}
             onDescriptionChange={handleDescriptionChange}
             onUpdate={updateAnnotation}
-            onDelete={handleDeleteAnnotation} // Passed prop
+            onDelete={handleDeleteAnnotation}
           />
         ))}
       </section>

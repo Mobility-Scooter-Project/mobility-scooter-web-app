@@ -3,6 +3,9 @@ import { Icon } from "~/components/Icon";
 import { usePointStore } from "~/stores/usePointsStore";
 import { PointToggle } from "./PointsToggle";
 
+/**
+ * Render the list of points for the active session and view.
+ */
 export function PointsContent() {
   const points = usePointStore((state) => state.points);
   const allVisible = usePointStore((state) => state.allVisible);

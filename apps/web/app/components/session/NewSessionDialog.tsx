@@ -12,6 +12,10 @@ interface NewSessionDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * Dialog for creating a brand new session.
+ * Initializes the session with one default view (media file).
+ */
 export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) {
   const addSession = useSessionStore((state) => state.actions.addSession);
 
@@ -21,39 +25,48 @@ export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) 
   const [mediaTitle, setMediaTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  const resetForm = () => {
-    setPatientId("");
-    setDate(undefined);
-    setMediaTitle("");
-    setFile(null);
+  const handleClose = () => {
+    onOpenChange(false);
+    // Reset form after animation
+    setTimeout(() => {
+      setPatientId("");
+      setDate(undefined);
+      setMediaTitle("");
+      setFile(null);
+    }, 200);
   };
 
   const handleSubmit = () => {
-    if (patientId && date && mediaTitle && file) {
-      addSession({ patientId, date, mediaTitle, file });
-      resetForm();
-      onOpenChange(false);
-    }
+    if (!patientId.trim() || !date || !mediaTitle.trim() || !file) return;
+
+    addSession({ patientId, date, mediaTitle, file });
+    handleClose();
   };
 
-  const isValid = patientId.trim() !== "" && date !== undefined && mediaTitle.trim() !== "" && file !== null;
+  const isValid = 
+    patientId.trim().length > 0 && 
+    date !== undefined && 
+    mediaTitle.trim().length > 0 && 
+    file !== null;
 
   return (
     <OverlayCard
       open={open}
-      onClose={() => onOpenChange(false)}
+      onClose={handleClose}
       title={<span className="pl-1">New Session</span>}
       contentClassName="sm:max-w-[600px]"
       bodyClassName="flex flex-col gap-6"
     >
       {/* Patient ID */}
       <div className="flex flex-col gap-2 w-full">
-        <Label>Patient ID</Label>
+        <Label htmlFor="patient-id">Patient ID</Label>
         <TextInput
+          id="patient-id"
           placeholder="Enter patient ID..."
           variant="form"
           value={patientId}
           onChange={(e) => setPatientId(e.target.value)}
+          autoFocus
         />
       </div>
 
@@ -69,9 +82,10 @@ export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) 
 
       {/* Media Title */}
       <div className="flex flex-col gap-2 w-full">
-        <Label>Media Title</Label>
+        <Label htmlFor="media-title">Media Title</Label>
         <TextInput
-          placeholder="Enter media title..."
+          id="media-title"
+          placeholder="e.g., Initial Assessment"
           variant="form"
           value={mediaTitle}
           onChange={(e) => setMediaTitle(e.target.value)}

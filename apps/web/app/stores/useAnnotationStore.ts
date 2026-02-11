@@ -23,7 +23,7 @@ type AnnotationStore = {
     handleDescriptionChange: (id: number, next: string) => void;
     handleNewAnnotation: () => void;
     updateAnnotation: (id: number, updates: Partial<Annotation>) => void;
-    handleDeleteAnnotation: (id: number) => void; // Added
+    handleDeleteAnnotation: (id: number) => void;
   };
 };
 

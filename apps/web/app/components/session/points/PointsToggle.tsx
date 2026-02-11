@@ -11,6 +11,10 @@ interface PointToggleProps {
   onToggle: (e: React.MouseEvent, id: number) => void;
 }
 
+/**
+ * A row component representing a tracking point (e.g., "Left Shoulder").
+ * Allows toggling visibility (eye icon) and selection state.
+ */
 export function PointToggle({
   point,
   selected,
@@ -18,6 +22,9 @@ export function PointToggle({
   onSelect,
   onToggle,
 }: PointToggleProps) {
+  const iconName = getIconForStatus(point.status);
+  const isAvailable = point.status === "available";
+
   return (
     <div
       role="button"
@@ -33,17 +40,15 @@ export function PointToggle({
         buttonVariants({ variant: "outline" }),
         "h-14 w-full justify-between px-4 font-semibold hover:bg-background/60 cursor-pointer",
         "transition-all duration-50",
-
         point.status === "visible" && "bg-background text-foreground",
         point.status === "hidden" && "bg-background text-foreground/50",
-        point.status === "available" &&
-          "bg-card text-foreground hover:bg-background/20", // available = exists but no (points) data
-
+        isAvailable && "bg-card text-foreground hover:bg-background/20",
+        
         selected
-          ? "border-primary/50 border-2" // Selected style
-          : point.status === "available"
-          ? "border-2" // Available (but not selected) style
-          : "border-transparent" // Default style
+          ? "border-primary/50 border-2" 
+          : isAvailable
+          ? "border-2"
+          : "border-transparent"
       )}
     >
       <span>{point.name}</span>
@@ -52,12 +57,13 @@ export function PointToggle({
         variant="ghost"
         size="icon"
         onClick={(e) => onToggle(e, point.id)}
+        aria-label={`Toggle visibility for ${point.name}`}
         className={cn(
           "rounded-full hover:bg-accent/30",
           point.status === "hidden" && "text-foreground/50"
         )}
       >
-        <Icon name={getIconForStatus(point.status)} />
+        <Icon name={iconName} />
       </Button>
     </div>
   );
