@@ -18,7 +18,7 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
       <video
         ref={videoRef}
         src={src}
-        className="w-full h-full object-contain cursor-pointer"
+        className="w-full h-full object-contain"
         onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}

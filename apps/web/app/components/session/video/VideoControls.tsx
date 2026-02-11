@@ -91,12 +91,10 @@ export function VideoControls() {
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-2 text-foreground/80">
             <Button
-              variant="ghost"
-              size="icon"
               onClick={() => setIsPlaying(!isPlaying)}
               className="size-10 rounded-full hover:bg-foreground/10"
             >
-              <Icon name={isPlaying ? "Pause" : "Play"} className="size-6 fill-current" />
+              <Icon name={isPlaying ? "Pause" : "Play"} className="size-5 stroke-2" />
             </Button>
 
             {/* Volume Slider */}
