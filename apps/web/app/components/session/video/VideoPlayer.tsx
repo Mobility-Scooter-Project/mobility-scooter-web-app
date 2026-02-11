@@ -11,9 +11,12 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
   const isPlaying = useVideoStore((state) => state.isPlaying);
   const currentTime = useVideoStore((state) => state.currentTime);
   const duration = useVideoStore((state) => state.duration);
+  const volume = useVideoStore((state) => state.volume);
+  const isMuted = useVideoStore((state) => state.isMuted);
+  
   const { setIsPlaying, setCurrentTime, setDuration } = useVideoStore((state) => state.actions);
 
-  // Sync: Store -> Video
+  // Sync: Store -> Video (Play/Pause)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -25,7 +28,7 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
     }
   }, [isPlaying, setIsPlaying]);
 
-  // Sync: Seek
+  // Sync: Store -> Video (Seek)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -33,6 +36,22 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
       video.currentTime = currentTime;
     }
   }, [currentTime]);
+
+  // Sync: Store -> Video (Volume/Mute)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.volume = volume;
+    video.muted = isMuted;
+  }, [volume, isMuted]);
+
+  // Duration Check on Mount
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video && video.readyState >= 1) {
+      setDuration(video.duration);
+    }
+  }, [src, setDuration]);
 
   // Shortcuts
   useEffect(() => {

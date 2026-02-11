@@ -1,13 +1,13 @@
 import { VideoLabel } from "../VideoLabel";
 import { useVideoStore } from "~/stores/useVideoStore";
+import { Icon } from "~/components/Icon";
 
 const MOCK_RISKS = [
-  { id: 1, startTime: 30, endTime: 65, label: "Risk Label", color: "#E11D48" },
+  { id: 1, startTime: 64, endTime: 65, color: "#E11D48" },
   {
     id: 2,
     startTime: 160,
     endTime: 210,
-    label: "Risk Label",
     color: "#F59E0B",
   },
 ];
@@ -23,7 +23,7 @@ export function RiskTrack() {
           key={risk.id}
           id={risk.id}
           type="risk"
-          label={risk.label}
+          label={<Icon name="TriangleAlert" />}
           startTime={risk.startTime}
           endTime={risk.endTime}
           totalDuration={safeDuration}

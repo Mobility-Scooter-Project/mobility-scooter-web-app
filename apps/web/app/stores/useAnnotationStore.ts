@@ -23,6 +23,7 @@ type AnnotationStore = {
     handleDescriptionChange: (id: number, next: string) => void;
     handleNewAnnotation: () => void;
     updateAnnotation: (id: number, updates: Partial<Annotation>) => void;
+    handleDeleteAnnotation: (id: number) => void; // Added
   };
 };
 
@@ -87,6 +88,13 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         annotations: state.annotations.map((ann) =>
           ann.id === id ? { ...ann, ...updates } : ann
         ),
+      })),
+
+    // New delete action
+    handleDeleteAnnotation: (id) =>
+      set((state) => ({
+        annotations: state.annotations.filter((a) => a.id !== id),
+        selectedId: state.selectedId === id ? null : state.selectedId,
       })),
   },
 }));

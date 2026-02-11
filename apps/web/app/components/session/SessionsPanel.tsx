@@ -1,55 +1,59 @@
+import { useState } from "react";
 import { Icon } from "~/components/Icon";
 import { ScrollArea } from "../ScrollArea";
 import { cn } from "~/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
 import { Button } from "~/components/Button";
 import { TextInput } from "../TextInput";
+import { NewSessionDialog } from "./NewSessionDialog";
 
 import { useSessionStore } from "~/stores/useSessionStore";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { usePointStore } from "~/stores/usePointsStore";
 
-/**
- * Left-side panel component for displaying sessions for this user
- * Ordered by most recent. Sessions w/ notifications appear at the top.
- */
 export function SessionsPanel() {
-  // Global session state
+  const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
+
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
-  const setSessionId = useSessionStore(
-    (state) => state.actions.setActiveSessionId
-  );
+  
+  const { setActiveSessionId, markAsRead } = useSessionStore((state) => state.actions);
 
-  // Actions for other stores
   const setChapters = useChapterStore((state) => state.actions.setChapters);
-  const setAnnotations = useAnnotationStore(
-    (state) => state.actions.setAnnotations
-  );
+  const setAnnotations = useAnnotationStore((state) => state.actions.setAnnotations);
   const setPoints = usePointStore((state) => state.actions.setPoints);
 
   const handleSessionSelect = (idStr: string) => {
     const id = Number(idStr);
-    setSessionId(idStr);
-
-    // Find the session data
+    
+    // Clear notification if exists
     const session = sessions.find((s) => s.id === id);
+    if (session?.notification) {
+      markAsRead(id);
+    }
+
+    setActiveSessionId(idStr);
+
     if (session && session.views.length > 0) {
-      // Default to the first view when switching sessions
       const firstView = session.views[0];
       setChapters(firstView.chapters);
       setAnnotations(firstView.annotations);
       setPoints(firstView.points);
     } else {
-        // Clear if no views exist
         setChapters([]);
         setAnnotations([]);
         setPoints([]);
     }
   };
 
-  const reversedSessions = [...sessions].sort((a, b) => b.id - a.id);
+  // Sort: Notifications first, then by ID descending
+  const sortedSessions = [...sessions].sort((a, b) => {
+    if (a.notification !== b.notification) {
+      return a.notification ? -1 : 1;
+    }
+    return b.id - a.id;
+  });
 
   return (
     <main className="flex flex-col h-full">
@@ -60,44 +64,50 @@ export function SessionsPanel() {
       <Tabs
         value={activeSessionId}
         onValueChange={handleSessionSelect}
-        className="flex flex-col flex-1"
+        className="flex flex-col flex-1 mt-4"
       >
         <ScrollArea className="h-full">
-          <div className="flex flex-col">
-            {/* new session button */}
-            <Button variant="ghost" className="text-foreground mt-6 mb-4">
+          <div className="flex flex-col pr-4">
+            <Button 
+              variant="ghost" 
+              className="text-foreground mb-4 justify-start px-4 hover:bg-transparent"
+              onClick={() => setIsNewSessionOpen(true)}
+            >
               <Icon name="SquarePen" />
               <span>New Session</span>
             </Button>
 
-            {/* sessions list */}
-            <TabsList className="flex flex-col h-auto justify-start gap-0.5 rounded-none p-0 w-full items-start">
-              {reversedSessions.map((session) => (
+            <TabsList className="flex flex-col h-auto justify-start gap-1 rounded-none p-0 w-full items-start">
+              {sortedSessions.map((session) => (
                 <TabsTrigger
                   key={session.id}
-                  value={session.id.toString()} // id as string
+                  value={session.id.toString()}
                   className={cn(
-                    "text-base text-foreground justify-start w-full px-4 mb-2 h-10 rounded-md transition-none",
+                    "text-base text-foreground justify-start w-full px-4 mb-1 h-10 rounded-md transition-none",
                     "data-[state=active]:bg-foreground/10 data-[state=active]:shadow-none data-[state=active]:text-foreground",
-                    "hover:bg-foreground/10",
+                    "hover:bg-foreground/5",
                     "bg-transparent border-0",
                     session.notification && "font-semibold"
                   )}
                 >
-                  <div className="flex items-center">
-                    <Icon name="FilePlay" />
-                    <span className="ml-2">{session.date}</span>
+                  <div className="flex items-center w-full">
+                    <Icon name="FilePlay" className="shrink-0" />
+                    <span className="ml-3 truncate">{session.date}</span>
+                    {session.notification && (
+                      <div className="h-2 w-2 rounded-full bg-foreground ml-auto shrink-0" />
+                    )}
                   </div>
-                  {session.notification && (
-                    // notification circle
-                    <div className="h-2 w-2 rounded-full bg-foreground ml-auto" />
-                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
           </div>
         </ScrollArea>
       </Tabs>
+
+      <NewSessionDialog 
+        open={isNewSessionOpen} 
+        onOpenChange={setIsNewSessionOpen} 
+      />
     </main>
   );
 }

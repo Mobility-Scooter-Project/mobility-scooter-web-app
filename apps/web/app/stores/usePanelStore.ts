@@ -1,12 +1,9 @@
 import { create } from "zustand";
 
 type PanelTab =
-  | "analysis"
   | "chapters"
   | "points"
   | "annotations"
-  | "comments"
-  | "logs";
 
 interface PanelState {
   activeTab: PanelTab;
@@ -14,6 +11,6 @@ interface PanelState {
 }
 
 export const usePanelStore = create<PanelState>((set) => ({
-  activeTab: "analysis", // Default tab
+  activeTab: "chapters", // Default tab
   setActiveTab: (tab) => set({ activeTab: tab }),
 }));

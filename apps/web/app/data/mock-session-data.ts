@@ -42,6 +42,7 @@ export type View = {
 
 export type Session = {
   id: number;
+  patientId?: string;
   date: string;
   notification: boolean;
   views: View[];
@@ -49,7 +50,6 @@ export type Session = {
 
 /* ---------------- Helpers ---------------- */
 
-// Helper to generate a standard set of body points
 function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
   const basePoints: Point[] = [
     { id: 1, name: "Nose", status: "visible" },
@@ -74,8 +74,11 @@ function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
   return basePoints;
 }
 
+// Updated video sources
 const VIDEO_1 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
 const VIDEO_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
+const VIDEO_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const VIDEO_4 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 
 /* ---------------- Mock Data ---------------- */
 
@@ -89,7 +92,7 @@ export const MOCK_SESSIONS: Session[] = [
       {
         id: "v1",
         label: "Front View",
-        videoUrl: VIDEO_1,
+        videoUrl: VIDEO_3, // Changed video
         points: generatePoints("standard"),
         chapters: [],
         annotations: [],
@@ -101,12 +104,12 @@ export const MOCK_SESSIONS: Session[] = [
   {
     id: 2,
     date: "08/05/2025",
-    notification: false,
+    notification: true,
     views: [
       {
         id: "v1",
         label: "Front View",
-        videoUrl: VIDEO_1,
+        videoUrl: VIDEO_4, // Changed video
         points: generatePoints("standard"),
         chapters: [
           {
@@ -134,7 +137,7 @@ export const MOCK_SESSIONS: Session[] = [
       {
         id: "v1",
         label: "Side Angle",
-        videoUrl: VIDEO_1,
+        videoUrl: VIDEO_2, // Changed video
         points: generatePoints("mixed"),
         chapters: [],
         annotations: [
@@ -184,7 +187,7 @@ export const MOCK_SESSIONS: Session[] = [
   {
     id: 5,
     date: "09/16/2025",
-    notification: true,
+    notification: false,
     views: [
       {
         id: "v1",
@@ -229,7 +232,7 @@ export const MOCK_SESSIONS: Session[] = [
         id: "v2",
         label: "Wide Angle",
         videoUrl: VIDEO_2,
-        points: generatePoints("injured"), // Different points for this view
+        points: generatePoints("injured"),
         chapters: [
           {
             id: 10,

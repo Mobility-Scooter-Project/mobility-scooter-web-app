@@ -12,7 +12,9 @@ export function ChapterContent() {
     handleScoreChange,
     handleTitleChange,
     handleDescriptionChange,
+    handleTimestampChange,
     handleNewChapter,
+    handleDeleteChapter, // Imported
   } = useChapterStore((state) => state.actions);
 
   const effectiveSelectedId = selectedId ?? null;
@@ -46,6 +48,8 @@ export function ChapterContent() {
             onTitleChange={handleTitleChange}
             onDescriptionChange={handleDescriptionChange}
             onScoreChange={handleScoreChange}
+            onTimestampChange={handleTimestampChange}
+            onDelete={handleDeleteChapter} // Passed prop
           />
         ))}
       </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { cn } from "~/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "~/components/Button";
 import { Calendar } from "~/components/Calendar";
@@ -24,7 +25,7 @@ function maskMMDDYYYY(digits: string) {
 }
 
 function parseMMDDYYYY(
-  value: string
+  value: string,
 ): { y: number; m: number; d: number } | null {
   const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return null;
@@ -50,14 +51,41 @@ function toDateUTC(y: number, m: number, d: number) {
   return new Date(y, m - 1, d);
 }
 
+function formatDate(d: Date) {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = String(d.getFullYear());
+  return `${mm}/${dd}/${yyyy}`;
+}
+
 /* ---------- component ---------- */
 
-export function DatePickerInput() {
+export function DatePickerInput({
+  className,
+  value: valueProp,
+  onChange,
+}: {
+  className?: string;
+  value?: Date;
+  onChange?: (date: Date | undefined) => void;
+}) {
   const [open, setOpen] = React.useState(false);
-  const [date, setDate] = React.useState<Date | undefined>(undefined);
-  const [month, setMonth] = React.useState<Date | undefined>(undefined);
+  const [date, setDate] = React.useState<Date | undefined>(valueProp);
+  const [month, setMonth] = React.useState<Date | undefined>(valueProp);
   const [value, setValue] = React.useState("");
   const [error, setError] = React.useState<string>("");
+
+  React.useEffect(() => {
+    if (onChange) {
+      setDate(valueProp);
+      if (valueProp) {
+        setMonth(valueProp);
+        setValue(formatDate(valueProp));
+      } else if (date !== undefined) {
+        setValue("");
+      }
+    }
+  }, [valueProp, onChange]);
 
   const commitIfCompleteAndValid = (masked: string) => {
     const parts = parseMMDDYYYY(masked);
@@ -73,15 +101,16 @@ export function DatePickerInput() {
     const next = toDateUTC(y, m, d);
     setDate(next);
     setMonth(next);
+    onChange?.(next);
     setError("");
   };
 
   return (
     <div className="flex flex-col gap-1.5">
       <TextInput
-        label="Date Picker With Input"
+        // label="Date Picker With Input"
         id="date"
-        className="w-60"
+        className={cn("w-60", className)}
         value={value}
         variant="form"
         placeholder="MM/DD/YYYY"
@@ -99,6 +128,10 @@ export function DatePickerInput() {
           } else {
             // Incomplete input shouldn’t show an error
             setError("");
+            if (masked.length === 0) {
+              setDate(undefined);
+              onChange?.(undefined);
+            }
           }
         }}
         onBlur={() => {
@@ -145,12 +178,8 @@ export function DatePickerInput() {
                   setDate(d);
                   setMonth(d);
                   if (d) {
-                    // Always write as MM/DD/YYYY
-                    const mm = String(d.getMonth() + 1).padStart(2, "0");
-                    const dd = String(d.getDate()).padStart(2, "0");
-                    const yyyy = String(d.getFullYear());
-                    const masked = `${mm}/${dd}/${yyyy}`;
-                    setValue(masked);
+                    setValue(formatDate(d));
+                    onChange?.(d);
                     setError("");
                   }
                   setOpen(false);

@@ -115,6 +115,7 @@ type FileUploadProps = Omit<
   labelClassName?: string;
   className?: string;
   multiple?: boolean; // still respected in "multi"; ignored in "single"
+  onFilesSelected?: (files: File[]) => void;
 };
 
 export function FileUpload({
@@ -128,6 +129,7 @@ export function FileUpload({
   labelClassName,
   className,
   multiple = true,
+  onFilesSelected,
   ...rest
 }: FileUploadProps) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -244,6 +246,10 @@ export function FileUpload({
         for (const a of accepted) startUploadSimulation(a.id);
       });
     }
+
+    if (accepted.length && onFilesSelected) {
+      onFilesSelected(accepted.map(i => i.file));
+    }
   };
 
   const addFilesSingle = (list: FileList) => {
@@ -281,6 +287,10 @@ export function FileUpload({
     };
     setItems([next]);
     requestAnimationFrame(() => startUploadSimulation(id));
+
+    if (next && onFilesSelected) {
+      onFilesSelected([next.file]);
+    }
   };
 
   const addFiles = (list: FileList) => {

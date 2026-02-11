@@ -7,7 +7,7 @@ interface VideoLabelProps {
   endTime: number;
   totalDuration: number;
   type: "annotation" | "risk" | "drawing";
-  label?: string;
+  label?: string | React.ReactNode;
   color?: string;
   className?: string;
   selected?: boolean;
@@ -15,9 +15,8 @@ interface VideoLabelProps {
   onInteractionStart?: (
     e: React.MouseEvent,
     id: number,
-    action: "resize-start" | "resize-end" | "move"
+    action: "resize-start" | "resize-end" | "move",
   ) => void;
-  isInteracting?: boolean;
 }
 
 export function VideoLabel({
@@ -32,7 +31,6 @@ export function VideoLabel({
   selected,
   onClick,
   onInteractionStart,
-  isInteracting,
 }: VideoLabelProps) {
   const safeDuration = totalDuration > 0 ? totalDuration : 1;
   const startPercent = Math.max(0, (startTime / safeDuration) * 100);
@@ -45,42 +43,32 @@ export function VideoLabel({
   return (
     <div
       onClick={onClick}
-      // Trigger "move" when clicking/dragging the body
       onMouseDown={(e) => {
         if (isAnnotation && onInteractionStart) {
           onInteractionStart(e, id, "move");
         }
       }}
       className={cn(
-        "absolute flex items-center justify-center shadow-sm whitespace-nowrap group/label",
-        isAnnotation ? "h-7 rounded-xl min-w-7 px-1" : "h-7 rounded-full px-3",
-
-        // Removed 'active:scale-95' to fix the bad UI feel
+        "absolute flex items-center justify-start shadow-sm whitespace-nowrap group/label h-7 pl-2 min-w-8",
+        isAnnotation ? "rounded-xl" : "rounded-full",
         onClick && "cursor-pointer hover:brightness-110 z-10",
-        
-        // Add grab cursors for draggable annotations
         isAnnotation && "cursor-grab active:cursor-grabbing",
-
-        selected && "ring-2 ring-white/80 scale-105 z-20",
-
-        // Disable transitions during any interaction (move or resize)
-        !isInteracting ? "transition-all duration-200" : "transition-none",
-
-        className
+        selected && "ring-2 ring-white/80 z-20",
+        className,
       )}
       style={{
         left: `${startPercent}%`,
         width: `${widthPercent}%`,
         backgroundColor: color || undefined,
       }}
-      title={label}
+      title={typeof label === "string" ? label : undefined}
     >
       {/* Icon based on type */}
       {type === "annotation" && (
-        <Icon name="MessageSquareText" className="size-3.5 fill-current" />
+        <Icon name="MessageSquareText"/>
       )}
       {type === "drawing" && (
-        <Icon name="Pencil" className="size-3.5 fill-current" />
+        <Icon name="Pencil" />
       )}
       {!isAnnotation && label && (
         <span className="text-xs font-medium text-white truncate">{label}</span>

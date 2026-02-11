@@ -15,6 +15,8 @@ export function AnnotationContent() {
     handleTitleChange,
     handleDescriptionChange,
     handleNewAnnotation,
+    updateAnnotation,
+    handleDeleteAnnotation, // Imported
   } = useAnnotationStore((state) => state.actions);
 
   // just to ensure it's not undefined
@@ -48,6 +50,8 @@ export function AnnotationContent() {
             onDeselect={handleDeselect}
             onTitleChange={handleTitleChange}
             onDescriptionChange={handleDescriptionChange}
+            onUpdate={updateAnnotation}
+            onDelete={handleDeleteAnnotation} // Passed prop
           />
         ))}
       </section>

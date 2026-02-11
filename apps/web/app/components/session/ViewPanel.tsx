@@ -5,22 +5,14 @@ import { Toggle } from "~/components/Toggle";
 import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
+import { AddViewDialog } from "./AddViewDialog";
 
 import { useSessionStore } from "~/stores/useSessionStore";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { usePointStore } from "~/stores/usePointsStore";
 
-const viewToggles = [
-  { key: "gait", label: "Gait" },
-  { key: "posture", label: "Posture" },
-  { key: "sway", label: "Sway Displacement" },
-  { key: "motion", label: "Range Of Motion" },
-  { key: "points", label: "Points" },
-  { key: "smartphone", label: "Smartphone" },
-  { key: "gyroscope", label: "Gyroscope" },
-  { key: "annotations", label: "Annotations" },
-];
+const viewToggles = [{ key: "annotations", label: "Annotations" }];
 
 type ToggleKeys = (typeof viewToggles)[number]["key"];
 
@@ -28,7 +20,7 @@ export function ViewPanel() {
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
 
-  const setChapters = useChapterStore((state) => state.actions.setChapters);
+  const loadChapters = useChapterStore((state) => state.actions.loadChapters);
   const setAnnotations = useAnnotationStore(
     (state) => state.actions.setAnnotations,
   );
@@ -39,6 +31,7 @@ export function ViewPanel() {
     [sessions, activeSessionId],
   );
 
+  const [isAddViewOpen, setIsAddViewOpen] = useState(false);
   const [activeViewId, setActiveViewId] = useState<string>("");
   const [pressedToggles, setPressedToggles] = useState<Record<string, boolean>>(
     {
@@ -55,46 +48,45 @@ export function ViewPanel() {
 
   useEffect(() => {
     if (activeSession && activeSession.views.length > 0) {
-      setActiveViewId(activeSession.views[0].id);
+      // If the currently selected view ID doesn't exist in the new session's views, 
+      // default to the first one.
+      const viewExists = activeSession.views.some(v => v.id === activeViewId);
+      if (!viewExists || activeViewId === "") {
+         setActiveViewId(activeSession.views[0].id);
+      }
     } else {
       setActiveViewId("");
     }
-  }, [activeSession]);
+  }, [activeSession, activeViewId]);
 
-  const handleViewChange = (viewId: string) => {
-    setActiveViewId(viewId);
-
-    if (!activeSession) return;
-    const view = activeSession.views.find((v) => v.id === viewId);
-
+  useEffect(() => {
+    if (!activeSession || !activeViewId) return;
+    const view = activeSession.views.find((v) => v.id === activeViewId);
     if (view) {
-      setChapters(view.chapters);
+      loadChapters(activeSession.id, activeViewId);
       setAnnotations(view.annotations);
       setPoints(view.points);
     }
-  };
-
-  const handleToggleChange = (key: ToggleKeys) => {
-    setPressedToggles((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  }, [activeViewId, activeSession, loadChapters, setAnnotations, setPoints]);
 
   const currentView = activeSession?.views.find((v) => v.id === activeViewId);
   const viewTitle = currentView ? currentView.label : "No View Selected";
   const videoSrc = currentView ? currentView.videoUrl : undefined;
 
+  const handleToggleChange = (key: ToggleKeys) => {
+    setPressedToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
-    <div className="flex flex-col gap-3 h-full p-2">
-      <header className="flex w-full items-center">
+    <div className="flex flex-col gap-3 h-full py-2">
+      <header className="flex w-full items-center px-2">
         <span className="text-title-2 text-foreground font-semibold">
           {viewTitle}
         </span>
         <div className="flex items-center gap-3 ml-auto">
           {activeSession && activeSession.views.length > 0 && (
-            <Tabs value={activeViewId} onValueChange={handleViewChange}>
-              <TabsList className="flex-wrap h-auto">
+            <Tabs value={activeViewId} onValueChange={setActiveViewId}>
+              <TabsList className="flex-wrap h-auto gap-1">
                 {activeSession.views.map((view) => (
                   <TabsTrigger key={view.id} value={view.id}>
                     {view.label}
@@ -109,13 +101,14 @@ export function ViewPanel() {
             size="icon"
             aria-label="Add new view"
             className="shrink-0"
+            onClick={() => setIsAddViewOpen(true)}
           >
             <Icon name="Plus" />
           </Button>
         </div>
       </header>
 
-      <section className="flex flex-wrap gap-3">
+      <section className="flex flex-wrap gap-3 px-2">
         {viewToggles.map((toggle) => (
           <Toggle
             key={toggle.key}
@@ -129,8 +122,17 @@ export function ViewPanel() {
       </section>
 
       <ScrollArea className="flex-1 flex flex-col overflow-hidden">
-        <VideoContainer src={videoSrc} />
+        <div className="flex flex-col h-full min-h-full px-2">
+          <VideoContainer src={videoSrc} />
+        </div>
       </ScrollArea>
+
+      {/* Add View Dialog */}
+      <AddViewDialog 
+        open={isAddViewOpen} 
+        onOpenChange={setIsAddViewOpen}
+        sessionId={Number(activeSessionId)}
+      />
     </div>
   );
 }

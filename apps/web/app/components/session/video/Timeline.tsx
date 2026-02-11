@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TimelineTicks } from "./TimelineTicks";
 import { useVideoStore } from "~/stores/useVideoStore";
 
@@ -7,37 +7,72 @@ interface TimelineProps {
 }
 
 export function Timeline({ children }: TimelineProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const duration = useVideoStore((state) => state.duration);
+  const { duration, currentTime } = useVideoStore();
   const setCurrentTime = useVideoStore((state) => state.actions.setCurrentTime);
+  
+  const safeDuration = duration > 0 ? duration : 1;
+  const progressPercent = Math.min(100, (currentTime / safeDuration) * 100);
+
+  // --- Interaction Logic for Ticks ---
+  const tickRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleSeek = (clientX: number) => {
-    if (!ref.current || duration <= 0) return;
-    const rect = ref.current.getBoundingClientRect();
-    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    setCurrentTime(percent * duration);
+    if (!tickRef.current) return;
+    const rect = tickRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    setCurrentTime(ratio * safeDuration);
   };
 
+  useEffect(() => {
+    if (!isDragging) return;
+    
+    const onMove = (e: MouseEvent) => {
+      e.preventDefault();
+      handleSeek(e.clientX);
+    };
+
+    const onUp = () => {
+      setIsDragging(false);
+      document.body.style.cursor = "";
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    document.body.style.cursor = "grabbing";
+
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+  }, [isDragging, safeDuration]);
+
+
   return (
-    <div
-      ref={ref}
-      className="relative w-full cursor-pointer group pt-1 pb-2"
-      onMouseDown={(e) => {
-        // Only seek if left click and NOT on an interactive child (preventConflict)
-        if (e.button === 0 && !(e.target as HTMLElement).closest(".prevent-seek")) {
-           handleSeek(e.clientX);
-        }
-      }}
-      onMouseMove={(e) => {
-        if (e.buttons === 1 && !(e.target as HTMLElement).closest(".prevent-seek")) {
-            handleSeek(e.clientX);
-        }
-      }}
-    >
-      <div className="relative h-3 w-full opacity-60 mb-4 pointer-events-none">
-        <TimelineTicks duration={duration > 0 ? duration : 1} />
+    <div className="relative w-full select-none">
+      <div className="absolute inset-0 pointer-events-none z-30">
+        <div 
+          className="absolute top-0 bottom-0 w-px bg-foreground -translate-x-1/2"
+          style={{ left: `${progressPercent}%` }}
+        />
       </div>
-      {children}
+
+      {/* Ticks Container - Now Interactive */}
+      <div 
+        ref={tickRef}
+        className="relative h-2 w-full opacity-60 mb-4 z-10 cursor-pointer"
+        onMouseDown={(e) => {
+          handleSeek(e.clientX);
+          setIsDragging(true);
+        }}
+      >
+        <TimelineTicks duration={safeDuration} />
+      </div>
+      
+      <div className="relative w-full flex flex-col gap-1 z-10">
+        {children}
+      </div>
     </div>
   );
 }

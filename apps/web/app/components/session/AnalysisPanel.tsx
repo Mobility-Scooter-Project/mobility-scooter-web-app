@@ -5,56 +5,50 @@ import { AnnotationContent } from "./annotations/AnnotationContent";
 import { ChapterContent } from "./chapters/ChapterContent";
 import { PointsContent } from "./points/PointsContent";
 import { usePanelStore } from "~/stores/usePanelStore";
+import { cn } from "~/lib/utils";
 
 const panelTabs = [
-  { value: "analysis", label: "Analysis" },
   { value: "chapters", label: "Chapters" },
   { value: "points", label: "Points" },
   { value: "annotations", label: "Annotations" },
-  { value: "comments", label: "Comments" },
-  { value: "logs", label: "Audit Logs" },
 ];
 
-/**
- * Right-side panel component for displaying analysis, chapters, points, annotations, comments, and audit logs.
- * Name is probably subject to change
- */
 export function AnalysisPanel() {
   const activeTab = usePanelStore((state) => state.activeTab);
   const setActiveTab = usePanelStore((state) => state.setActiveTab);
 
-  return (
-    <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="flex flex-col h-full p-2 gap-2">
-      <PanelNav tabs={panelTabs} />
+  // Symmetric padding to center content while keeping scrollbar at edge
+  const contentClass = "h-full px-4";
 
-      <TabsContent value="analysis" className="overflow-hidden">
-        <ScrollArea className="h-full">{/* to do */}</ScrollArea>
-      </TabsContent>
+  return (
+    // Removed p-2 from root
+    <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="flex flex-col h-full py-2 gap-2">
+      <div className="px-4">
+        <PanelNav tabs={panelTabs} />
+      </div>
 
       <TabsContent value="chapters" className="overflow-hidden">
         <ScrollArea className="h-full">
-          <ChapterContent />
+            <div className={contentClass}>
+                <ChapterContent />
+            </div>
         </ScrollArea>
       </TabsContent>
 
       <TabsContent value="points" className="overflow-hidden">
         <ScrollArea className="h-full">
-          <PointsContent />
+            <div className={contentClass}>
+                <PointsContent />
+            </div>
         </ScrollArea>
       </TabsContent>
 
       <TabsContent value="annotations" className="overflow-hidden">
         <ScrollArea className="h-full">
-          <AnnotationContent />
+            <div className={contentClass}>
+                <AnnotationContent />
+            </div>
         </ScrollArea>
-      </TabsContent>
-
-      <TabsContent value="comments" className="overflow-hidden">
-        <ScrollArea className="h-full">{/* to do */}</ScrollArea>
-      </TabsContent>
-
-      <TabsContent value="logs" className="overflow-hidden">
-        <ScrollArea className="h-full">{/* to do */}</ScrollArea>
       </TabsContent>
     </Tabs>
   );

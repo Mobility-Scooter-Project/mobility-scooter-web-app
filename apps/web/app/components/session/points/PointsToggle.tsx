@@ -1,4 +1,4 @@
-import { Button } from "~/components/Button";
+import { Button, buttonVariants } from "~/components/Button";
 import { Icon, type IconProps } from "~/components/Icon";
 import { cn } from "~/lib/utils";
 import type { Point, PointStatus } from "~/data/mock-session-data";
@@ -19,11 +19,19 @@ export function PointToggle({
   onToggle,
 }: PointToggleProps) {
   return (
-    <Button
-      variant="outline"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(point.id, point.status)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(point.id, point.status);
+        }
+      }}
       className={cn(
-        "h-14 w-full justify-between px-4 font-semibold hover:bg-background/60",
+        buttonVariants({ variant: "outline" }),
+        "h-14 w-full justify-between px-4 font-semibold hover:bg-background/60 cursor-pointer",
         "transition-all duration-50",
 
         point.status === "visible" && "bg-background text-foreground",
@@ -51,6 +59,6 @@ export function PointToggle({
       >
         <Icon name={getIconForStatus(point.status)} />
       </Button>
-    </Button>
+    </div>
   );
 }
