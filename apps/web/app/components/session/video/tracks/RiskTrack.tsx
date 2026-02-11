@@ -17,7 +17,7 @@ export function RiskTrack() {
   const safeDuration = duration > 0 ? duration : 1;
 
   return (
-    <div className="relative h-9 w-full mb-1 pointer-events-none">
+    <div className="relative h-9 w-full pointer-events-none">
       {MOCK_RISKS.map((risk) => (
         <VideoLabel
           key={risk.id}

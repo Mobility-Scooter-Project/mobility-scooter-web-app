@@ -26,7 +26,7 @@ export function ChapterTrack() {
   return (
     <div
       ref={containerRef}
-      className="relative h-4 w-full mt-2 cursor-pointer group touch-none select-none flex items-center"
+      className="relative h-4 w-full cursor-pointer group touch-none select-none flex items-center"
       onMouseDown={startSeek}
     >
       {/* Track Layer */}
