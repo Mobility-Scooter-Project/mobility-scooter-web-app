@@ -16,7 +16,11 @@ interface AddViewDialogProps {
  * Dialog for adding a new camera angle/view to an existing session.
  * Requires a title and a video file.
  */
-export function AddViewDialog({ open, onOpenChange, sessionId }: AddViewDialogProps) {
+export function AddViewDialog({
+  open,
+  onOpenChange,
+  sessionId,
+}: AddViewDialogProps) {
   const addView = useSessionStore((state) => state.actions.addView);
 
   const [title, setTitle] = useState("");
@@ -68,15 +72,19 @@ export function AddViewDialog({ open, onOpenChange, sessionId }: AddViewDialogPr
           type="single"
           size={180}
           acceptedTypes={[".mp4", ".mov", ".webm"]}
-          onFilesSelected={(files) => setFile(files[0])}
           className="w-full"
+          disabled={!title.trim()}
+          onInput={(e) => {
+            const files = (e.target as HTMLInputElement).files;
+            if (files?.[0]) setFile(files[0]);
+          }}
         />
       </div>
 
       {/* Footer Actions */}
       <div className="flex justify-end pt-2 w-full">
-        <Button 
-          onClick={handleSubmit} 
+        <Button
+          onClick={handleSubmit}
           disabled={!isValid}
           className="bg-primary text-primary-foreground hover:bg-primary/90 w-auto"
         >

@@ -16,7 +16,10 @@ interface NewSessionDialogProps {
  * Dialog for creating a brand new session.
  * Initializes the session with one default view (media file).
  */
-export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) {
+export function NewSessionDialog({
+  open,
+  onOpenChange,
+}: NewSessionDialogProps) {
   const addSession = useSessionStore((state) => state.actions.addSession);
 
   // Form State
@@ -43,10 +46,10 @@ export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) 
     handleClose();
   };
 
-  const isValid = 
-    patientId.trim().length > 0 && 
-    date !== undefined && 
-    mediaTitle.trim().length > 0 && 
+  const isValid =
+    patientId.trim().length > 0 &&
+    date !== undefined &&
+    mediaTitle.trim().length > 0 &&
     file !== null;
 
   return (
@@ -73,11 +76,7 @@ export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) 
       {/* Session Date */}
       <div className="flex flex-col gap-2 w-full">
         <Label>Session Date</Label>
-        <DatePickerInput
-          value={date}
-          onChange={setDate}
-          className="w-full"
-        />
+        <DatePickerInput value={date} onChange={setDate} className="w-full" />
       </div>
 
       {/* Media Title */}
@@ -99,15 +98,21 @@ export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) 
           type="single"
           size={120}
           acceptedTypes={[".mp4", ".mov", ".webm"]}
-          onFilesSelected={(files) => setFile(files[0])}
           className="w-full"
+          // 1. Disable the upload area until other fields are filled
+          disabled={!patientId.trim() || !date || !mediaTitle.trim()}
+          // 2. Capture the file as soon as it is selected
+          onInput={(e) => {
+            const files = (e.target as HTMLInputElement).files;
+            if (files?.[0]) setFile(files[0]);
+          }}
         />
       </div>
 
       {/* Footer Actions */}
       <div className="flex justify-end pt-2 w-full">
-        <Button 
-          onClick={handleSubmit} 
+        <Button
+          onClick={handleSubmit}
           disabled={!isValid}
           className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
         >

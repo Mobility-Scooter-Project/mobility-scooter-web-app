@@ -76,17 +76,11 @@ export function ChapterCard({
   useAutoDeselect(rootRef, selected, onDeselect);
 
   const commitChange = () => {
-    // 1. Parse current digits to seconds
     const seconds = timeStringToSeconds(formatTimeDigits(digits));
-    
-    // 2. Clamp to duration
     const maxDuration = videoDuration > 0 ? videoDuration : Infinity;
     const clampedSeconds = Math.min(Math.max(0, seconds), maxDuration);
-
-    // 3. Normalize BACK to digits (Fixes "00:99" -> "0139")
     const newDigits = getDigitsFromSeconds(clampedSeconds);
     
-    // Update local state and notify parent
     setDigits(newDigits);
     
     const formatted = formatTimeDigits(newDigits);
