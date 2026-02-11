@@ -2,25 +2,23 @@ import { db, delay } from "./mock-db";
 import type { Chapter } from "~/data/mock-session-data";
 
 export const chapterService = {
-  // GET chapters by Session ID AND View ID to ensure correct data
+  /**
+   * GET /sessions/:sessionId/views/:viewId/chapters
+   * Fetches chapters specific to a view within a session.
+   */
   getByViewId: async (sessionId: number, viewId: string) => {
     await delay();
     const session = db.sessions.find((s) => s.id === sessionId);
-    if (session) {
-      const view = session.views.find((v) => v.id === viewId);
-      if (view) {
-        console.log(`[ChapterService] Retrieved ${view.chapters.length} chapters for Session ${sessionId}, View ${viewId}`);
-        return [...view.chapters];
-      }
-    }
-    console.warn(`[ChapterService] No view found for Session ${sessionId}, View ${viewId}`);
-    return [];
+    const view = session?.views.find((v) => v.id === viewId);
+    return view ? [...view.chapters] : [];
   },
 
+  /**
+   * PATCH /views/:viewId/chapters/:chapterId
+   * Updates a specific chapter.
+   */
   update: async (viewId: string, chapterId: number, updates: Partial<Chapter>) => {
     await delay();
-    // For updates, we iterate to find the specific chapter instance
-    // In a real API, this would likely be by chapter ID directly
     for (const session of db.sessions) {
       const view = session.views.find((v) => v.id === viewId);
       if (view) {
@@ -35,6 +33,10 @@ export const chapterService = {
     throw new Error("Chapter not found");
   },
 
+  /**
+   * POST /views/:viewId/chapters
+   * Creates a new chapter for a specific view.
+   */
   create: async (viewId: string, chapter: Chapter) => {
     await delay();
     for (const session of db.sessions) {

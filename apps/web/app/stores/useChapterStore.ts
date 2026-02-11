@@ -11,18 +11,20 @@ type ChapterStore = {
   actions: {
     setChapters: (chapters: Chapter[]) => void;
     loadChapters: (sessionId: number, viewId: string) => Promise<void>;
-    
     handleSelect: (id: number) => void;
     handleDeselect: () => void;
+    handleNewChapter: () => Promise<void>;
+    handleDeleteChapter: (id: number) => void;
     handleScoreChange: (chapterId: number, newScore: number) => Promise<void>;
     handleTitleChange: (chapterId: number, next: string) => Promise<void>;
     handleDescriptionChange: (chapterId: number, next: string) => Promise<void>;
     handleTimestampChange: (chapterId: number, next: string) => Promise<void>;
-    handleNewChapter: () => Promise<void>;
-    handleDeleteChapter: (id: number) => void; // Added
   };
 };
 
+/**
+ * Manages video chapters, including CRUD operations, selection state, and backend synchronization.
+ */
 export const useChapterStore = create<ChapterStore>((set, get) => ({
   chapters: [],
   selectedId: null,
@@ -33,7 +35,6 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
 
     loadChapters: async (sessionId, viewId) => {
       set({ activeViewId: viewId });
-      console.log(`[Store] Fetching chapters for Session: ${sessionId}, View: ${viewId}`);
       const data = await chapterService.getByViewId(sessionId, viewId);
       set({ chapters: data });
     },
@@ -52,67 +53,34 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       set({ chapters: updatedChapters });
 
       if (activeViewId) {
-        await chapterService.update(activeViewId, chapterId, {
-          score: newScore,
-        });
+        await chapterService.update(activeViewId, chapterId, { score: newScore });
       }
     },
 
     handleTitleChange: async (chapterId, next) => {
       const { activeViewId, chapters } = get();
-
-      set({
-        chapters: chapters.map((ch) =>
-          ch.id === chapterId ? { ...ch, title: next } : ch
-        ),
-      });
-      
-      if (activeViewId) {
-        await chapterService.update(activeViewId, chapterId, { title: next });
-      }
+      set({ chapters: chapters.map((ch) => ch.id === chapterId ? { ...ch, title: next } : ch) });
+      if (activeViewId) await chapterService.update(activeViewId, chapterId, { title: next });
     },
 
     handleDescriptionChange: async (chapterId, next) => {
       const { activeViewId, chapters } = get();
-
-      set({
-        chapters: chapters.map((ch) =>
-          ch.id === chapterId ? { ...ch, description: next } : ch
-        ),
-      });
-      
-      if (activeViewId) {
-        await chapterService.update(activeViewId, chapterId, {
-          description: next,
-        });
-      }
+      set({ chapters: chapters.map((ch) => ch.id === chapterId ? { ...ch, description: next } : ch) });
+      if (activeViewId) await chapterService.update(activeViewId, chapterId, { description: next });
     },
 
     handleTimestampChange: async (chapterId, next) => {
       const { activeViewId, chapters } = get();
-
-      set({
-        chapters: chapters.map((ch) =>
-          ch.id === chapterId ? { ...ch, timestamp: next } : ch
-        ),
-      });
-
-      if (activeViewId) {
-        await chapterService.update(activeViewId, chapterId, { timestamp: next });
-      }
+      set({ chapters: chapters.map((ch) => ch.id === chapterId ? { ...ch, timestamp: next } : ch) });
+      if (activeViewId) await chapterService.update(activeViewId, chapterId, { timestamp: next });
     },
 
     handleNewChapter: async () => {
       const { activeViewId, chapters } = get();
-      
-      const nextId = chapters.length
-        ? Math.max(...chapters.map((c) => c.id)) + 1
-        : 1;
+      const nextId = chapters.length ? Math.max(...chapters.map((c) => c.id)) + 1 : 1;
 
       const dateStr = new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
+        month: "short", day: "numeric", year: "numeric",
       });
 
       const newItem: Chapter = {
@@ -126,17 +94,10 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
         description: "",
       };
 
-      set({
-        chapters: [newItem, ...chapters],
-        selectedId: nextId,
-      });
-
-      if (activeViewId) {
-        await chapterService.create(activeViewId, newItem);
-      }
+      set({ chapters: [newItem, ...chapters], selectedId: nextId });
+      if (activeViewId) await chapterService.create(activeViewId, newItem);
     },
 
-    // New delete action
     handleDeleteChapter: (id) => {
       set((state) => ({
         chapters: state.chapters.filter((c) => c.id !== id),

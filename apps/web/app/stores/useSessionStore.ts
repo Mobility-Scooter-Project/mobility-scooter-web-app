@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { type Session, MOCK_SESSIONS, type View } from "~/data/mock-session-data";
-import Placeholder from "~/assets/placeholder-thumbnail.png"; 
 
 type SessionStore = {
   sessions: Session[];
@@ -14,6 +13,9 @@ type SessionStore = {
   };
 };
 
+/**
+ * Manages the list of sessions, active session selection, and view creation.
+ */
 export const useSessionStore = create<SessionStore>((set) => ({
   sessions: MOCK_SESSIONS,
   activeSessionId: MOCK_SESSIONS[MOCK_SESSIONS.length - 1]?.id.toString() ?? "1",
@@ -47,24 +49,21 @@ export const useSessionStore = create<SessionStore>((set) => ({
       };
     }),
 
-    addView: (sessionId, viewData) => set((state) => {
-      const updatedSessions = state.sessions.map((s) => {
-        if (s.id === sessionId) {
-          const newView: View = {
-            id: `v${Date.now()}`,
-            label: viewData.label,
-            videoUrl: URL.createObjectURL(viewData.file),
-            points: [],
-            chapters: [],
-            annotations: [],
-          };
-          return { ...s, views: [...s.views, newView] };
-        }
-        return s;
-      });
-
-      return { sessions: updatedSessions };
-    }),
+    addView: (sessionId, viewData) => set((state) => ({
+      sessions: state.sessions.map((s) => {
+        if (s.id !== sessionId) return s;
+        
+        const newView: View = {
+          id: `v${Date.now()}`,
+          label: viewData.label,
+          videoUrl: URL.createObjectURL(viewData.file),
+          points: [],
+          chapters: [],
+          annotations: [],
+        };
+        return { ...s, views: [...s.views, newView] };
+      })
+    })),
 
     markAsRead: (sessionId) => set((state) => ({
       sessions: state.sessions.map((s) => 

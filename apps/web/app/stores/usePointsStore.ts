@@ -1,5 +1,3 @@
-// stores/usePointStore.ts
-
 import { create } from "zustand";
 import type { Point, PointStatus } from "~/data/mock-session-data";
 import { MOCK_SESSIONS } from "~/data/mock-session-data";
@@ -19,6 +17,9 @@ type PointStore = {
   };
 };
 
+/**
+ * Manages interactive video points, including their visibility status and selection.
+ */
 export const usePointStore = create<PointStore>((set, get) => ({
   points: MOCK_SESSIONS[0]?.views[0]?.points || [],
   allVisible: true,
@@ -46,9 +47,7 @@ export const usePointStore = create<PointStore>((set, get) => ({
       set((state) => ({
         points: state.points.map((p) => {
           if (p.id !== id) return p;
-          const newStatus: PointStatus =
-            p.status === "visible" ? "hidden" : "visible";
-          return { ...p, status: newStatus };
+          return { ...p, status: p.status === "visible" ? "hidden" : "visible" };
         }),
       }));
     },
@@ -61,9 +60,11 @@ export const usePointStore = create<PointStore>((set, get) => ({
     },
 
     getIconForStatus: (status) => {
-      if (status === "visible") return "Eye";
-      if (status === "hidden") return "EyeOff";
-      return "Plus";
+      switch (status) {
+        case "visible": return "Eye";
+        case "hidden": return "EyeOff";
+        default: return "Plus";
+      }
     },
   },
 }));

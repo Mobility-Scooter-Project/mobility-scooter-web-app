@@ -1,24 +1,23 @@
 import { MOCK_SESSIONS, type Session } from "~/data/mock-session-data";
 
-// In-memory store (Mutable) - This acts as your "Database" for the session
-// In the future, this file will be replaced by actual API calls.
+/**
+ * Singleton in-memory database to simulate backend persistence.
+ */
 class MockDB {
-  private _data: Session[];
+  private _sessions: Session[];
 
   constructor() {
-    this._data = JSON.parse(JSON.stringify(MOCK_SESSIONS));
+    this._sessions = JSON.parse(JSON.stringify(MOCK_SESSIONS));
   }
 
   get sessions() {
-    return this._data;
+    return this._sessions;
   }
 
-  // Helper to commit changes (no-op here, but useful for debugging or localstorage sync)
   commit() {
-    // console.log("DB Snapshot:", this._data);
+    // Placeholder: This is where you'd trigger localStorage saves or API calls.
   }
 }
 
 export const db = new MockDB();
-
 export const delay = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));

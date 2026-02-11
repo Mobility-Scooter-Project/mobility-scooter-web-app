@@ -70,7 +70,7 @@ export function VideoControls() {
     <div className="flex flex-col w-full gap-2 px-4 pb-4 pt-2 select-none">
       {/* Top Toolbar (Placeholder for annotation tools) */}
       <div className="flex items-center gap-4 text-foreground/60 mb-2">
-         {/* ... Toolbar Icons (kept generic for brevity, functionality preserved) ... */}
+         {/* Toolbar Icons (kept generic for now) */}
          <div className="flex gap-2">
             {["Pencil", "Eraser", "MessageSquare", "StickyNote"].map((icon) => (
                <Button key={icon} variant="ghost" size="icon" className="size-8">

@@ -16,6 +16,9 @@ interface VideoStore {
   };
 }
 
+/**
+ * Manages video playback state, including time, volume, and play/pause status.
+ */
 export const useVideoStore = create<VideoStore>((set) => ({
   isPlaying: false,
   currentTime: 0,

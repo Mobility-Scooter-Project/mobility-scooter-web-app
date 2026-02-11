@@ -4,8 +4,8 @@ import { MOCK_SESSIONS } from "~/data/mock-session-data";
 type Annotation = {
   id: number;
   title: string;
-  startTime: number; // in seconds
-  endTime: number; // in seconds
+  startTime: number;
+  endTime: number;
   author: string;
   date: string;
   description: string;
@@ -19,14 +19,17 @@ type AnnotationStore = {
     setAnnotations: (annotations: Annotation[]) => void;
     handleSelect: (id: number) => void;
     handleDeselect: () => void;
+    handleNewAnnotation: () => void;
+    handleDeleteAnnotation: (id: number) => void;
     handleTitleChange: (id: number, next: string) => void;
     handleDescriptionChange: (id: number, next: string) => void;
-    handleNewAnnotation: () => void;
     updateAnnotation: (id: number, updates: Partial<Annotation>) => void;
-    handleDeleteAnnotation: (id: number) => void;
   };
 };
 
+/**
+ * Manages video annotations, including creation, editing, and selection.
+ */
 export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   annotations: MOCK_SESSIONS[0]?.views[0]?.annotations ?? [],
   selectedId: null,
@@ -34,32 +37,27 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   actions: {
     setAnnotations: (annotations) => set({ annotations, selectedId: null }),
 
-    handleSelect: (id) =>
-      set((state) => ({
-        selectedId: state.selectedId === id ? null : id,
-      })),
+    handleSelect: (id) => set((state) => ({
+      selectedId: state.selectedId === id ? null : id,
+    })),
 
     handleDeselect: () => set({ selectedId: null }),
 
-    handleTitleChange: (id, next) =>
-      set((state) => ({
-        annotations: state.annotations.map((a) =>
-          a.id === id ? { ...a, title: next } : a
-        ),
-      })),
+    handleTitleChange: (id, next) => set((state) => ({
+      annotations: state.annotations.map((a) => a.id === id ? { ...a, title: next } : a),
+    })),
 
-    handleDescriptionChange: (id, next) =>
-      set((state) => ({
-        annotations: state.annotations.map((a) =>
-          a.id === id ? { ...a, description: next } : a
-        ),
-      })),
+    handleDescriptionChange: (id, next) => set((state) => ({
+      annotations: state.annotations.map((a) => a.id === id ? { ...a, description: next } : a),
+    })),
 
     handleNewAnnotation: () => {
       const { annotations } = get();
-      const nextId = annotations.length
-        ? Math.max(...annotations.map((a) => a.id)) + 1
-        : 1;
+      const nextId = annotations.length ? Math.max(...annotations.map((a) => a.id)) + 1 : 1;
+
+      const dateStr = new Date().toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+      });
 
       const newItem: Annotation = {
         id: nextId,
@@ -67,34 +65,23 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         startTime: 0,
         endTime: 0,
         author: "Garrett Lo",
-        date: `${new Date()
-          .toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-          .replace(",", "")}`,
+        date: dateStr,
         description: "",
       };
 
-      set((state) => ({
-        annotations: [newItem, ...state.annotations],
+      set({
+        annotations: [newItem, ...annotations],
         selectedId: nextId,
-      }));
+      });
     },
     
-    updateAnnotation: (id, updates) =>
-      set((state) => ({
-        annotations: state.annotations.map((ann) =>
-          ann.id === id ? { ...ann, ...updates } : ann
-        ),
-      })),
+    updateAnnotation: (id, updates) => set((state) => ({
+      annotations: state.annotations.map((ann) => ann.id === id ? { ...ann, ...updates } : ann),
+    })),
 
-    // New delete action
-    handleDeleteAnnotation: (id) =>
-      set((state) => ({
-        annotations: state.annotations.filter((a) => a.id !== id),
-        selectedId: state.selectedId === id ? null : state.selectedId,
-      })),
+    handleDeleteAnnotation: (id) => set((state) => ({
+      annotations: state.annotations.filter((a) => a.id !== id),
+      selectedId: state.selectedId === id ? null : state.selectedId,
+    })),
   },
 }));
