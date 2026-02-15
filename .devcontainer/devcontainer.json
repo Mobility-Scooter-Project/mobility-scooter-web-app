@@ -1,32 +1,33 @@
 {
-    // cSpell:disable
-    "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
-    "workspaceFolder": "/workspaces/mobility-scooter-web-app",
-    "postCreateCommand": "pip install black virtualenv pytest pylint",
-    "postAttachCommand": "docker compose up -d",
-    "runArgs": [
-        "--network=host"
-    ],
-    "features": {
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "22"
-        },
-        "ghcr.io/devcontainers-extra/features/poetry:2": {},
-        "ghcr.io/skriptfabrik/devcontainer-features/infisical-cli:1": {},
-        "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {},
-        "ghcr.io/devcontainers/features/docker-in-docker": {}
+  "name": "Mobility Scooter Web App",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/mobility-scooter-web-app",
+  "postCreateCommand": "pip install black virtualenv pytest pylint",
+  "postAttachCommand": "docker compose up -d",
+  "runArgs": ["--network=host"],
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
     },
-    "hostRequirements": {
-        "gpu": "optional"
-    },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-azuretools.vscode-containers",
-                "humao.rest-client",
-                "donjayamanne.git-extension-pack",
-                "GitHub.copilot-chat"
-            ]
-        }
+    "ghcr.io/devcontainers-extra/features/poetry:2": {},
+    "ghcr.io/skriptfabrik/devcontainer-features/infisical-cli:1": {},
+    "ghcr.io/robbert229/devcontainer-features/postgresql-client:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker": {}
+  },
+  "hostRequirements": {
+    "gpu": "optional"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-containers",
+        "humao.rest-client",
+        "donjayamanne.git-extension-pack",
+        "GitHub.copilot-chat"
+      ]
     }
+  }
 }
