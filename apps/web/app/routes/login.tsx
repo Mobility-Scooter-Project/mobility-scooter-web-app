@@ -23,7 +23,7 @@ export async function loginAction({ request }: ActionFunctionArgs) {
   let res: Response;
 
   try {
-    res = await fetch(`${API_BASE_URL}/auth/email`, {
+    res = await fetch(`${API_BASE_URL}/api/v1/auth/email/sign-in`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -41,16 +41,18 @@ export async function loginAction({ request }: ActionFunctionArgs) {
     return { error: msg || "Invalid email or password." };
   }
 
-  // Success: API returns JSON { token, refreshToken } (referenced from server _createUserSession)
-  const data = await res.json();
-  const token: string = data?.token;
+  // Success: API returns JSON { token, refreshToken }
+  const { data } = await res.json();
+  const accessToken: string = data?.token;
   const refreshToken: string = data?.refreshToken ?? data?.refresh;
-  // Save token to local storage
-  userAuthStore.getState().signIn(token, refreshToken);
 
+  // Only store access token in memory, refresh token goes to HttpOnly cookie
+  userAuthStore.getState().signIn(accessToken);
+
+  // Save refresh token as HttpOnly cookie with security flags
   return redirect("/", {
     headers: {
-      "Set-Cookie": `auth=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`,
+      "Set-Cookie": `refreshToken=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600`, // 1 hour
     },
   });
 }

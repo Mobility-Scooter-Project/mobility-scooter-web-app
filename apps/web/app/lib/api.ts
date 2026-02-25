@@ -1,10 +1,11 @@
 import { hc } from "hono/client";
-import type { AppType } from "../../../api/src/"
+import type { AppType } from "../../../api/src/";
 import { API_KEY, API_BASE_URL } from "~/config/constants";
+import { userAuthStore } from "./auth";
 
 /**
  * Creates and configures an API client with the specified headers.
- * 
+ *
  * @param headers - Optional object containing additional HTTP headers to include in requests
  * @returns A configured HTTP client instance of type AppType
  * @example
@@ -13,10 +14,13 @@ import { API_KEY, API_BASE_URL } from "~/config/constants";
  * ```
  */
 export const getApiClient = (headers?: object) => {
-    return hc<AppType>(API_BASE_URL, {
-        headers: {
-            Authorization: `Bearer ${API_KEY}`,
-            ...headers
-        }
-    });
-}
+  const accessToken = userAuthStore.getState().accessToken;
+
+  return hc<AppType>(API_BASE_URL, {
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      ...(accessToken && { "X-User": accessToken }),
+      ...headers,
+    },
+  });
+};

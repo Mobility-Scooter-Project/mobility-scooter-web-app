@@ -1,15 +1,15 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { jwtDecode } from "jwt-decode";
 import { redirect } from "react-router";
+import { API_BASE_URL } from "~/config/constants";
 
 // types
 type AuthType = {
   accessToken: string | null;
-  refreshToken: string | null;
-  signIn: (accessToken: string, refreshToken?: string) => void;
+  signIn: (accessToken: string) => void;
   signOut: () => void;
   isAuthenticated: () => boolean;
+  refreshAccessToken: () => Promise<boolean>;
 };
 type JwtPayload =
   | (Record<string, unknown> & {
@@ -18,25 +18,54 @@ type JwtPayload =
     })
   | null;
 
-// Zustand local storage to manage user authentication tokens
-export const userAuthStore = create<AuthType>()(
-  persist(
-    (set, get) => ({
-      accessToken: null,
-      refreshToken: null,
-      signIn: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken: refreshToken || null }),
-      signOut: () => set({ accessToken: null, refreshToken: null }),
-      isAuthenticated: () => {
-        const { accessToken } = get();
-        return accessToken !== null && !isTokenExpired(accessToken);
-      },
-    }),
-    {
-      name: "auth-storage", // key name to be saved in localStorage
-    },
-  ),
-);
+// Zustand store
+export const userAuthStore = create<AuthType>()((set, get) => ({
+  accessToken: null, // Stored in JS memory, which will be lost on refresh for security benefit
+
+  // Store access token in memory
+  signIn: (accessToken) => {
+    set({ accessToken });
+  },
+
+  // remove access token from memory
+  signOut: () => {
+    set({ accessToken: null });
+  },
+
+  // Check if user is authenticated by verifying access token validity
+  isAuthenticated: () => {
+    const { accessToken } = get();
+    return accessToken !== null && !isTokenExpired(accessToken);
+  },
+
+  // Refresh access token using refresh token in HttpOnly cookie
+  // session management logic
+  refreshAccessToken: async () => {
+    try {
+      // Attempt to refresh access token by calling API endpoint that uses HttpOnly cookie
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // If refresh fails (e.g. invalid/expired refresh token), clear access token and return false
+      if (!response.ok) {
+        set({ accessToken: null });
+        return false;
+      }
+
+      // On success, update access token in memory
+      const { data } = await response.json();
+      set({ accessToken: data.token });
+      return true;
+    } catch (error) {
+      // On error (e.g. network issues), clear access token and return false
+      set({ accessToken: null });
+      return false;
+    }
+  },
+}));
 
 /**
  * Check if JWT token is expired or will expire within the marginSeconds
@@ -55,41 +84,19 @@ export const isTokenExpired = (
   return payload.exp <= nowSec + marginSeconds;
 };
 
-// helper function to refresh access token using the backend API
-export async function refreshAccessToken(
-  refreshToken: string,
-): Promise<string> {
-  const response = await fetch("/api/auth/refresh-token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: refreshToken }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to refresh access token");
-  }
-
-  const data = await response.json();
-  return data.token; // Assuming the backend returns { token: "new-access-token" }
-}
-
 // loader to enforce authentication at route level
-export async function requireAuthLoader() {
-  const state = userAuthStore.getState();
+export async function requireAuthLoader({ request }: { request: Request }) {
+  const { isAuthenticated, refreshAccessToken } = userAuthStore.getState();
 
-  if (state.isAuthenticated()) return null;
+  if (!isAuthenticated()) {
+    // Try to refresh the token first
+    const refreshed = await refreshAccessToken();
 
-  if (state.refreshToken) {
-    try {
-      const newAccessToken = await refreshAccessToken(state.refreshToken);
-      state.signIn(newAccessToken, state.refreshToken);
-      return null;
-    } catch {
-      state.signOut();
+    if (!refreshed) {
+      // Redirect to login if refresh fails
       throw redirect("/login");
     }
   }
 
-  state.signOut();
-  throw redirect("/login");
+  return null;
 }
