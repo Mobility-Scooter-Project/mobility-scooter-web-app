@@ -19,7 +19,7 @@ export default function JoinrgAppPage() {
   };
 
   return (
-    <main className="bg-card flex p-4.5 gap-9 flex-col w-full rounded-lg max-w-[750px] items-start">
+    <main className="bg-card flex p-4.5 gap-9 flex-col w-full rounded-lg max-w-3xl items-start">
       {/* Header */}
       <div>
         <h2 className="text-title-2 font-semibold mb-3">Join Organization</h2>

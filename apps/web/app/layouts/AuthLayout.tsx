@@ -1,5 +1,11 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { Button } from "~/components/Button";
+import { requireAuthLoader } from "~/lib/auth";
+
+// Enforce authentication every time before page in this layout reloads
+export async function loader({ request }: { request: Request }) {
+  return await requireAuthLoader({ request });
+}
 
 export default function AuthLayout() {
   const location = useLocation();

@@ -4,24 +4,8 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
-import { requireAuthLoader, userAuthStore } from "~/lib/auth";
-
-export const loader = requireAuthLoader; // guard before page loads
 
 export default function CreateOrgAppPage() {
-  // guard during runtime of this page
-  const state = userAuthStore.getState();
-  if (!state.isAuthenticated()) {
-    state.signOut();
-    return (
-      // Fallback UI if access token is expired or missing
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Button size={"fill"} asChild>
-          <Link to={"/login"}>User Not Logged In. Please Go back</Link>
-        </Button>
-      </div>
-    );
-  }
   const [showPassword, setShowPassword] = useState(false);
 
   const toggleVisibility = () => setShowPassword((p) => !p);
