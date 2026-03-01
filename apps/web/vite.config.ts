@@ -4,5 +4,6 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
+  envPrefix: ["VITE_", "API_"],
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
 });
