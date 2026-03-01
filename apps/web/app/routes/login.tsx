@@ -74,14 +74,15 @@ export default function LoginPage() {
    * When server action returns success with token:
    * 1. Update Zustand store with token
    * 2. Fetch user profile
-   * 3. Navigate to home page
+   * 3. Navigate to session page
    */
   useEffect(() => {
     if (actionData?.success && actionData?.token) {
       const { signIn, fetchUser } = userAuthStore.getState();
       signIn(actionData.token);
-      fetchUser();
-      navigate("/");
+      fetchUser().then(() => {
+        navigate("/session");
+      });
     }
   }, [actionData, navigate]);
 
