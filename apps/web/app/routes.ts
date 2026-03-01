@@ -1,5 +1,4 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
-import { requireAuthLoader } from "./lib/auth";
 
 export default [
   route("/", "layouts/AppLayout.tsx", [
