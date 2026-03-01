@@ -13,6 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtDto } from '@src/middleware/jwt/jwt.dto';
 import { KvService } from '@infra/kv/kv.service';
 import Redis from 'ioredis';
+import { Response } from 'express';
 
 type TokenResponse = {
   token: string;
@@ -112,6 +113,7 @@ export class AuthService {
     userId: string,
     userRole: USER_ROLES,
     identity = IDENTITY_PROVIDERS.EMAIL,
+    res?: Response,
   ): Promise<RefreshTokenResponse> {
     let session: UserSession | null;
     try {
@@ -182,6 +184,18 @@ export class AuthService {
         'Error creating refresh token',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+
+    // Set refresh token as HttpOnly cookie
+    // res - Express response object
+    // refreshToken - The refresh token value to set in cookie
+    if (res) {
+      const secure = process.env.NODE_ENV === 'production';
+      const cookie =
+        `refreshToken=${encodeURIComponent(refreshToken)}; ` +
+        `HttpOnly; Path=/api/v1/auth/refresh-token; Max-Age=2592000; SameSite=Lax` +
+        (secure ? '; Secure' : '');
+      res.append('Set-Cookie', cookie);
     }
 
     return { token, refreshToken };

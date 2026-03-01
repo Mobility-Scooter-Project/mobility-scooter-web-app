@@ -1,10 +1,10 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { Button } from "~/components/Button";
-import { requireAuthLoader } from "~/lib/auth";
+import { publicOnlyLoader } from "~/lib/auth";
 
-// Enforce authentication every time before page in this layout reloads
+// Prevent authenticated users from accessing public auth pages (login, signup, etc)
 export async function loader({ request }: { request: Request }) {
-  return await requireAuthLoader({ request });
+  return await publicOnlyLoader({ request });
 }
 
 export default function AuthLayout() {
