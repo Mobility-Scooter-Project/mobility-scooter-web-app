@@ -4,7 +4,7 @@ import { requireAuthLoader } from "~/lib/auth";
 
 // Enforce authentication every time before page in this layout reloads
 // redirect unauthenticated users to login on layout reloads
-export async function loader({ request }: { request: Request }) {
+export async function clientLoader({ request }: { request: Request }) {
   return await requireAuthLoader({ request });
 }
 export default function AppLayout() {

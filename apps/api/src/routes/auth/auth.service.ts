@@ -13,7 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtDto } from '@src/middleware/jwt/jwt.dto';
 import { KvService } from '@infra/kv/kv.service';
 import Redis from 'ioredis';
-import { Response } from 'express';
+import { type Response } from 'express';
 
 type TokenResponse = {
   token: string;
@@ -236,6 +236,7 @@ export class AuthService {
    */
   public async refreshToken(
     refreshToken: string,
+    res?: Response,
   ): Promise<RefreshTokenResponse> {
     let payload: JwtDto | null;
     try {
@@ -268,6 +269,8 @@ export class AuthService {
     const newTokens = await this._createUserSession(
       payload.userId,
       payload.userRole,
+      IDENTITY_PROVIDERS.EMAIL,
+      res,
     );
 
     try {
@@ -327,6 +330,7 @@ export class AuthService {
   public async signInWithPassword(
     email: string,
     password: string,
+    res?: Response,
   ): Promise<RefreshTokenResponse> {
     let user: User | null;
 
@@ -362,7 +366,12 @@ export class AuthService {
       );
     }
 
-    return this._createUserSession(user.id, user.role);
+    return this._createUserSession(
+      user.id,
+      user.role,
+      IDENTITY_PROVIDERS.EMAIL,
+      res,
+    );
   }
 
   /**
