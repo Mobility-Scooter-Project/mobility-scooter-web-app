@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import {
   EmailBodyDto,
   NewPasswordDto,
@@ -22,13 +23,32 @@ export class AuthController {
   }
 
   @Post('email')
-  async signInWithEmail(@Body() body: SignInWithEmailDto) {
-    return await this.auth.signInWithPassword(body.email, body.password);
+  async signInWithEmail(
+    @Body() body: SignInWithEmailDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return await this.auth.signInWithPassword(body.email, body.password, res);
   }
 
   @Post('refresh-token')
-  async refreshToken(@Body() body: TokenDto) {
-    return await this.auth.refreshToken(body.token);
+  async refreshToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cookieHeader = req.headers.cookie;
+
+    if (!cookieHeader) {
+      throw new HttpException('No cookies found', HttpStatus.UNAUTHORIZED);
+    }
+
+    const match = cookieHeader.match(/refreshToken=([^;]+)/);
+    if (!match) {
+      throw new HttpException('Refresh token missing', HttpStatus.UNAUTHORIZED);
+    }
+
+    const token = decodeURIComponent(match[1]);
+
+    return await this.auth.refreshToken(token, res);
   }
 
   @Post('email/reset-password/token')

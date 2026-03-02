@@ -40,7 +40,24 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const data = await response.json();
 
-    return { success: true, token: data.token };
+    // Forward Set-Cookie header from API response to client response
+    const headers = new Headers();
+    
+    if (response.headers.getSetCookie) {
+      response.headers.getSetCookie().forEach((cookie) => {
+        headers.append("Set-Cookie", cookie);
+      });
+    } else {
+      const setCookie = response.headers.get("Set-Cookie");
+      if (setCookie) {
+        headers.append("Set-Cookie", setCookie);
+      }
+    }
+
+    return Response.json(
+      { success: true, token: data.token },
+      { headers }
+    );
   } catch (error) {
     return { error: "Network error occurred" };
   }
