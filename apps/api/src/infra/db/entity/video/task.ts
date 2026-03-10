@@ -10,8 +10,8 @@ import { CreateUpdateFields } from '../shared';
 import { Video } from './video';
 
 @Entity({ schema: SCHEMAS.VIDEOS })
-@Unique(['video', 'frameIndex'])
-export class Keypoint {
+@Unique(['video'])
+export class VideoTask {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -21,23 +21,6 @@ export class Keypoint {
   @ManyToOne(() => Video, (video) => video.id)
   video: Video;
 
-  @Column({
-    type: 'int',
-  })
-  frameIndex: number;
-
-  @Column({
-    type: 'double precision',
-  })
-  timestamp: number;
-
-  @Column({
-    type: 'double precision',
-  })
-  angle: number;
-
-  @Column({
-    type: 'jsonb',
-  })
-  keypoints: Record<string, any>;
+  @Column({ type: 'jsonb' })
+  tasks: Record<string, any>[];
 }
