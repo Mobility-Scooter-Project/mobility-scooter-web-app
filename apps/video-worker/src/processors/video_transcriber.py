@@ -24,6 +24,7 @@ import pandas as pd
 import torch
 import whisperx
 from collections import defaultdict
+from ray.experimental.tqdm_ray import tqdm
 
 from utils.logger import logger
 from whisperx.diarize import DiarizationPipeline 
@@ -113,40 +114,44 @@ class VideoTranscriber:
     video_name = filename.split(".")[0]
 
     try:
-      # Download video to temporary file
+      transcribe_start = time.perf_counter()
+      progress = tqdm(total=6, desc=video_name, unit="stage")
+
       with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
-        transcribe_start = time.perf_counter()
         temp_video.write(requests.get(video_url).content)
         temp_video.flush()
-        logger.debug(f"Transcribing {video_name}...")
+        progress.update(1)
 
         audio = whisperx.load_audio(temp_video.name)
-        result = self.whisper_model.transcribe(audio, batch_size=BATCH_SIZE)
+        progress.update(1)
 
-        # Align
+        result = self.whisper_model.transcribe(audio, batch_size=BATCH_SIZE)
+        progress.update(1)
+
         model_a, metadata = whisperx.load_align_model(language_code=result["language"], device=self.model_device)
         result = whisperx.align(result["segments"], model_a, metadata, audio, self.model_device, return_char_alignments=False)
-
-        # Cleanup alignment model (specific to language, so we load/unload it per file)
         del model_a
         gc.collect()
         torch.cuda.empty_cache()
+        progress.update(1)
 
-        # Diarize
         diarize_segments = self.diarize_model(audio, min_speakers=1, max_speakers=2)
+        progress.update(1)
 
-        # Merge 
         result = whisperx.assign_word_speakers(diarize_segments, result)
+        progress.update(1)
 
-        transcribe_end = time.perf_counter()
-        total_time = transcribe_end - transcribe_start
-        logger.info(f"Transcribed {video_name} in {total_time:.2f} seconds")
+      progress.close()
+      transcribe_end = time.perf_counter()
+      total_time = transcribe_end - transcribe_start
+      logger.info(f"Transcribed {video_name} in {total_time:.2f} seconds")
 
-        if result is None:
-          raise RuntimeError(f"WhisperX returned None for {video_name}")
+      if result is None:
+        raise RuntimeError(f"WhisperX returned None for {video_name}")
 
-        return self._generate_transcript(result, video_name)
+      return self._generate_transcript(result, video_name)
 
     except Exception as e:
       logger.error(f"Error transcribing video {video_name}: {e}")
       raise
+    
