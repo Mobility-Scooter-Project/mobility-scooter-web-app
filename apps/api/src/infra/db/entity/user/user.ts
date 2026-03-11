@@ -73,6 +73,6 @@ export class User {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @ManyToOne(() => Unit, (unit) => unit.id)
+  @ManyToOne(() => Unit)
   unit: Unit;
 }

@@ -1,10 +1,12 @@
 import { Column } from 'typeorm';
 
 export class CreateUpdateFields {
-  @Column({ type: 'timestamp', default: () => 'now()' })
+  // NOTE: migrations created embedded columns as `cuCreatedat` / `cuUpdatedat`
+  // Explicit names keep entity metadata aligned with DB.
+  @Column({ type: 'timestamp', name: 'Createdat', default: () => 'now()' })
   createdAt?: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', name: 'Updatedat', nullable: true })
   updatedAt?: Date;
 }
 
@@ -13,6 +15,6 @@ export class CreateUpdateFields {
  * if an org has particular data retention policies.
  */
 export class CreateUpdateDeleteFields extends CreateUpdateFields {
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', name: 'Deletedat', nullable: true })
   deletedAt?: Date | null;
 }

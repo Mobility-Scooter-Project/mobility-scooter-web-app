@@ -25,6 +25,6 @@ export class UserIdentity {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User)
   user: User;
 }

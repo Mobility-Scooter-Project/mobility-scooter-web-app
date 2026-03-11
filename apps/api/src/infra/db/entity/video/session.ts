@@ -2,7 +2,7 @@ import { SCHEMAS } from '@config/schemas';
 import {
   Column,
   Entity,
-  OneToMany,
+  JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -18,9 +18,11 @@ export class PatientSession {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Patient, (patient) => patient.id)
+  @OneToOne(() => Patient)
+  @JoinColumn({ name: 'patientId' })
   patient: Patient;
 
-  @OneToOne(() => Unit, (unit) => unit.id)
+  @OneToOne(() => Unit)
+  @JoinColumn({ name: 'unitId' })
   unit: Unit;
 }

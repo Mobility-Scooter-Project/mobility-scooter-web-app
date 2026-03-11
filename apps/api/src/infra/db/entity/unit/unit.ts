@@ -17,6 +17,6 @@ export class Unit {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @ManyToOne(() => Department, (department) => department.id)
+  @ManyToOne(() => Department)
   department: Department;
 }

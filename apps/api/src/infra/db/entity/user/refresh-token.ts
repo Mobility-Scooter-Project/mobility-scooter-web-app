@@ -21,6 +21,6 @@ export class RefreshToken {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => UserSession, (session) => session.id, { nullable: false })
+  @ManyToOne(() => UserSession, { nullable: false })
   session: UserSession;
 }

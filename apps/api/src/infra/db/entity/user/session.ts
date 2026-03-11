@@ -11,6 +11,6 @@ export class UserSession {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @ManyToOne(() => UserIdentity, (identity) => identity.id, { nullable: false })
+  @ManyToOne(() => UserIdentity, { nullable: false })
   identity: UserIdentity;
 }
