@@ -12,7 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { VideosService } from './videos.service';
-import { VideoMetadataDto } from './videos.dto';
+import { VideoMetadataDto, ReprocessVideoDto } from './videos.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('videos')
@@ -44,6 +44,14 @@ export class VideosController {
       `Uploading file for videoId: ${videoId}, originalname: ${file.originalname}, mimetype: ${file.mimetype}, size: ${file.size}`,
     );
     return await this.videos.uploadVideo(videoId, file);
+  }
+
+  @Post(':videoId/reprocess')
+  async reprocessVideo(
+    @Param('videoId') videoId: string,
+    @Body() body: ReprocessVideoDto,
+  ) {
+    return await this.videos.reprocessVideo(videoId, body.steps);
   }
 
   @Get(':videoId/download')

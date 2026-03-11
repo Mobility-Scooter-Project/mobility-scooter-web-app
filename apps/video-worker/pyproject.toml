@@ -6,21 +6,21 @@ authors = [
     {name = "Your Name",email = "you@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
-    "dotenv (>=0.9.9,<0.10.0)",
-    "ray (>=2.48.0,<3.0.0)",
-    "kafka-python (>=2.2.15,<3.0.0)",
-    "pypino (>=0.1.0,<0.2.0)",
-    "webvtt-py (>=0.5.1,<0.6.0)",
-    "rapidfuzz (>=3.13.0,<4.0.0)",
-    "faster-whisper (>=1.2.0,<2.0.0)",
-    "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "psycopg[binary] (>=3.2.9,<4.0.0)",
+    "ray (>=2.48.0)",
+    "kafka-python-ng (>=2.2.0)",
+    "pypino (>=0.1.0)",
+    "psycopg[binary] (>=3.2.9)",
     "opencv-python-headless (>=4.10)",
-    "ultralytics (>=8.3.186,<9.0.0)",
-    "cupy-cuda12x (>=13.6.0,<14.0.0)",
-    "python-dotenv (>=1.2.1,<2.0.0)",
+    "ultralytics (>=8.3.186)",
+    "python-dotenv (>=1.2.1)",
+    "numpy (>=1.26)",
+    "pandas (>=2.0)",
+    "cupy-cuda12x (>=13.6.0)",
+    "whisperx (>=3.8)",
+    "google-genai (>=1.0)",
+    "torch (==2.8.0)",
 ]
 
 [tool.poetry]
@@ -30,7 +30,7 @@ package-mode = false
 optional = true
 
 [tool.poetry.group.gpu.dependencies]
-torch = { version = "^2.7.1", source = "torch_cuda" }
+torch = {version = "==2.8.0", source = "torch_cuda"}
 
 [[tool.poetry.source]]
 name = "torch_cuda"
