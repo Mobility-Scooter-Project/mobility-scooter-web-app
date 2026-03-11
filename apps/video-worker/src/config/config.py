@@ -40,7 +40,7 @@ GOOGLE_LLMS = [
 TASK_DETECTION_MODEL = "gemma-3-27b-it"  # Choose from the above list
 
 # Pipeline retry configuration
-ALL_STEPS = {"keypoints", "transcription", "task_detection"}
+ALL_STEPS = {"pose_estimation", "transcription", "task_detection"}
 MAX_STEP_RETRIES = 3
 TASK_DETECTION_MAX_RETRIES = 2
 TASK_DETECTION_RETRY_DELAY = 60  # seconds between task detection retries
