@@ -1,4 +1,4 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsArray, IsIn } from 'class-validator';
 
 export class VideoMetadataDto {
   @IsNotEmpty()
@@ -7,4 +7,10 @@ export class VideoMetadataDto {
   sessionId: string;
   @IsNotEmpty()
   fileName: string;
+}
+
+export class ReprocessVideoDto {
+  @IsOptional()
+  @IsArray()
+  steps?: ('pose_estimation' | 'transcription' | 'task_detection')[];
 }

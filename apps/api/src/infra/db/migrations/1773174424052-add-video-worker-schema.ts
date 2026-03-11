@@ -53,6 +53,21 @@ export class AddVideoWorkerSchema1773174424052 implements MigrationInterface {
       `ALTER TABLE "videos"."video_annotation" ADD CONSTRAINT "FK_b9ead20ef056821891896bb4d21" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
 
+    // Alter videos.video: add fileId FK to units.file (for Video–File OneToOne)
+    await queryRunner.query(
+      `ALTER TABLE "videos"."video" ADD COLUMN IF NOT EXISTS "fileId" uuid`,
+    );
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_video_file') THEN
+          ALTER TABLE "videos"."video"
+            ADD CONSTRAINT "FK_video_file"
+            FOREIGN KEY ("fileId") REFERENCES "units"."file"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+        END IF;
+      END $$;
+    `);
+
     // Alter videos.keypoint: drop old columns, add new ones
     await queryRunner.query(
       `ALTER TABLE "videos"."keypoint" DROP CONSTRAINT IF EXISTS "FK_442704aae057917874daeebf720"`,

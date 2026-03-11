@@ -12,6 +12,11 @@ type VideoMetadataOutput = {
   id: string;
 };
 
+/** Shape used when we only need the stored file path (object key). */
+type VideoWithPath = {
+  file: { path: string };
+};
+
 @Injectable()
 export class VideosService {
   private logger = new Logger(VideosService.name);
@@ -98,7 +103,7 @@ export class VideosService {
    * - Validates that the incoming Multer file contains a Buffer; if missing, throws HttpException(400).
    * - Converts the Multer buffer into a readable stream and uploads it to the configured object storage
    *   using putObjectStream().
-   * - Derives a transcript path by replacing the ".mp4" extension with ".vtt".
+   * - Derives a transcript path by replacing the ".mp4" extension with ".csv".
    * - Requests two presigned URLs from the S3 abstraction:
    *   - a GET presigned URL for the uploaded video (24-hour expiry).
    *   - a PUT presigned URL for uploading the transcript (configurable expiry, here set to 24 hours).
@@ -121,16 +126,15 @@ export class VideosService {
     videoId: string,
     file: Express.Multer.File,
   ): Promise<void> {
-    let video;
+    let video: VideoWithPath | null;
     try {
-      video = await this.videoRepository.findOne({
+      video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true, session: { patient: true } },
+        relations: { file: true },
         select: {
           file: { path: true },
-          session: { patient: { id: true } },
         },
-      });
+      })) as VideoWithPath | null;
     } catch (error) {
       this.logger.error('Error fetching video metadata', error);
       throw new HttpException(`Invalid input`, HttpStatus.BAD_REQUEST);
@@ -144,7 +148,6 @@ export class VideosService {
     */
     if (!video) {
       video = {
-        session: { patient: { id: 'test-patient-id' } },
         file: {
           path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
         },
@@ -152,7 +155,7 @@ export class VideosService {
     }
 
     const filePath = video.file.path;
-    const objectFilePath = `${video.session.patient.id}/${filePath}`;
+    const objectFilePath = filePath;
 
     // Convert buffer to readable stream since multer stores file as buffer
     if (!file.buffer) {
@@ -165,7 +168,7 @@ export class VideosService {
 
     const expires = 60 * 60 * 24;
 
-    const transcriptPath = filePath.replace(/\.mp4$/, '.vtt');
+    const transcriptPath = filePath.replace(/\.mp4$/, '.csv');
 
     const videoDataPromise = this.s3.presignedUrl(
       'GET',
@@ -179,9 +182,16 @@ export class VideosService {
       expires,
     );
 
-    const [videoUrl, transcriptPutUrl] = await Promise.all([
+    const transcriptGetUrlPromise = this.s3.presignedUrl(
+      'GET',
+      transcriptPath,
+      expires,
+    );
+
+    const [videoUrl, transcriptPutUrl, transcriptGetUrl] = await Promise.all([
       videoDataPromise,
       transcriptPutUrlPromise,
+      transcriptGetUrlPromise,
     ]);
 
     await this.queue.getProducer().send({
@@ -194,6 +204,7 @@ export class VideosService {
             url: videoUrl,
             filename: filePath,
             transcriptPutUrl,
+            transcriptGetUrl,
           }),
         },
       ],
@@ -221,20 +232,19 @@ export class VideosService {
    * @throws {Error} Propagates errors from the S3 client used to generate the presigned URL.
    *
    * @remarks
-   * - Expects the repository query to return the video with relations: file.path and session.patient.id.
-   * - The constructed object key uses the pattern: "<patientId>/<filePath>".
+   * - Expects the repository query to return the video with relations: file.path.
+   * - The constructed object key uses the stored file path.
    */
   async getVideoPresignedUrl(videoId: string): Promise<string> {
-    let video: Video | null;
+    let video: VideoWithPath | null;
     try {
-      video = await this.videoRepository.findOne({
+      video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true, session: { patient: true } },
+        relations: { file: true },
         select: {
           file: { path: true },
-          session: { patient: { id: true } },
         },
-      });
+      })) as VideoWithPath | null;
     } catch (error) {
       this.logger.error('Error fetching video metadata', error);
       throw new HttpException(`Invalid input`, HttpStatus.BAD_REQUEST);
@@ -244,9 +254,71 @@ export class VideosService {
       throw new HttpException('Video not found', 404);
     }
 
-    const objectFilePath = `${video.session.patient.id}/${video.file.path}`;
+    const objectFilePath = video.file.path;
     const expires = 60 * 60 * 24; // 24 hours
 
     return await this.s3.presignedUrl('GET', objectFilePath, expires);
+  }
+
+  /**
+   * Enqueue a video for reprocessing (keypoints, transcription, and/or task detection).
+   *
+   * Loads video metadata (file path, patient id) via VideoWithPath-shaped query, builds object path
+   * and transcript path, requests presigned URLs, and sends a message to the "videos" topic with
+   * optional `steps` to limit which pipeline steps run.
+   *
+   * @param videoId - The id of the video to reprocess.
+   * @param steps - Optional list of steps: 'pose_estimation' | 'transcription' | 'task_detection'.
+   * @throws HttpException 400 on repo error, 404 when video not found.
+   */
+  public async reprocessVideo(
+    videoId: string,
+    steps?: ('pose_estimation' | 'transcription' | 'task_detection')[],
+  ): Promise<void> {
+    let video: VideoWithPath | null;
+    try {
+      video = (await this.videoRepository.findOne({
+        where: { id: videoId },
+        relations: { file: true },
+        select: {
+          file: { path: true },
+        },
+      })) as VideoWithPath | null;
+    } catch (error) {
+      this.logger.error('Error fetching video metadata for reprocess', error);
+      throw new HttpException('Invalid input', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!video) {
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
+    }
+
+    const filePath = video.file.path;
+    const objectFilePath = filePath;
+    const transcriptPath = filePath.replace(/\.mp4$/, '.csv');
+    const expires = 60 * 60 * 24;
+
+    const [videoUrl, transcriptPutUrl, transcriptGetUrl] = await Promise.all([
+      this.s3.presignedUrl('GET', objectFilePath, expires),
+      this.s3.presignedUrl('PUT', transcriptPath, expires),
+      this.s3.presignedUrl('GET', transcriptPath, expires),
+    ]);
+
+    await this.queue.getProducer().send({
+      topic: 'videos',
+      messages: [
+        {
+          key: videoId,
+          value: JSON.stringify({
+            id: videoId,
+            url: videoUrl,
+            filename: filePath,
+            transcriptPutUrl,
+            transcriptGetUrl,
+            ...(steps && { steps }),
+          }),
+        },
+      ],
+    });
   }
 }
