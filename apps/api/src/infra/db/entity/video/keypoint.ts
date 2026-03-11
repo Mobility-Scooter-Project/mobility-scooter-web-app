@@ -18,7 +18,7 @@ export class Keypoint {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => Video, (video) => video.id)
+  @ManyToOne(() => Video)
   video: Video;
 
   @Column({

@@ -1,5 +1,11 @@
 import { SCHEMAS } from '@config/schemas';
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Unit } from './unit';
 
@@ -27,6 +33,7 @@ export class Patient {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Unit, (unit) => unit.id)
+  @OneToOne(() => Unit)
+  @JoinColumn({ name: 'unitId' })
   unit: Unit;
 }

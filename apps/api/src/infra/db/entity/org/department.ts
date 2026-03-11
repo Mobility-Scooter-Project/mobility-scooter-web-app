@@ -13,6 +13,6 @@ export class Department {
   })
   name: string;
 
-  @ManyToOne(() => Org, (org) => org.id)
+  @ManyToOne(() => Org)
   org: Org;
 }

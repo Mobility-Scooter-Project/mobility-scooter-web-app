@@ -12,10 +12,10 @@ export class VideoAnnotation {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => Assignment, (assignment) => assignment.id)
+  @ManyToOne(() => Assignment)
   assignment: Assignment;
 
-  @ManyToOne(() => Video, (video) => video.id)
+  @ManyToOne(() => Video)
   video: Video;
 
   @Column({ type: 'text' })

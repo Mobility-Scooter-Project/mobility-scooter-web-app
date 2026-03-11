@@ -1,5 +1,11 @@
 import { SCHEMAS } from '@config/schemas';
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
 import { User } from '../user/user';
 import { Unit } from './unit';
@@ -29,9 +35,11 @@ export class File {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => User, (user) => user.id)
+  @OneToOne(() => User)
+  @JoinColumn({ name: 'uploadedById' })
   uploadedBy: User;
 
-  @OneToOne(() => Unit, (unit) => unit.id)
+  @OneToOne(() => Unit)
+  @JoinColumn({ name: 'unitId' })
   unit: Unit;
 }

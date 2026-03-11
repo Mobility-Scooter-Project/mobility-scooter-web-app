@@ -2,6 +2,7 @@ import { SCHEMAS } from '@config/schemas';
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -18,9 +19,10 @@ export class Video {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @ManyToOne(() => PatientSession, (session) => session.id)
+  @ManyToOne(() => PatientSession)
   session: PatientSession;
 
-  @OneToOne(() => File, (file) => file.id)
+  @OneToOne(() => File)
+  @JoinColumn({ name: 'fileId' })
   file: File;
 }
