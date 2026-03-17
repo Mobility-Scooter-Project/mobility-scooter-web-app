@@ -63,10 +63,10 @@ class PoseEstimation:
       print(f"Calculating Angle Error: {e}")
 
   def _run_pose_estimation(self, video_url, filename, video_id):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+    with tempfile.NamedTemporaryFile(delete=True, suffix=".mp4") as temp_video:
       start = datetime.now()
-      temp_video.write(requests.get(video_url).content)
-      temp_video.flush()
+      temp_video.write(requests.get(video_url).content) # copies video data on url to memory
+      temp_video.flush() # flushes file to disk, forces writing of any data in memory to disk
       end = datetime.now()
       logger.debug(f"Downloaded file in {(end - start).total_seconds()} seconds")
       
@@ -74,18 +74,18 @@ class PoseEstimation:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = YOLO(POSE_MODEL).to(device)
       
-      cap = cv2.VideoCapture(temp_video.name)
+      cap = cv2.VideoCapture(temp_video.name) # opencv2 file pointer reads the video's metadata
       progress_bar = iter(tqdm(range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))))
       if not cap.isOpened():
         raise RuntimeError(f"Could not open video file {video_url}")
 
-      ret, frame = cap.read()
+      ret, frame = cap.read() # ret determines if frame is valid (if next frame invalid then video has ended)
       if not ret:
         cap.release()
         return
 
-      results = self.model(frame, verbose=False)
-      result = results[0]
+      results = self.model(frame, verbose=False) # returns list of yolo model outputs
+      result = results[0] # parses bounding boxes and keypoints from yolo output, assumes first person detected in frame is patient
 
       if result.keypoints is not None and result.boxes is not None:
         keypoints = result.keypoints.xy
