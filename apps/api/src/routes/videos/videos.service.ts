@@ -15,6 +15,7 @@ type VideoMetadataOutput = {
 /** Shape used when we only need the stored file path (object key). */
 type VideoWithPath = {
   file: { path: string };
+  session: { patient: { id: string } };
 };
 
 @Injectable()
@@ -40,8 +41,10 @@ export class VideosService {
    * 3. Creates and persists a Video entity that references the saved File and the provided session id.
    * 4. Returns the id of the created Video metadata.
    *
-   * @param patientId - The id of the patient that owns the session.
-   * @param sessionId - The id of the session to which the video belongs.
+   * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
+   *
+   * @param patientId - The id of the patient that owns the session (used in storage path only).
+   * @param sessionId - The id of the session to which the video belongs (must exist).
    * @param fileName - The filename of the uploaded video (used to build the storage path and file metadata).
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
@@ -63,9 +66,9 @@ export class VideosService {
       path,
     });
 
-    let result: File | Video | null;
+    let videoFile: File;
     try {
-      result = await this.fileRepository.save(newFile);
+      videoFile = await this.fileRepository.save(newFile);
     } catch (error) {
       this.logger.error('Error creating file metadata', error);
       throw new HttpException(
@@ -76,11 +79,12 @@ export class VideosService {
 
     const newVideo = this.videoRepository.create({
       session: { id: sessionId },
-      file: result,
+      file: videoFile,
     });
 
+    let savedVideo: Video;
     try {
-      result = await this.videoRepository.save(newVideo);
+      savedVideo = await this.videoRepository.save(newVideo);
     } catch (error) {
       this.logger.error('Error creating video metadata', error);
       throw new HttpException(
@@ -89,7 +93,7 @@ export class VideosService {
       );
     }
 
-    return { id: result.id };
+    return { id: savedVideo.id };
   }
 
   /**
@@ -97,9 +101,9 @@ export class VideosService {
    * and enqueues a message for downstream processing.
    *
    * This method:
-   * - Loads video metadata (including stored file path and associated patient id) from the repository.
+   * - Loads video metadata (including stored file path) from the repository.
    *   - If repository lookup fails an HttpException(400) with message "Invalid input" is thrown.
-   *   - If no video is found, a hard-coded mock video/session is used (intended for testing).
+   *   - If no video is found, HttpException(404) is thrown.
    * - Validates that the incoming Multer file contains a Buffer; if missing, throws HttpException(400).
    * - Converts the Multer buffer into a readable stream and uploads it to the configured object storage
    *   using putObjectStream().
@@ -111,7 +115,7 @@ export class VideosService {
    *   the original filename/path, and the transcript PUT URL.
    *
    * Notes:
-   * - The object storage destination path is constructed from the patient id and the repository file path.
+   * - The object storage destination path is the stored file path.
    * - The method is asynchronous and returns a Promise that resolves once the upload and enqueue operations
    *   have been initiated/completed.
    *
@@ -126,13 +130,15 @@ export class VideosService {
     videoId: string,
     file: Express.Multer.File,
   ): Promise<void> {
+
     let video: VideoWithPath | null;
     try {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true },
+        relations: { file: true, session: { patient: true } },
         select: {
           file: { path: true },
+          session: { patient: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -140,18 +146,8 @@ export class VideosService {
       throw new HttpException(`Invalid input`, HttpStatus.BAD_REQUEST);
     }
 
-    /*if (!video) {
-      throw new HttpException('Video not found', 404);
-    }
-    
-    Use a mock video for testing since there is no logic to create a patient session at this time.
-    */
     if (!video) {
-      video = {
-        file: {
-          path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
-        },
-      };
+      throw new HttpException('Video not found', 404);
     }
 
     const filePath = video.file.path;
@@ -240,9 +236,10 @@ export class VideosService {
     try {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true },
+        relations: { file: true, session: { patient: true } },
         select: {
           file: { path: true },
+          session: { patient: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -279,9 +276,10 @@ export class VideosService {
     try {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true },
+        relations: { file: true, session: { patient: true } },
         select: {
           file: { path: true },
+          session: { patient: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {

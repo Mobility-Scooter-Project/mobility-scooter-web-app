@@ -28,6 +28,8 @@ VAD_OFFSET = 0.500
 
 # Pose estimation (YOLO)
 POSE_MODEL = "yolo11n-pose.pt"
+POSE_BATCH_SIZE = 1 # 4 for GPU, 1 for CPU
+POSE_FRAME_SKIP = 6 # process every 6 frames to reduce database writes => 5 frames per second
 
 # Task Detection Model
 GOOGLE_LLMS = [

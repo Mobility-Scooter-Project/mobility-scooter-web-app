@@ -9,6 +9,14 @@ import {
 import { CreateUpdateFields } from '../shared';
 import { Video } from './video';
 
+export type VideoTaskEntry = {
+  taskNumber: number;
+  timestamp: number;
+  task: string;
+  note: string | null;
+  score: number | null;
+};
+
 @Entity({ schema: SCHEMAS.VIDEOS })
 @Unique(['video'])
 export class VideoTask {
@@ -22,5 +30,5 @@ export class VideoTask {
   video: Video;
 
   @Column({ type: 'jsonb' })
-  tasks: Record<string, any>[];
+  tasks: VideoTaskEntry[];
 }
