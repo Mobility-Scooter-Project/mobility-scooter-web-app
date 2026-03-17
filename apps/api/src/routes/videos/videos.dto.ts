@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsArray, IsIn } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsArray } from 'class-validator';
 
 export class VideoMetadataDto {
   @IsNotEmpty()

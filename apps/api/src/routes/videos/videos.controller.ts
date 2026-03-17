@@ -5,9 +5,6 @@ import {
   Logger,
   Param,
   Post,
-  Put,
-  Redirect,
-  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -51,6 +48,9 @@ export class VideosController {
     @Param('videoId') videoId: string,
     @Body() body: ReprocessVideoDto,
   ) {
+    this.logger.log(
+      `Reprocessing videoId: ${videoId}, steps: ${body.steps}`,
+    );
     return await this.videos.reprocessVideo(videoId, body.steps);
   }
 

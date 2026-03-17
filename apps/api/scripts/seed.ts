@@ -17,7 +17,37 @@ async function main() {
     const userRepository = db.getRepository(User);
     const identityRepository = db.getRepository(UserIdentity);
 
-    const { unit, org } = await db.transaction(async (tx) => {
+    // If test user already exists, reuse and only ensure we have a session (idempotent)
+    const existingUser = await userRepository.findOne({
+      where: { email: "test@example.com" },
+      relations: { unit: true },
+    });
+    if (existingUser?.unit) {
+      const unit = existingUser.unit;
+      let sessionId: string;
+      const existingSession = await db.query(
+        `SELECT id FROM videos.patient_session LIMIT 1`,
+      );
+      if (existingSession?.length > 0) {
+        sessionId = existingSession[0].id;
+      } else {
+        const sessionResult = await db.query(
+          `INSERT INTO videos.patient_session ("id", "cudCreatedat") VALUES (uuid_generate_v4(), now()) RETURNING id`,
+        );
+        sessionId = sessionResult[0].id;
+      }
+      console.log("Test data already exists (test@example.com).");
+      console.log(
+        `TESTING_UNIT_ID=${unit.id}\nTESTING_SESSION_ID=${sessionId}`,
+      );
+      console.log(
+        `Use sessionId in POST /videos/upload; patientId can be any UUID (e.g. ${unit.id}).`,
+      );
+      exit(0);
+      return;
+    }
+
+    const { unit, org, sessionId } = await db.transaction(async (tx) => {
       const org = await orgRepository.save(
         orgRepository.create({
           name: "Test Org",
@@ -62,13 +92,23 @@ async function main() {
         }),
       );
 
-      return { org, department, unit };
+      // One row in patient_session for video upload (Video.sessionId FK)
+      const sessionResult = await db.query(
+        `INSERT INTO videos.patient_session ("id", "cudCreatedat") VALUES (uuid_generate_v4(), now()) RETURNING id`,
+      );
+      const sessionId = sessionResult[0].id;
+
+      return { org, department, unit, sessionId };
     });
 
     fs.appendFileSync(".env", `\nTESTING_UNIT_ID=${unit.id}\n`);
+    fs.appendFileSync(".env", `\nTESTING_SESSION_ID=${sessionId}\n`);
 
     console.log(
       `Successfully wrote unit ID to .env file for tenant ${org.id}`,
+    );
+    console.log(
+      `Test session ID for video upload: ${sessionId}. Use as sessionId in POST /videos/upload; patientId can be any UUID (e.g. ${unit.id}).`,
     );
     exit(0);
   } catch (e) {

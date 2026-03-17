@@ -1,4 +1,5 @@
 import logging
+import os
 import warnings
 
 def _setup_warnings():
@@ -112,33 +113,34 @@ class VideoTranscriber:
     """
     video_name = filename.split(".")[0]
 
+    temp_video_path = None
     try:
       transcribe_start = time.perf_counter()
       logger.info(f"[transcription] Starting WhisperX pipeline for {video_name}")
 
       with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+        temp_video_path = temp_video.name
         logger.info(f"[transcription] Downloading video for {video_name}")
         temp_video.write(requests.get(video_url).content)
-        temp_video.flush()
+        
+      logger.info(f"[transcription] Loading audio for {video_name}")
+      audio = whisperx.load_audio(temp_video_path)
 
-        logger.info(f"[transcription] Loading audio for {video_name}")
-        audio = whisperx.load_audio(temp_video.name)
+      logger.info(f"[transcription] Transcribing audio for {video_name}")
+      result = self.whisper_model.transcribe(audio, batch_size=BATCH_SIZE)
 
-        logger.info(f"[transcription] Transcribing audio for {video_name}")
-        result = self.whisper_model.transcribe(audio, batch_size=BATCH_SIZE)
+      logger.info(f"[transcription] Aligning segments for {video_name}")
+      model_a, metadata = whisperx.load_align_model(language_code=result["language"], device=self.model_device)
+      result = whisperx.align(result["segments"], model_a, metadata, audio, self.model_device, return_char_alignments=False)
+      del model_a
+      gc.collect()
+      torch.cuda.empty_cache()
 
-        logger.info(f"[transcription] Aligning segments for {video_name}")
-        model_a, metadata = whisperx.load_align_model(language_code=result["language"], device=self.model_device)
-        result = whisperx.align(result["segments"], model_a, metadata, audio, self.model_device, return_char_alignments=False)
-        del model_a
-        gc.collect()
-        torch.cuda.empty_cache()
+      logger.info(f"[transcription] Diarizing speakers for {video_name}")
+      diarize_segments = self.diarize_model(audio, min_speakers=1, max_speakers=2)
 
-        logger.info(f"[transcription] Diarizing speakers for {video_name}")
-        diarize_segments = self.diarize_model(audio, min_speakers=1, max_speakers=2)
-
-        logger.info(f"[transcription] Assigning speakers for {video_name}")
-        result = whisperx.assign_word_speakers(diarize_segments, result)
+      logger.info(f"[transcription] Assigning speakers for {video_name}")
+      result = whisperx.assign_word_speakers(diarize_segments, result)
 
       transcribe_end = time.perf_counter()
       total_time = transcribe_end - transcribe_start
@@ -152,3 +154,9 @@ class VideoTranscriber:
     except Exception as e:
       logger.error(f"Error transcribing video {video_name}: {e}")
       raise
+    finally:
+      if temp_video_path:
+        try:
+          os.remove(temp_video_path)
+        except Exception as e:
+          logger.error(f"Failed to clean up temp file: {e}")

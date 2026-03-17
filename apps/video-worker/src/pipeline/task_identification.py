@@ -62,6 +62,8 @@ class TaskIdentification:
       tasks_json = self.task_detector.detect_task(transcript_csv)
       for i, task in enumerate(tasks_json):
         task["taskNumber"] = i + 1
+        task.setdefault("note", None)
+        task.setdefault("score", None)
     except Exception as e:
       logger.error(f"Task detection failed for {filename}: {e}")
       ray.get(self.db.update_step_status.remote(video_id, "task_detection", "failed", str(e)))
