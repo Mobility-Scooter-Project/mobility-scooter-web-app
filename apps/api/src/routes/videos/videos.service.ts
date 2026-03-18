@@ -130,7 +130,6 @@ export class VideosService {
     videoId: string,
     file: Express.Multer.File,
   ): Promise<void> {
-
     let video: VideoWithPath | null;
     try {
       video = (await this.videoRepository.findOne({

@@ -3,6 +3,9 @@ import cupy as cp
 import numpy as np
 import torch
 import ray
+import tempfile
+import os
+import urllib.request
 from datetime import datetime
 from decord import VideoReader, cpu, gpu
 from ultralytics import YOLO
@@ -210,62 +213,92 @@ class PoseEstimation:
     return prev_box, prev_points, pending
 
   def _run_pose_estimation(self, video_url, filename, video_id):
-    start = datetime.now()
- 
-    # Load model 
-    if not self.model:
-      device = "cuda" if torch.cuda.is_available() else "cpu"
-      self.model = YOLO(POSE_MODEL).to(device)
- 
-    # Load video directly from URL with decord 
-    ctx = gpu(0) if torch.cuda.is_available() else cpu(0)
-    vr = VideoReader(video_url, ctx=ctx)
- 
-    total_frames = len(vr)
-    self.frame_width  = vr[0].shape[1]
-    self.frame_height = vr[0].shape[0]
- 
-    # Get every POSE_FRAME_SKIP frame index and its timestamp
-    indices = list(range(0, MAX_FRAMES, POSE_FRAME_SKIP))
-    timestamps = [round(vr.get_frame_timestamp(i)[0], 3) for i in indices]
- 
-    # Process frames in batches
-    # first valid frame uses center heuristic to track the driver's position, subsequent frames use IoU tracking (handled in _process_batch)
-    pending = []
-    prev_box = None
-    prev_points = None
- 
-    progress_bar = iter(tqdm(range(len(indices))))
- 
-    for batch_start in range(0, len(indices), POSE_BATCH_SIZE):
-      batch_indices    = indices[batch_start : batch_start + POSE_BATCH_SIZE]
-      batch_timestamps = timestamps[batch_start : batch_start + POSE_BATCH_SIZE]
- 
-      # Fetch batch of frames from decord — returns (N, H, W, C) numpy array
-      batch_frames = vr.get_batch(batch_indices).asnumpy()
- 
-      # Build metadata list matching the current batch
-      batch_metadata = list(zip(batch_indices, batch_timestamps))
- 
-      prev_box, prev_points, pending = self._process_batch(
-        batch_frames, batch_metadata,
-        prev_box, prev_points,
-        video_id, pending
-      )
- 
-      # Tick progress bar once per frame in the batch
-      for _ in batch_indices:
-        next(progress_bar)
- 
-    # Flush remaining DB writes
-    if pending:
-      try:
-        ray.get(pending)
-      except Exception as e:
-        logger.error(f"Failed to flush final keypoints: {e}")
- 
-    end = datetime.now()
-    logger.info(f"Pose estimation complete for {filename} in {end - start}")
+    """
+    Runs pose estimation on a video.
+
+    Args:
+      video_url (str): The URL of the video to process.
+      filename (str): The filename of the video.
+      video_id (str): The ID of the video.
+
+    Returns:
+      None
+    """
+    logger.info(f"Running pose estimation for {filename}")
+    temp_video_path = None
+    try:
+      with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+        temp_video_path = temp_video.name
+        urllib.request.urlretrieve(video_url, temp_video_path)
+
+      start = datetime.now()
+      # Load model 
+      if not self.model:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = YOLO(POSE_MODEL).to(device)
+
+      # Load video directly from URL with decord 
+      ctx = gpu(0) if torch.cuda.is_available() else cpu(0)
+      vr = VideoReader(temp_video_path, ctx=ctx)
+
+      total_frames = len(vr)
+      self.frame_width  = vr[0].shape[1]
+      self.frame_height = vr[0].shape[0]
+
+      # Get every POSE_FRAME_SKIP frame index and its timestamp
+      frame_limit = MAX_FRAMES if MAX_FRAMES else total_frames
+      indices = list(range(0, frame_limit, POSE_FRAME_SKIP))
+      timestamps = [round(vr.get_frame_timestamp(i)[0], 3) for i in indices]
+
+      # Process frames in batches
+      # first valid frame uses center heuristic to track the driver's position, subsequent frames use IoU tracking (handled in _process_batch)
+      pending = []
+      prev_box = None
+      prev_points = None
+
+      progress_bar = iter(tqdm(range(len(indices))))
+
+      for batch_start in range(0, len(indices), POSE_BATCH_SIZE):
+        batch_indices    = indices[batch_start : batch_start + POSE_BATCH_SIZE]
+        batch_timestamps = timestamps[batch_start : batch_start + POSE_BATCH_SIZE]
+
+        # decode frames and convert to list of (H, W, C) arrays for YOLO
+        raw = vr.get_batch(batch_indices).asnumpy()
+        batch_frames = [raw[i] for i in range(len(batch_indices))]
+        logger.debug(f"Batch shape: {raw.shape}, frame shape: {batch_frames[0].shape}")
+
+        if batch_frames[0].shape[0] == 0 or batch_frames[0].shape[1] == 0:
+          logger.error(f"Invalid frame dimensions at batch starting {batch_indices[0]}, skipping")
+          continue
+
+        batch_metadata = list(zip(batch_indices, batch_timestamps))
+
+        prev_box, prev_points, pending = self._process_batch(
+          batch_frames, batch_metadata,
+          prev_box, prev_points,
+          video_id, pending
+        )
+
+        # Tick progress bar once per frame in the batch
+        for _ in batch_indices:
+          next(progress_bar)
+
+      # Flush remaining DB writes
+      if pending:
+        try:
+          ray.get(pending)
+        except Exception as e:
+          logger.error(f"Failed to flush final keypoints: {e}")
+
+      end = datetime.now()
+      logger.info(f"Pose estimation complete for {filename} in {end - start}")
+
+    finally:
+      if temp_video_path and os.path.exists(temp_video_path):
+        try:
+          os.remove(temp_video_path)
+        except Exception as e:
+          logger.error(f"Failed to clean up temp file: {e}")
  
   def process_video(self, video_url, filename, video_id):
     ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "processing"))
