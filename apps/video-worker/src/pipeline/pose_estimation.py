@@ -13,12 +13,10 @@ from ray.experimental.tqdm_ray import tqdm
  
 from utils.logger import logger
 from core.db import DBActor
-from config.config import POSE_MODEL, POSE_BATCH_SIZE, POSE_FRAME_SKIP
+from config.config import POSE_MODEL, POSE_BATCH_SIZE, POSE_FRAME_SKIP, MAX_FRAMES
  
 num_gpus = 0.5 if torch.cuda.is_available() else 0
 logger.debug(f"Pose estimation using {num_gpus} GPUs")
-
-MAX_FRAMES = 13 # quick test on CPU
  
 @ray.remote(num_gpus=num_gpus)
 class PoseEstimation:
