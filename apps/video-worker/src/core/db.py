@@ -114,7 +114,7 @@ class DBActor():
       WHERE "videoId" = %s;
     """
     try:
-      self.cursor.execute(query, (video_id))
+      self.cursor.execute(query, (video_id,))
     except Exception as e:
       self.connection.rollback()
       logger.error(f"Failed to reset step attempts for video {video_id}: {e}")
