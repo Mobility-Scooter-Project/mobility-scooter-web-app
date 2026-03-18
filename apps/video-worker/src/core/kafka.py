@@ -20,12 +20,11 @@ class KafkaActor:
         self.consumer = KafkaConsumer(
           bootstrap_servers=brokers,
           group_id=group_id,
-          auto_offset_reset="latest",
+          auto_offset_reset="earliest",
           client_id="video_worker",
           enable_auto_commit=False,
-          max_poll_interval_ms=60 * 60 * 1000,  # 1 hour
-          max_poll_records=1, # consume only one message at a time
-          api_version=(2, 8, 0)
+          max_poll_interval_ms=60 * 60 * 1000,  # 1 hour (CPU)
+          max_poll_records=1, # consume only one message at a time (CPU)
         )
           
       except Exception as e:
@@ -42,7 +41,6 @@ class KafkaActor:
           bootstrap_servers=brokers,
           value_serializer=lambda v: json.dumps(v).encode("utf-8"),
           key_serializer=lambda k: k.encode("utf-8") if k else None,
-          api_version=(2, 8, 0)
         )
           
     if not connected:
@@ -65,6 +63,9 @@ class KafkaActor:
         transcript_put_url = data["transcriptPutUrl"]
         transcript_get_url = data["transcriptGetUrl"]
         filename = data["filename"]
+
+        # Reset per-step attempts when we receive a new upload for this video
+        ray.get(self.db.reset_step_attempts.remote(video_id))
 
         # if not provided, set all steps
         steps = set(data.get("steps", [])) or ALL_STEPS

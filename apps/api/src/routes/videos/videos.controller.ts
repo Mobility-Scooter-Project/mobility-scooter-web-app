@@ -48,9 +48,7 @@ export class VideosController {
     @Param('videoId') videoId: string,
     @Body() body: ReprocessVideoDto,
   ) {
-    this.logger.log(
-      `Reprocessing videoId: ${videoId}, steps: ${body.steps}`,
-    );
+    this.logger.log(`Reprocessing videoId: ${videoId}, steps: ${body.steps}`);
     return await this.videos.reprocessVideo(videoId, body.steps);
   }
 

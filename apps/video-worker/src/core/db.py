@@ -105,6 +105,22 @@ class DBActor():
     else:
       self.connection.commit()
 
+  def reset_step_attempts(self, video_id):
+    """Reset per-step attempts and status for a given video upload."""
+    self._lazyInit()
+    query = """
+      UPDATE video_worker.step_status
+      SET attempts = 0
+      WHERE "videoId" = %s;
+    """
+    try:
+      self.cursor.execute(query, (video_id))
+    except Exception as e:
+      self.connection.rollback()
+      logger.error(f"Failed to reset step attempts for video {video_id}: {e}")
+    else:
+      self.connection.commit()
+
   def update_processing_status(self, video_id, status):
     """Update the overall processing status of a video."""
     self._lazyInit()
