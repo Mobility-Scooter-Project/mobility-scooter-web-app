@@ -79,7 +79,7 @@ class DBActor():
       logger.error(f"Failed to get retryable steps: {e}")
       return [], []
 
-  def update_step_status(self, video_id, step, status, error=None):
+  def update_step_status(self, video_id, step, status, error=None, duration_sec=None):
     """Upsert per-step status and append an audit event."""
     self._lazyInit()
     query = """
@@ -88,17 +88,21 @@ class DBActor():
         VALUES (%s, %s, %s)
         RETURNING id
       )
-      INSERT INTO video_worker.step_status ("videoId", step, status, attempts, "lastError")
-      VALUES (%s, %s, %s, 1, %s)
+      INSERT INTO video_worker.step_status ("videoId", step, status, attempts, "lastError", "durationSec")
+      VALUES (%s, %s, %s, 1, %s, %s)
       ON CONFLICT ("videoId", step)
       DO UPDATE SET
         status = EXCLUDED.status,
         attempts = video_worker.step_status.attempts + CASE WHEN EXCLUDED.status = 'processing' THEN 1 ELSE 0 END,
         "lastError" = EXCLUDED."lastError",
+        "durationSec" = EXCLUDED."durationSec",
         "cuUpdatedat" = NOW();
     """
     try:
-      self.cursor.execute(query, (video_id, step, status, video_id, step, status, error))
+      self.cursor.execute(
+        query,
+        (video_id, step, status, video_id, step, status, error, duration_sec),
+      )
     except Exception as e:
       self.connection.rollback()
       logger.error(f"Failed to update step status ({step}={status}): {e}")
@@ -121,7 +125,7 @@ class DBActor():
     else:
       self.connection.commit()
 
-  def update_processing_status(self, video_id, status):
+  def update_processing_status(self, video_id, status, duration_sec=None):
     """Update the overall processing status of a video."""
     self._lazyInit()
     query = """
@@ -130,13 +134,15 @@ class DBActor():
         VALUES (%s, 'overall', %s)
         RETURNING id
       )
-      INSERT INTO video_worker.status ("videoId", "statusEventId")
-      VALUES (%s, (SELECT id FROM new_event))
+      INSERT INTO video_worker.status ("videoId", "statusEventId", "durationSec")
+      VALUES (%s, (SELECT id FROM new_event), %s)
       ON CONFLICT ("videoId")
-      DO UPDATE SET "statusEventId" = EXCLUDED."statusEventId";
+      DO UPDATE SET
+        "statusEventId" = EXCLUDED."statusEventId",
+        "durationSec" = EXCLUDED."durationSec";
     """
     try:
-      self.cursor.execute(query, (video_id, status, video_id))
+      self.cursor.execute(query, (video_id, status, video_id, duration_sec))
     except Exception as e:
       self.connection.rollback()
       logger.error(f"Failed to update video processing status: {e}")

@@ -19,7 +19,6 @@ _setup_warnings()
 import contextlib
 import tempfile
 import requests
-import time
 import gc
 import pandas as pd
 import torch
@@ -115,7 +114,6 @@ class VideoTranscriber:
 
     temp_video_path = None
     try:
-      transcribe_start = time.perf_counter()
       logger.info(f"[transcription] Starting WhisperX pipeline for {video_name}")
 
       with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
@@ -141,10 +139,6 @@ class VideoTranscriber:
 
       logger.info(f"[transcription] Assigning speakers for {video_name}")
       result = whisperx.assign_word_speakers(diarize_segments, result)
-
-      transcribe_end = time.perf_counter()
-      total_time = transcribe_end - transcribe_start
-      logger.info(f"Transcribed {video_name} in {total_time:.2f} seconds")
 
       if result is None:
         raise RuntimeError(f"WhisperX returned None for {video_name}")
