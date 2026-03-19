@@ -147,7 +147,6 @@ class PoseEstimation:
       # First valid frame uses center heuristic, subsequent frames use IoU
       if prev_box is None:
         box_i = self._get_center_box_idx(boxes)
-        logger.debug(f"Tracking initialized at frame {frame_idx} using center heuristic")
       else:
         box_i = self._get_iou_box_idx(boxes, prev_box)
       prev_box = boxes[box_i]
@@ -229,7 +228,6 @@ class PoseEstimation:
         temp_video_path = temp_video.name
         urllib.request.urlretrieve(video_url, temp_video_path)
 
-      start = datetime.now()
       # Load model 
       if not self.model:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -263,7 +261,6 @@ class PoseEstimation:
         # decode frames and convert to list of (H, W, C) arrays for YOLO
         raw = vr.get_batch(batch_indices).asnumpy()
         batch_frames = [raw[i] for i in range(len(batch_indices))]
-        logger.debug(f"Batch shape: {raw.shape}, frame shape: {batch_frames[0].shape}")
 
         if batch_frames[0].shape[0] == 0 or batch_frames[0].shape[1] == 0:
           logger.error(f"Invalid frame dimensions at batch starting {batch_indices[0]}, skipping")
@@ -288,9 +285,6 @@ class PoseEstimation:
         except Exception as e:
           logger.error(f"Failed to flush final keypoints: {e}")
 
-      end = datetime.now()
-      logger.info(f"Pose estimation complete for {filename} in {end - start}")
-
     finally:
       if temp_video_path and os.path.exists(temp_video_path):
         try:
@@ -300,6 +294,7 @@ class PoseEstimation:
  
   def process_video(self, video_url, filename, video_id):
     ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "processing"))
+    step_start = datetime.now()
     try:
       self._run_pose_estimation(video_url, filename, video_id)
     except Exception as e:
@@ -307,5 +302,14 @@ class PoseEstimation:
       ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "failed", str(e)))
       raise
     else:
-      ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "completed"))
+      step_end = datetime.now()
+      duration_sec = round((step_end - step_start).total_seconds(), 3)
+      logger.info(
+        f"Pose estimation complete for {filename} in {duration_sec:.2f} seconds"
+      )
+      ray.get(
+        self.db.update_step_status.remote(
+          video_id, "pose_estimation", "completed", None, duration_sec
+        )
+      )
         

@@ -96,9 +96,12 @@ class KafkaActor:
             has_failure = True
 
         end = datetime.now()
+        overall_duration_sec = round((end - start).total_seconds(), 3)
 
         if has_failure:
-          logger.error(f"Processing had failures, took {end - start}")
+          logger.error(
+            f"Processing had failures, took {overall_duration_sec} seconds"
+          )
 
           retryable, exhausted = ray.get(
             self.db.get_retryable_steps.remote(video_id, MAX_STEP_RETRIES)
@@ -125,12 +128,12 @@ class KafkaActor:
             status = "partially_processed" if any(
               s not in exhausted for s in ALL_STEPS
             ) else "failed"
-            ray.get(self.db.update_processing_status.remote(video_id, status))
+            ray.get(self.db.update_processing_status.remote(video_id, status, overall_duration_sec))
             logger.error(f"Video {video_id} marked '{status}': no retryable steps remain")
 
         else:
-          logger.info(f"Video processing complete after {end - start}")
-          ray.get(self.db.update_processing_status.remote(video_id, "processed"))
+          logger.info(f"Video processing complete after {overall_duration_sec} seconds")
+          ray.get(self.db.update_processing_status.remote(video_id, "processed", overall_duration_sec))
 
         self.consumer.commit()
     except Exception as e:

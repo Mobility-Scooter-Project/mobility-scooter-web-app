@@ -2,6 +2,7 @@ import json
 import requests
 import ray
 import torch
+from datetime import datetime
 
 from utils.logger import logger
 from core.db import DBActor
@@ -37,6 +38,7 @@ class TaskIdentification:
         transcript_csv = self._download_transcript(transcript_get_url)
       else:
         ray.get(self.db.update_step_status.remote(video_id, "transcription", "processing"))
+        transcription_start = datetime.now()
         transcript_df = self.video_transcriber.transcribe_video(video_url, filename)
 
         if transcript_df is None:
@@ -49,7 +51,18 @@ class TaskIdentification:
           data=transcript_csv.encode("utf-8"),
           headers={"Content-Type": "text/csv"},
         )
-        ray.get(self.db.update_step_status.remote(video_id, "transcription", "completed"))
+        transcription_end = datetime.now()
+        duration_sec = round(
+          (transcription_end - transcription_start).total_seconds(), 3
+        )
+        logger.info(
+          f"[transcription] Completed {filename} in {duration_sec:.2f} seconds"
+        )
+        ray.get(
+          self.db.update_step_status.remote(
+            video_id, "transcription", "completed", None, duration_sec
+          )
+        )
     except Exception as e:
       logger.error(f"Transcription failed for {filename}: {e}")
       if not skip_transcription:
@@ -58,16 +71,27 @@ class TaskIdentification:
 
     # Task Detection
     ray.get(self.db.update_step_status.remote(video_id, "task_detection", "processing"))
+    task_detection_start = datetime.now()
     try:
       tasks_json = self.task_detector.detect_task(transcript_csv)
       for i, task in enumerate(tasks_json):
         task["taskNumber"] = i + 1
         task.setdefault("note", None)
         task.setdefault("score", None)
+      ray.get(self.db.upsert_tasks.remote(video_id, json.dumps(tasks_json)))
     except Exception as e:
       logger.error(f"Task detection failed for {filename}: {e}")
       ray.get(self.db.update_step_status.remote(video_id, "task_detection", "failed", str(e)))
       raise
-
-    ray.get(self.db.upsert_tasks.remote(video_id, json.dumps(tasks_json)))
-    ray.get(self.db.update_step_status.remote(video_id, "task_detection", "completed"))
+    task_detection_end = datetime.now()
+    task_detection_duration_sec = round(
+      (task_detection_end - task_detection_start).total_seconds(), 3
+    )
+    logger.info(
+      f"[task_detection] Completed {filename} in {task_detection_duration_sec:.2f} seconds"
+    )
+    ray.get(
+      self.db.update_step_status.remote(
+        video_id, "task_detection", "completed", None, task_detection_duration_sec
+      )
+    )

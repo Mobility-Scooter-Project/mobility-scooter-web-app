@@ -19,4 +19,7 @@ export class VideoWorkerStatus {
   @OneToOne(() => VideoWorkerEvent)
   @JoinColumn()
   statusEvent: VideoWorkerEvent;
+
+  @Column({ type: 'double precision', nullable: true })
+  durationSec: number | null;
 }

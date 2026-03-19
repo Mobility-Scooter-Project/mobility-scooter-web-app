@@ -26,4 +26,7 @@ export class VideoWorkerStepStatus {
 
   @Column({ type: 'text', nullable: true })
   lastError: string | null;
+
+  @Column({ type: 'double precision', nullable: true })
+  durationSec: number | null;
 }
