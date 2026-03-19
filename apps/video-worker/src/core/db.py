@@ -23,7 +23,10 @@ class DBActor():
       INSERT INTO videos.keypoint ("videoId", "frameIndex", timestamp, angle, keypoints)
       VALUES (%s, %s, %s, %s, %s)
       ON CONFLICT ("videoId", "frameIndex")
-      DO UPDATE SET angle = EXCLUDED.angle, keypoints = EXCLUDED.keypoints;
+      DO UPDATE SET
+        angle = EXCLUDED.angle,
+        keypoints = EXCLUDED.keypoints,
+        "cuUpdatedat" = NOW();
     """
     try:
       self.cursor.execute(query, (video_id, frame_index, timestamp, angle, keypoints))
@@ -39,7 +42,9 @@ class DBActor():
       INSERT INTO videos.video_task ("videoId", tasks)
       VALUES (%s, %s)
       ON CONFLICT ("videoId")
-      DO UPDATE SET tasks = EXCLUDED.tasks;
+      DO UPDATE SET
+        tasks = EXCLUDED.tasks,
+        "cuUpdatedat" = NOW();
     """
     try:
       self.cursor.execute(query, (video_id, tasks))
