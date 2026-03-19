@@ -25,7 +25,8 @@ class PoseEstimation:
     Initializes the PoseEstimator with a given YOLO pose estimation model.
     """
     self.model = None
-    self.upper_body_keypoints = [5, 6, 7, 8, 11, 12] 
+    # 0: nose, 5/6: shoulders, 7/8: elbows, 11/12: hips
+    self.upper_body_keypoints = [0, 5, 6, 7, 8, 11, 12]
     self.db = DBActor.remote()
  
   @staticmethod
@@ -40,28 +41,28 @@ class PoseEstimation:
     Returns:
       The calculated angle rounded to two decimals.
     """
-    try:
-      if torch.cuda.is_available():
-        vector = cp.array([p2[0] - p1[0], p2[1] - p1[1]])
-        vertical = cp.array([0, 1])
-        dot_product = cp.dot(vector, vertical)
-        magnitude = cp.linalg.norm(vector) * cp.linalg.norm(vertical)
-        angle_rad = cp.arccos(dot_product / magnitude)
-        angle_sign = -cp.sign(vector[0])
-        angle_deg = angle_sign * cp.degrees(angle_rad)
-        return round(float(angle_deg), 2)
-      else:
-        vector = np.array([p2[0] - p1[0], p2[1] - p1[1]])
-        vertical = np.array([0, 1])
-        dot_product = np.dot(vector, vertical)
-        magnitude = np.linalg.norm(vector) * np.linalg.norm(vertical)
-        angle_rad = np.arccos(dot_product / magnitude)
-        angle_sign = -np.sign(vector[0])
-        angle_deg = angle_sign * np.degrees(angle_rad)
-        return round(float(angle_deg), 2)
-    except Exception as e:
-      print(f"Calculating Angle Error: {e}")
- 
+    if p1 is None or p2 is None:
+      raise ValueError("Angle points must be non-null")
+
+    if torch.cuda.is_available():
+      vector = cp.array([p2[0] - p1[0], p2[1] - p1[1]])
+      vertical = cp.array([0, 1])
+      dot_product = cp.dot(vector, vertical)
+      magnitude = cp.linalg.norm(vector) * cp.linalg.norm(vertical)
+      angle_rad = cp.arccos(dot_product / magnitude)
+      angle_sign = -cp.sign(vector[0])
+      angle_deg = angle_sign * cp.degrees(angle_rad)
+      return round(float(angle_deg), 2)
+    else:
+      vector = np.array([p2[0] - p1[0], p2[1] - p1[1]])
+      vertical = np.array([0, 1])
+      dot_product = np.dot(vector, vertical)
+      magnitude = np.linalg.norm(vector) * np.linalg.norm(vertical)
+      angle_rad = np.arccos(dot_product / magnitude)
+      angle_sign = -np.sign(vector[0])
+      angle_deg = angle_sign * np.degrees(angle_rad)
+      return round(float(angle_deg), 2)
+
   def _get_center_box_idx(self, boxes):
     """
     Initial person selection — picks the bounding box closest to the frame center.
@@ -181,11 +182,18 @@ class PoseEstimation:
         (points[11][1] + points[12][1]) // 2,
       )
  
-      angle = self.calculate_angle(midpoint_shoulder, midpoint_hip)
+      try:
+        angle = self.calculate_angle(midpoint_shoulder, midpoint_hip)
+      except Exception as e:
+        logger.warning(f"Failed to calculate angle at frame {frame_idx}, skipping: {e}")
+        continue
  
       kps = {
+        "nose": points.get(0),
         "leftShoulder": points[5],
         "rightShoulder": points[6],
+        "leftElbow": points.get(7),
+        "rightElbow": points.get(8),
         "leftHip": points[11],
         "rightHip": points[12],
         "midpointShoulder": midpoint_shoulder,
