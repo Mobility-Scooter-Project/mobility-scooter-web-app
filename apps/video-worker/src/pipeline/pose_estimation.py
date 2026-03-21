@@ -15,7 +15,8 @@ from utils.logger import logger
 from core.db import DBActor
 from config.config import POSE_MODEL, POSE_BATCH_SIZE, POSE_FRAME_SKIP, MAX_FRAMES
  
-num_gpus = 0.5 if torch.cuda.is_available() else 0
+device = "cuda" if torch.cuda.is_available() else "cpu"
+num_gpus = 0.5 if device == "cuda" else 0
 logger.debug(f"Pose estimation using {num_gpus} GPUs")
  
 @ray.remote(num_gpus=num_gpus)
@@ -24,10 +25,10 @@ class PoseEstimation:
     """
     Initializes the PoseEstimator with a given YOLO pose estimation model.
     """
-    self.model = None
-    # 0: nose, 5/6: shoulders, 7/8: elbows, 11/12: hips
-    self.upper_body_keypoints = [0, 5, 6, 7, 8, 11, 12]
+    # 0: nose, 5/6: shoulders, 7/8: elbows, 9/10: wrists, 11/12: hips
+    self.upper_body_keypoints = [0, 5, 6, 7, 8, 9, 10, 11, 12]
     self.db = DBActor.remote()
+    self.model = YOLO(POSE_MODEL).to(device)
  
   @staticmethod
   def calculate_angle(p1, p2):
@@ -44,21 +45,39 @@ class PoseEstimation:
     if p1 is None or p2 is None:
       raise ValueError("Angle points must be non-null")
 
-    if torch.cuda.is_available():
-      vector = cp.array([p2[0] - p1[0], p2[1] - p1[1]])
-      vertical = cp.array([0, 1])
-      dot_product = cp.dot(vector, vertical)
+    if device == "cuda":
+      vector = cp.array([p2[0] - p1[0], p2[1] - p1[1]], dtype=cp.float32)
+      vertical = cp.array([0, 1], dtype=cp.float32)
+
       magnitude = cp.linalg.norm(vector) * cp.linalg.norm(vertical)
-      angle_rad = cp.arccos(dot_product / magnitude)
+      mag = float(cp.asnumpy(magnitude))
+      # Guard against coincident points (zero-length vector).
+      if not np.isfinite(mag) or mag == 0.0:
+        raise ValueError("Angle points must not coincide")
+
+      dot_product = cp.dot(vector, vertical)
+      cos_theta = dot_product / magnitude
+
+      # Clamp the arccos input into [-1, 1] to avoid NaNs from float error.
+      cos_theta = cp.clip(cos_theta, -1.0, 1.0)
+      angle_rad = cp.arccos(cos_theta)
+
       angle_sign = -cp.sign(vector[0])
       angle_deg = angle_sign * cp.degrees(angle_rad)
-      return round(float(angle_deg), 2)
+      return round(float(cp.asnumpy(angle_deg)), 2)
     else:
-      vector = np.array([p2[0] - p1[0], p2[1] - p1[1]])
-      vertical = np.array([0, 1])
-      dot_product = np.dot(vector, vertical)
+      vector = np.array([p2[0] - p1[0], p2[1] - p1[1]], dtype=np.float32)
+      vertical = np.array([0, 1], dtype=np.float32)
+
       magnitude = np.linalg.norm(vector) * np.linalg.norm(vertical)
-      angle_rad = np.arccos(dot_product / magnitude)
+      if not np.isfinite(magnitude) or magnitude == 0.0:
+        raise ValueError("Angle points must not coincide")
+
+      dot_product = np.dot(vector, vertical)
+      cos_theta = dot_product / magnitude
+      cos_theta = np.clip(cos_theta, -1.0, 1.0)
+      angle_rad = np.arccos(cos_theta)
+
       angle_sign = -np.sign(vector[0])
       angle_deg = angle_sign * np.degrees(angle_rad)
       return round(float(angle_deg), 2)
@@ -119,7 +138,7 @@ class PoseEstimation:
         best_idx = i
     return best_idx
 
-  def _process_batch(self, frames, batch_metadata, prev_box, prev_points, video_id, pending):
+  def _process_batch(self, frames, batch_metadata, prev_box, video_id, pending):
     """
     Runs YOLO inference on a batch of frames and queues DB writes.
  
@@ -127,23 +146,31 @@ class PoseEstimation:
       frames         : numpy array of frames (N, H, W, C)
       batch_metadata : list of (frame_idx, timestamp) tuples matching frames
       prev_box       : bounding box from the last valid frame for IoU tracking
-      prev_points    : keypoint dict from the last valid frame (fallback for missing keypoints)
       video_id       : video identifier for DB writes
       pending        : current list of pending ray futures
  
     Returns:
-      (prev_box, prev_points, pending) updated tuple
+      (prev_box, pending) updated tuple
     """
     batch_results = self.model(frames, verbose=False)
  
     for result, (frame_idx, timestamp) in zip(batch_results, batch_metadata):
-      # Skip frame if no detections, prev_points fallback handles keypoints
+      # Skip frame if no detections
       if result.keypoints is None or result.boxes is None:
-        logger.debug(f"No detections at frame {frame_idx}, keypoints will fall back to previous.")
+        logger.debug(f"No detections at frame {frame_idx}.")
         continue
- 
+
+      # Get boxes 
       boxes = result.boxes.xyxy
-      keypoints = result.keypoints.xy
+
+      # Get keypoint pixels to calculate angle
+      keypoints_px = result.keypoints.xy
+
+      # Get normalized keypoints
+      keypoints_norm = result.keypoints.xyn
+
+      # Keypoints confidence
+      keypoints_conf = result.keypoints.conf if hasattr(result.keypoints, "conf") else None
  
       # First valid frame uses center heuristic, subsequent frames use IoU
       if prev_box is None:
@@ -152,57 +179,74 @@ class PoseEstimation:
         box_i = self._get_iou_box_idx(boxes, prev_box)
       prev_box = boxes[box_i]
  
-      kp = keypoints[box_i]
-      points = {}
- 
+      kp_px = keypoints_px[box_i]
+      kp_norm = keypoints_norm[box_i]
+      kp_conf = keypoints_conf[box_i] if keypoints_conf is not None else None
+
+      # Explicitly skip when any upper-body keypoint is missing/low-confidence.
+      missing_upper = False
       for index in self.upper_body_keypoints:
-        if index < len(kp) and (kp[index, 0] != 0 or kp[index, 1] != 0):
-          points[index] = [int(kp[index, 0]), int(kp[index, 1])]
- 
-      # Fill in any missing keypoints from previous frame
-      for index in self.upper_body_keypoints:
-        if index not in points and prev_points and index in prev_points:
-          logger.debug(f"Keypoint {index} missing at frame {frame_idx}, reusing previous.")
-          points[index] = prev_points[index]
- 
-      # If still missing required keypoints after fallback, skip
-      if not all(k in points for k in [5, 6, 11, 12]):
-        logger.warning(f"Missing required keypoints at frame {frame_idx} even after fallback, skipping.")
+        if index >= len(kp_px):
+          missing_upper = True
+          break
+        if kp_conf is not None:
+          if kp_conf[index].item() <= 0:
+            missing_upper = True
+            break
+        else:
+          # Fallback validity check when confidence isn't available.
+          if kp_px[index, 0].item() == 0 and kp_px[index, 1].item() == 0:
+            missing_upper = True
+            break
+
+      if missing_upper:
+        logger.debug(
+          f"Skipping frame {frame_idx}: missing/low-confidence upper-body keypoints"
+        )
         continue
- 
-      # Update prev_points for next frame
-      prev_points = points
- 
-      midpoint_shoulder = (
-        (points[5][0] + points[6][0]) // 2,
-        (points[5][1] + points[6][1]) // 2,
+
+      # Midpoints should be normalized (match kp_norm coordinate space).
+      midpoint_shoulder_norm = (
+        (kp_norm[5][0].item() + kp_norm[6][0].item()) / 2.0,
+        (kp_norm[5][1].item() + kp_norm[6][1].item()) / 2.0,
       )
-      midpoint_hip = (
-        (points[11][0] + points[12][0]) // 2,
-        (points[11][1] + points[12][1]) // 2,
+      midpoint_hip_norm = (
+        (kp_norm[11][0].item() + kp_norm[12][0].item()) / 2.0,
+        (kp_norm[11][1].item() + kp_norm[12][1].item()) / 2.0,
       )
- 
+
+      midpoint_shoulder_px = (
+        (kp_px[5][0].item() + kp_px[6][0].item()) / 2.0,
+        (kp_px[5][1].item() + kp_px[6][1].item()) / 2.0,
+      )
+      midpoint_hip_px = (
+        (kp_px[11][0].item() + kp_px[12][0].item()) / 2.0,
+        (kp_px[11][1].item() + kp_px[12][1].item()) / 2.0,
+      )
+
       try:
-        angle = self.calculate_angle(midpoint_shoulder, midpoint_hip)
+        angle = self.calculate_angle(midpoint_shoulder_px, midpoint_hip_px)
       except Exception as e:
         logger.warning(f"Failed to calculate angle at frame {frame_idx}, skipping: {e}")
         continue
  
-      kps = {
-        "nose": points.get(0),
-        "leftShoulder": points[5],
-        "rightShoulder": points[6],
-        "leftElbow": points.get(7),
-        "rightElbow": points.get(8),
-        "leftHip": points[11],
-        "rightHip": points[12],
-        "midpointShoulder": midpoint_shoulder,
-        "midpointHip": midpoint_hip,
+      kps_norm = {
+        "nose": kp_norm[0].tolist(),
+        "leftShoulder": kp_norm[5].tolist(),
+        "rightShoulder": kp_norm[6].tolist(),
+        "leftElbow": kp_norm[7].tolist(),
+        "rightElbow": kp_norm[8].tolist(),
+        "leftWrist": kp_norm[9].tolist(),
+        "rightWrist": kp_norm[10].tolist(),
+        "leftHip": kp_norm[11].tolist(),
+        "rightHip": kp_norm[12].tolist(),
+        "midpointShoulder": midpoint_shoulder_norm,
+        "midpointHip": midpoint_hip_norm,
       }
  
       pending.append(
         self.db.upsert_keypoints.remote(
-          video_id, frame_idx, timestamp, angle, json.dumps(kps)
+          video_id, frame_idx, timestamp, angle, json.dumps(kps_norm)
         )
       )
  
@@ -215,7 +259,7 @@ class PoseEstimation:
         else:
           pending = []
  
-    return prev_box, prev_points, pending
+    return prev_box, pending
 
   def _run_pose_estimation(self, video_url, filename, video_id):
     """
@@ -236,12 +280,7 @@ class PoseEstimation:
         temp_video_path = temp_video.name
         urllib.request.urlretrieve(video_url, temp_video_path)
 
-      # Load model 
-      if not self.model:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = YOLO(POSE_MODEL).to(device)
-
-      # Load video directly from URL with decord 
+      # Decode video with GPU or CPU
       ctx = gpu(0) if torch.cuda.is_available() else cpu(0)
       vr = VideoReader(temp_video_path, ctx=ctx)
 
@@ -258,7 +297,6 @@ class PoseEstimation:
       # first valid frame uses center heuristic to track the driver's position, subsequent frames use IoU tracking (handled in _process_batch)
       pending = []
       prev_box = None
-      prev_points = None
 
       progress_bar = iter(tqdm(range(len(indices))))
 
@@ -276,10 +314,9 @@ class PoseEstimation:
 
         batch_metadata = list(zip(batch_indices, batch_timestamps))
 
-        prev_box, prev_points, pending = self._process_batch(
+        prev_box, pending = self._process_batch(
           batch_frames, batch_metadata,
-          prev_box, prev_points,
-          video_id, pending
+          prev_box, video_id, pending
         )
 
         # Tick progress bar once per frame in the batch
