@@ -1,70 +1,111 @@
 import { create } from "zustand";
 import type { Point, PointStatus } from "~/data/mock-session-data";
 import { MOCK_SESSIONS } from "~/data/mock-session-data";
-import type { IconProps } from "~/components/Icon";
+import { useSelectionStore } from "./useSelectionStore";
 
 type PointStore = {
   points: Point[];
   allVisible: boolean;
-  selectedId: number | null;
 
   actions: {
     setPoints: (points: Point[]) => void;
     toggleAllVisibility: () => void;
-    handleVisibilityToggle: (e: React.MouseEvent, id: number) => void;
-    handlePointSelect: (id: number, status: PointStatus) => void;
-    getIconForStatus: (status: PointStatus) => IconProps["name"];
+    handleVisibilityToggle: (id: number) => void;
+    enablePoint: (id: number) => void;
   };
 };
 
 /**
- * Manages interactive video points, including their visibility status and selection.
+ * Returns whether all selectable points are currently visible.
+ */
+function getAllPointsVisible(points: Point[]): boolean {
+  const selectablePoints = points.filter((point) => point.status !== "inactive");
+
+  return (
+    selectablePoints.length > 0 &&
+    selectablePoints.every((point) => point.status === "visible")
+  );
+}
+
+/**
+ * Manages interactive video points, including visibility and selection state.
  */
 export const usePointStore = create<PointStore>((set, get) => ({
   points: MOCK_SESSIONS[0]?.views[0]?.points || [],
   allVisible: true,
-  selectedId: null,
 
   actions: {
-    setPoints: (points) => set({ points, selectedId: null }),
+    setPoints: (points) => {
+      set({
+        points,
+        allVisible: getAllPointsVisible(points),
+      });
+      useSelectionStore.getState().actions.clearSelection();
+    },
 
     toggleAllVisibility: () => {
       const { allVisible } = get();
-      const newVisibility = !allVisible;
+      const nextStatus: PointStatus = allVisible ? "hidden" : "visible";
 
-      set((state) => ({
-        allVisible: newVisibility,
-        points: state.points.map((p) =>
-          p.status === "available"
-            ? p
-            : { ...p, status: newVisibility ? "visible" : "hidden" }
-        ),
-      }));
+      set((state) => {
+        const points: Point[] = state.points.map((point) =>
+          point.status === "inactive"
+            ? point
+            : {
+                ...point,
+                status: nextStatus,
+              },
+        );
+
+        return {
+          points,
+          allVisible: getAllPointsVisible(points),
+        };
+      });
     },
 
-    handleVisibilityToggle: (e, id) => {
-      e.stopPropagation();
-      set((state) => ({
-        points: state.points.map((p) => {
-          if (p.id !== id) return p;
-          return { ...p, status: p.status === "visible" ? "hidden" : "visible" };
-        }),
-      }));
+    handleVisibilityToggle: (id) => {
+      set((state) => {
+        const points: Point[] = state.points.map((point) => {
+          if (point.id !== id || point.status === "inactive") {
+            return point;
+          }
+
+          const nextStatus: PointStatus =
+            point.status === "visible" ? "hidden" : "visible";
+
+          return {
+            ...point,
+            status: nextStatus,
+          };
+        });
+
+        return {
+          points,
+          allVisible: getAllPointsVisible(points),
+        };
+      });
     },
 
-    handlePointSelect: (id, status) => {
-      if (status === "available") return;
-      set((state) => ({
-        selectedId: state.selectedId === id ? null : id,
-      }));
-    },
+    enablePoint: (id) => {
+      set((state) => {
+        const points: Point[] = state.points.map((point) =>
+          point.id !== id || point.status !== "inactive"
+            ? point
+            : { ...point, status: "visible" },
+        );
 
-    getIconForStatus: (status) => {
-      switch (status) {
-        case "visible": return "Eye";
-        case "hidden": return "EyeOff";
-        default: return "Plus";
-      }
+        return {
+          points,
+          allVisible: getAllPointsVisible(points),
+        };
+      });
+      useSelectionStore.getState().actions.setSelection("point", id);
     },
   },
 }));
+
+/**
+ * Selector for whether all selectable points are visible.
+ */
+export const selectAllPointsVisible = (state: PointStore) => state.allVisible;

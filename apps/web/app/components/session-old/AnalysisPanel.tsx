@@ -1,5 +1,5 @@
 import { Tabs, TabsContent } from "~/components/Tabs";
-import { PanelNav } from "~/components/session/PanelNav";
+import { PanelNav } from "~/components/session-old/PanelNav";
 import { ScrollArea } from "~/components/ScrollArea";
 import { AnnotationContent } from "./annotations/AnnotationContent";
 import { ChapterContent } from "./chapters/ChapterContent";
@@ -17,9 +17,9 @@ export function AnalysisPanel() {
   const setActiveTab = usePanelStore((state) => state.setActiveTab);
 
   return (
-    <Tabs 
-      value={activeTab} 
-      onValueChange={(val) => setActiveTab(val as AnalysisTabKey)} 
+    <Tabs
+      value={activeTab}
+      onValueChange={(val) => setActiveTab(val as AnalysisTabKey)}
       className="flex flex-col h-full py-2 gap-2"
     >
       <div className="px-4">
@@ -27,7 +27,11 @@ export function AnalysisPanel() {
       </div>
 
       {ANALYSIS_TABS.map((tab) => (
-        <TabsContent key={tab.value} value={tab.value} className="overflow-hidden">
+        <TabsContent
+          key={tab.value}
+          value={tab.value}
+          className="overflow-hidden"
+        >
           <ScrollArea className="h-full">
             <div className="h-full px-4">
               {tab.value === "chapters" && <ChapterContent />}

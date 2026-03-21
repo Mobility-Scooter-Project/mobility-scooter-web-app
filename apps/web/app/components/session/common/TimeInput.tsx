@@ -1,49 +1,109 @@
+import * as React from "react";
 import { cn } from "~/lib/utils";
-import { formatTimeDigits } from "~/lib/formatters";
+import { formatDuration } from "~/lib/formatters";
 
-interface TimeInputProps {
-  /** Raw digit string (e.g., "1230") */
-  value: string;
-  onChange: (val: string) => void;
-  onBlur: () => void;
-  onKeyDown?: (e: React.KeyboardEvent) => void;
-  className?: string;
+interface TimeInputProps extends Omit<
+  React.ComponentProps<"input">,
+  "value" | "onChange"
+> {
+  valueSeconds: number;
+  onChangeSeconds: (seconds: number) => void;
 }
 
-/**
- * A specialized input for editing time values. 
- * Displays formatted time (MM:SS) but handles raw digit changes.
- */
 export function TimeInput({
-  value,
-  onChange,
+  valueSeconds,
+  onChangeSeconds,
+  className,
   onBlur,
   onKeyDown,
-  className,
+  ...props
 }: TimeInputProps) {
-  const displayValue = formatTimeDigits(value);
-  // Auto-width calculation based on character length
-  const widthClass = displayValue.length > 5 ? "w-[7ch]" : "w-[5ch]";
+  const [localValue, setLocalValue] = React.useState("");
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(formatDuration(valueSeconds));
+    }
+  }, [valueSeconds, isFocused]);
+
+  const applyTimeMask = (value: string) => {
+    const cleaned = value.replace(/[^0-9:]/g, "");
+    const segments = cleaned.split(":");
+
+    const processedSegments = segments.map((seg, index) => {
+      if (index < segments.length - 1) return seg; // colon handled
+      if (index >= 2) return seg.slice(0, 2); // max 2 digits for seconds
+      if (seg.length <= 2) return seg; // no need to chunk
+      return seg.match(/.{1,2}/g)?.join(":") || "";
+    });
+
+    let joined = processedSegments.join(":").replace(/:{2,}/g, ":");
+    let finalSegments = joined.split(":");
+
+    if (finalSegments.length > 3) {
+      const seconds = finalSegments.pop();
+      const minutes = finalSegments.pop();
+      const hours = finalSegments.join("");
+      return `${hours}:${minutes}:${seconds}`;
+    }
+
+    return joined;
+  };
+
+  const commitChange = () => {
+    const val = localValue.replace(/:$/, "");
+    if (!val) {
+      onChangeSeconds(0);
+      return;
+    }
+
+    const parts = val.split(":").map((p) => parseInt(p || "0", 10));
+    let newSeconds = valueSeconds;
+
+    if (parts.length === 1) {
+      newSeconds = parts[0];
+    } else if (parts.length === 2) {
+      newSeconds = parts[0] * 60 + parts[1];
+    } else if (parts.length === 3) {
+      newSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+
+    if (isNaN(newSeconds)) newSeconds = 0;
+
+    onChangeSeconds(newSeconds);
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsFocused(false);
+    commitChange();
+    onBlur?.(e);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+    onKeyDown?.(e);
+  };
 
   return (
     <input
+      type="text"
       className={cn(
-        "bg-transparent border-b border-muted-foreground/30 hover:border-foreground focus:border-foreground rounded-none px-0 py-0 text-center outline-none focus:ring-0 transition-all tabular-nums text-label text-muted-foreground focus:text-foreground",
-        widthClass,
-        className
+        "bg-card rounded-full px-2 py-0.5 text-label text-center",
+        "outline-none focus:ring-0 transition-all tabular-nums box-content",
+        className,
       )}
-      value={displayValue}
-      onChange={(e) => {
-        const raw = e.target.value.replace(/\D/g, "");
-        // Limit length to prevent overflow (e.g. max 6 digits for H:MM:SS)
-        if (raw.length <= 6) onChange(parseInt(raw || "0", 10).toString());
-      }}
-      onBlur={onBlur}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
-        onKeyDown?.(e);
-      }}
+      style={{ width: `${Math.max(4, localValue.length)}ch` }}
+      value={localValue}
+      onChange={(e) => setLocalValue(applyTimeMask(e.target.value))}
+      onFocus={() => setIsFocused(true)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       onClick={(e) => e.stopPropagation()}
+      {...props}
     />
   );
 }

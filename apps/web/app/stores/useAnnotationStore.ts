@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { MOCK_SESSIONS } from "~/data/mock-session-data";
+import { useSelectionStore } from "./useSelectionStore";
 
 type Annotation = {
   id: number;
@@ -13,12 +14,9 @@ type Annotation = {
 
 type AnnotationStore = {
   annotations: Annotation[];
-  selectedId: number | null;
 
   actions: {
     setAnnotations: (annotations: Annotation[]) => void;
-    handleSelect: (id: number) => void;
-    handleDeselect: () => void;
     handleNewAnnotation: () => void;
     handleDeleteAnnotation: (id: number) => void;
     handleTitleChange: (id: number, next: string) => void;
@@ -32,16 +30,12 @@ type AnnotationStore = {
  */
 export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   annotations: MOCK_SESSIONS[0]?.views[0]?.annotations ?? [],
-  selectedId: null,
 
   actions: {
-    setAnnotations: (annotations) => set({ annotations, selectedId: null }),
-
-    handleSelect: (id) => set((state) => ({
-      selectedId: state.selectedId === id ? null : id,
-    })),
-
-    handleDeselect: () => set({ selectedId: null }),
+    setAnnotations: (annotations) => {
+      set({ annotations });
+      useSelectionStore.getState().actions.clearSelection();
+    },
 
     handleTitleChange: (id, next) => set((state) => ({
       annotations: state.annotations.map((a) => a.id === id ? { ...a, title: next } : a),
@@ -63,25 +57,29 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         id: nextId,
         title: "",
         startTime: 0,
-        endTime: 0,
+        endTime: 1,
         author: "Garrett Lo",
         date: dateStr,
         description: "",
       };
 
-      set({
-        annotations: [newItem, ...annotations],
-        selectedId: nextId,
-      });
+      set({ annotations: [newItem, ...annotations] });
+      useSelectionStore.getState().actions.setSelection("annotation", nextId);
     },
     
     updateAnnotation: (id, updates) => set((state) => ({
       annotations: state.annotations.map((ann) => ann.id === id ? { ...ann, ...updates } : ann),
     })),
 
-    handleDeleteAnnotation: (id) => set((state) => ({
-      annotations: state.annotations.filter((a) => a.id !== id),
-      selectedId: state.selectedId === id ? null : state.selectedId,
-    })),
+    handleDeleteAnnotation: (id) => {
+      set((state) => ({
+        annotations: state.annotations.filter((a) => a.id !== id),
+      }));
+      
+      const selectionStore = useSelectionStore.getState();
+      if (selectionStore.selectedType === "annotation" && selectionStore.selectedId === id) {
+        selectionStore.actions.clearSelection();
+      }
+    },
   },
 }));

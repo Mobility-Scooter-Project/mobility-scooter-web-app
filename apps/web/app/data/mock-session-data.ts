@@ -2,7 +2,7 @@ import Placeholder from "~/assets/placeholder-thumbnail.png";
 
 /* ---------------- Types ---------------- */
 
-export type PointStatus = "visible" | "hidden" | "available";
+export type PointStatus = "visible" | "hidden" | "inactive";
 
 export type Point = {
   id: number;
@@ -14,7 +14,7 @@ export type Chapter = {
   id: number;
   thumbnailUrl: string;
   title: string;
-  timestamp: string;
+  timestamp: number;
   author: string;
   lastUpdated: string;
   score: number | null;
@@ -50,6 +50,9 @@ export type Session = {
 
 /* ---------------- Helpers ---------------- */
 
+/**
+ * Generates mock point data for a session view.
+ */
 function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
   const basePoints: Point[] = [
     { id: 1, name: "Nose", status: "visible" },
@@ -62,15 +65,19 @@ function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
   ];
 
   if (variation === "injured") {
-    return basePoints.map((p) =>
-      p.name.includes("Right") ? { ...p, status: "hidden" } : p
+    return basePoints.map((point) =>
+      point.name.includes("Right")
+        ? { ...point, status: "hidden" }
+        : point,
     );
   }
+
   if (variation === "mixed") {
-    return basePoints.map((p, i) =>
-      i % 2 === 0 ? { ...p, status: "available" } : p
-    );
-  }
+  return basePoints.map((p, i) =>
+    i % 2 === 0 ? { ...p, status: "inactive" } : p
+  );
+}
+
   return basePoints;
 }
 
@@ -116,7 +123,7 @@ export const MOCK_SESSIONS: Session[] = [
             id: 301,
             thumbnailUrl: Placeholder,
             title: "Routine Checkup",
-            timestamp: "00:00",
+            timestamp: 0,
             author: "Garrett Lo",
             lastUpdated: "Aug 05",
             score: 5,
@@ -171,7 +178,7 @@ export const MOCK_SESSIONS: Session[] = [
             id: 101,
             thumbnailUrl: Placeholder,
             title: "Injury Assessment",
-            timestamp: "00:00",
+            timestamp: 0,
             author: "Dr. Smith",
             lastUpdated: "Last Updated Sep 10",
             score: 2,
@@ -199,7 +206,7 @@ export const MOCK_SESSIONS: Session[] = [
             id: 1,
             thumbnailUrl: Placeholder,
             title: "Spinning that Whip (POV)",
-            timestamp: "00:00",
+            timestamp: 0,
             author: "Garrett Lo",
             lastUpdated: "Sep 25",
             score: 4,
@@ -209,7 +216,7 @@ export const MOCK_SESSIONS: Session[] = [
             id: 2,
             thumbnailUrl: Placeholder,
             title: "The Breakdown",
-            timestamp: "01:30",
+            timestamp: 90,
             author: "Garrett Lo",
             lastUpdated: "Sep 26",
             score: null,
@@ -238,7 +245,7 @@ export const MOCK_SESSIONS: Session[] = [
             id: 10,
             thumbnailUrl: Placeholder,
             title: "Wide Angle Start",
-            timestamp: "00:00",
+            timestamp: 0,
             author: "Garrett Lo",
             lastUpdated: "Sep 25",
             score: 3,
@@ -259,4 +266,22 @@ export const MOCK_SESSIONS: Session[] = [
       },
     ],
   },
+  // {
+  //   id: 6,
+  //   date: "10/01/2025",
+  //   notification: false,
+  //   views: [],
+  // },
+  // {
+  //   id: 7,
+  //   date: "10/05/2025",
+  //   notification: true,
+  //   views: [],
+  // },
+  // {
+  //   id: 8,
+  //   date: "10/10/2025",
+  //   notification: false,
+  //   views: [],
+  // }
 ];

@@ -26,15 +26,13 @@ export function calculateTimelineSegments(
     return [{ id: "base", start: 0, end: totalDuration, isGap: true, title: "Timeline" }];
   }
 
-  const sorted = [...chapters].sort((a, b) => 
-    timeStringToSeconds(a.timestamp) - timeStringToSeconds(b.timestamp)
-  );
+  const sorted = [...chapters].sort((a, b) => a.timestamp - b.timestamp);
 
   const result: TimelineSegment[] = [];
   let currentCursor = 0;
 
   sorted.forEach((ch) => {
-    const start = timeStringToSeconds(ch.timestamp);
+    const start = ch.timestamp;
 
     // Fill gap before chapter
     if (start > currentCursor) {
@@ -47,8 +45,8 @@ export function calculateTimelineSegments(
     }
 
     // Determine chapter end (start of next chapter OR total duration)
-    const nextCh = sorted.find((c) => timeStringToSeconds(c.timestamp) > start);
-    let end = nextCh ? timeStringToSeconds(nextCh.timestamp) : totalDuration;
+    const nextCh = sorted.find((c) => c.timestamp > start);
+    let end = nextCh ? nextCh.timestamp : totalDuration;
     end = Math.min(end, totalDuration);
 
     if (end >= start) {
@@ -68,4 +66,35 @@ export function calculateTimelineSegments(
   }
 
   return result;
+}
+
+/**
+ * Clamps a time input to ensure it falls within the video duration 
+ * and does not cross its opposite boundary (start > end).
+ * 
+ * @param type - Whether validating "start" or "end" time
+ * @param newValue - The new time value to validate (in seconds)
+ * @param oppositeValue - The opposite boundary time (end for start, start for end)
+ * @param videoDuration - Total duration of the video (in seconds)
+ * 
+ * @return A valid time value that respects the boundaries and video duration
+ * 
+ * @example
+ *    // For a video of 300 seconds, if user tries to set start time to 310, it will be clamped to 300.
+ *    validateTimeBoundary("start", 310, 290, 300) // returns 290 (cannot be after end)
+ */
+export function validateTimeBoundary(
+  type: "start" | "end",
+  newValue: number,
+  oppositeValue: number,
+  videoDuration: number
+): number {
+  const maxDuration = videoDuration > 0 ? videoDuration : Infinity;
+  
+  let validTime = Math.min(Math.max(0, newValue), maxDuration);
+  
+  if (type === "start" && validTime > oppositeValue) validTime = oppositeValue;
+  if (type === "end" && validTime < oppositeValue) validTime = oppositeValue;
+
+  return validTime;
 }

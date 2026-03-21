@@ -1,5 +1,5 @@
 import { ScrollArea } from "~/components/ScrollArea";
-import { VideoContainer } from "~/components/session/video/VideoContainer";
+import { VideoContainer } from "~/components/session-old/video/VideoContainer";
 import { useState } from "react";
 import { Toggle } from "~/components/Toggle";
 import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
@@ -20,10 +20,10 @@ export function ViewPanel() {
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
 
   const [isAddViewOpen, setIsAddViewOpen] = useState(false);
-  
+
   // Initialize toggles from config
-  const [pressedToggles, setPressedToggles] = useState<Record<string, boolean>>(() =>
-    VIEW_TOGGLES.reduce((acc, t) => ({ ...acc, [t.key]: t.default }), {})
+  const [pressedToggles, setPressedToggles] = useState<Record<string, boolean>>(
+    () => VIEW_TOGGLES.reduce((acc, t) => ({ ...acc, [t.key]: t.default }), {}),
   );
 
   const currentView = activeSession?.views.find((v) => v.id === activeViewId);
@@ -84,8 +84,8 @@ export function ViewPanel() {
         </div>
       </ScrollArea>
 
-      <AddViewDialog 
-        open={isAddViewOpen} 
+      <AddViewDialog
+        open={isAddViewOpen}
         onOpenChange={setIsAddViewOpen}
         sessionId={Number(activeSessionId)}
       />

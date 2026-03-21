@@ -64,10 +64,12 @@ export function DatePickerInput({
   className,
   value: valueProp,
   onChange,
+  label,
 }: {
   className?: string;
   value?: Date;
   onChange?: (date: Date | undefined) => void;
+  label: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const [date, setDate] = React.useState<Date | undefined>(valueProp);
@@ -91,11 +93,15 @@ export function DatePickerInput({
     const parts = parseMMDDYYYY(masked);
     if (!parts) {
       setError(masked.length === 10 ? "Use MM/DD/YYYY." : "");
+      setDate(undefined);
+      onChange?.(undefined);
       return;
     }
     const { y, m, d } = parts;
     if (!isValidYMD(y, m, d)) {
       setError("That date doesn’t exist.");
+      setDate(undefined);
+      onChange?.(undefined);
       return;
     }
     const next = toDateUTC(y, m, d);
@@ -106,9 +112,9 @@ export function DatePickerInput({
   };
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col w-full gap-1.5">
       <TextInput
-        // label="Date Picker With Input"
+        label={label}
         id="date"
         className={cn("w-60", className)}
         value={value}

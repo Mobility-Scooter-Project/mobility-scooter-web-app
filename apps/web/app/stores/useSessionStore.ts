@@ -7,8 +7,14 @@ type SessionStore = {
 
   actions: {
     setActiveSessionId: (id: string) => void;
-    addSession: (data: { patientId: string; date: Date; mediaTitle: string; file: File }) => void;
-    addView: (sessionId: number, viewData: { label: string; file: File }) => void;
+    addSession: (data: {
+      patientId: string;
+      date: Date;
+      mediaTitle: string;
+      file: File;
+    }) => void;
+    addView: (sessionId: number, viewData: { label: string; file: File }) => string | null;
+    updateViewLabel: (sessionId: number, viewId: string, label: string) => void;
     markAsRead: (sessionId: number) => void;
   };
 };
@@ -22,53 +28,85 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   actions: {
     setActiveSessionId: (id) => set({ activeSessionId: id }),
-    
-    addSession: (data) => set((state) => {
-      const nextId = Math.max(...state.sessions.map(s => s.id), 0) + 1;
-      
-      const newSession: Session = {
-        id: nextId,
-        patientId: data.patientId,
-        date: data.date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }),
-        notification: false,
-        views: [
-          {
-            id: `v${Date.now()}`,
-            label: data.mediaTitle,
-            videoUrl: URL.createObjectURL(data.file),
+
+    addSession: (data) =>
+      set((state) => {
+        const nextId = Math.max(...state.sessions.map((s) => s.id), 0) + 1;
+
+        const newSession: Session = {
+          id: nextId,
+          patientId: data.patientId,
+          date: data.date.toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+          }),
+          notification: false,
+          views: [
+            {
+              id: `v${Date.now()}`,
+              label: data.mediaTitle,
+              videoUrl: URL.createObjectURL(data.file),
+              points: [],
+              chapters: [],
+              annotations: [],
+            },
+          ],
+        };
+
+        return {
+          sessions: [...state.sessions, newSession],
+          activeSessionId: nextId.toString(),
+        };
+      }),
+
+    addView: (sessionId, viewData) => {
+      const newViewId = `v${Date.now()}`;
+
+      set((state) => ({
+        sessions: state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+
+          const newView: View = {
+            id: newViewId,
+            label: viewData.label,
+            videoUrl: URL.createObjectURL(viewData.file),
             points: [],
             chapters: [],
             annotations: [],
-          }
-        ]
-      };
+          };
 
-      return { 
-        sessions: [...state.sessions, newSession],
-        activeSessionId: nextId.toString()
-      };
-    }),
+          return {
+            ...session,
+            views: [...session.views, newView],
+          };
+        }),
+      }));
 
-    addView: (sessionId, viewData) => set((state) => ({
-      sessions: state.sessions.map((s) => {
-        if (s.id !== sessionId) return s;
-        
-        const newView: View = {
-          id: `v${Date.now()}`,
-          label: viewData.label,
-          videoUrl: URL.createObjectURL(viewData.file),
-          points: [],
-          chapters: [],
-          annotations: [],
-        };
-        return { ...s, views: [...s.views, newView] };
-      })
-    })),
+      return newViewId;
+    },
 
-    markAsRead: (sessionId) => set((state) => ({
-      sessions: state.sessions.map((s) => 
-        s.id === sessionId ? { ...s, notification: false } : s
-      )
-    })),
+    updateViewLabel: (sessionId, viewId, label) =>
+      set((state) => ({
+        sessions: state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+
+          return {
+            ...session,
+            views: session.views.map((view) =>
+              view.id === viewId ? { ...view, label } : view,
+            ),
+          };
+        }),
+      })),
+
+    markAsRead: (sessionId) =>
+      set((state) => ({
+        sessions: state.sessions.map((session) =>
+          session.id === sessionId
+            ? { ...session, notification: false }
+            : session,
+        ),
+      })),
   },
 }));
