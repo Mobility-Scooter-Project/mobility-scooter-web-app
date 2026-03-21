@@ -21,6 +21,7 @@ export function VideoStage() {
   const isPlaying = useVideoStore((s) => s.isPlaying);
   const volume = useVideoStore((s) => s.volume);
   const isMuted = useVideoStore((s) => s.isMuted);
+  const currentTime = useVideoStore((s) => s.currentTime);
   const { setCurrentTime, setDuration, setIsPlaying } = useVideoStore(
     (s) => s.actions,
   );
@@ -58,6 +59,18 @@ export function VideoStage() {
 
     video.pause();
   }, [isPlaying, setIsPlaying]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const maxTime = Number.isFinite(video.duration) ? video.duration : currentTime;
+    const nextTime = Math.max(0, Math.min(currentTime, maxTime));
+
+    if (Math.abs(video.currentTime - nextTime) > 0.05) {
+      video.currentTime = nextTime;
+    }
+  }, [currentTime]);
 
   useEffect(() => {
     const video = videoRef.current;
