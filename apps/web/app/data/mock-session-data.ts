@@ -31,6 +31,18 @@ export type Annotation = {
   description: string;
 };
 
+export type RiskSeverity = "warning" | "danger";
+
+export type Risk = {
+  id: number;
+  title: string;
+  startTime: number; // in seconds
+  endTime: number; // in seconds
+  severity: RiskSeverity;
+  source: "model";
+  description?: string;
+};
+
 export type View = {
   id: string;
   label: string;
@@ -38,6 +50,7 @@ export type View = {
   chapters: Chapter[];
   points: Point[];
   annotations: Annotation[];
+  risks: Risk[];
 };
 
 export type Session = {
@@ -73,19 +86,23 @@ function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
   }
 
   if (variation === "mixed") {
-  return basePoints.map((p, i) =>
-    i % 2 === 0 ? { ...p, status: "inactive" } : p
-  );
-}
+    return basePoints.map((p, i) =>
+      i % 2 === 0 ? { ...p, status: "inactive" } : p,
+    );
+  }
 
   return basePoints;
 }
 
 // Updated video sources
-const VIDEO_1 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
-const VIDEO_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
-const VIDEO_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const VIDEO_4 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+const VIDEO_1 =
+  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
+const VIDEO_2 =
+  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
+const VIDEO_3 =
+  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const VIDEO_4 =
+  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 
 /* ---------------- Mock Data ---------------- */
 
@@ -99,10 +116,11 @@ export const MOCK_SESSIONS: Session[] = [
       {
         id: "v1",
         label: "Front View",
-        videoUrl: VIDEO_3, // Changed video
+        videoUrl: VIDEO_3,
         points: generatePoints("standard"),
         chapters: [],
         annotations: [],
+        risks: [],
       },
     ],
   },
@@ -116,7 +134,7 @@ export const MOCK_SESSIONS: Session[] = [
       {
         id: "v1",
         label: "Front View",
-        videoUrl: VIDEO_4, // Changed video
+        videoUrl: VIDEO_4,
         points: generatePoints("standard"),
         chapters: [
           {
@@ -131,6 +149,17 @@ export const MOCK_SESSIONS: Session[] = [
           },
         ],
         annotations: [],
+        risks: [
+          {
+            id: 9001,
+            title: "Knee valgus detected",
+            startTime: 18,
+            endTime: 24,
+            severity: "warning",
+            source: "model",
+            description: "Model detected moderate instability during stride.",
+          },
+        ],
       },
     ],
   },
@@ -144,7 +173,7 @@ export const MOCK_SESSIONS: Session[] = [
       {
         id: "v1",
         label: "Side Angle",
-        videoUrl: VIDEO_2, // Changed video
+        videoUrl: VIDEO_2,
         points: generatePoints("mixed"),
         chapters: [],
         annotations: [
@@ -156,6 +185,24 @@ export const MOCK_SESSIONS: Session[] = [
             author: "Admin",
             date: "Sep 24",
             description: "Calibration needed.",
+          },
+        ],
+        risks: [
+          {
+            id: 9002,
+            title: "Reduced arm swing",
+            startTime: 31,
+            endTime: 38,
+            severity: "warning",
+            source: "model",
+          },
+          {
+            id: 9003,
+            title: "Trunk lean spike",
+            startTime: 42,
+            endTime: 46,
+            severity: "danger",
+            source: "model",
           },
         ],
       },
@@ -186,6 +233,16 @@ export const MOCK_SESSIONS: Session[] = [
           },
         ],
         annotations: [],
+        risks: [
+          {
+            id: 9004,
+            title: "Low confidence posture segment",
+            startTime: 8,
+            endTime: 14,
+            severity: "warning",
+            source: "model",
+          },
+        ],
       },
     ],
   },
@@ -234,6 +291,16 @@ export const MOCK_SESSIONS: Session[] = [
             description: "Patient shows slight limp on left side.",
           },
         ],
+        risks: [
+          {
+            id: 9005,
+            title: "Asymmetrical loading",
+            startTime: 12,
+            endTime: 19,
+            severity: "danger",
+            source: "model",
+          },
+        ],
       },
       {
         id: "v2",
@@ -263,25 +330,25 @@ export const MOCK_SESSIONS: Session[] = [
             description: "Obstruction observed in background.",
           },
         ],
+        risks: [
+          {
+            id: 9006,
+            title: "Occlusion event",
+            startTime: 20,
+            endTime: 28,
+            severity: "warning",
+            source: "model",
+          },
+          {
+            id: 9007,
+            title: "Instability window",
+            startTime: 60,
+            endTime: 90,
+            severity: "danger",
+            source: "model",
+          },
+        ],
       },
     ],
   },
-  // {
-  //   id: 6,
-  //   date: "10/01/2025",
-  //   notification: false,
-  //   views: [],
-  // },
-  // {
-  //   id: 7,
-  //   date: "10/05/2025",
-  //   notification: true,
-  //   views: [],
-  // },
-  // {
-  //   id: 8,
-  //   date: "10/10/2025",
-  //   notification: false,
-  //   views: [],
-  // }
 ];

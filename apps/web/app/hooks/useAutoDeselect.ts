@@ -17,12 +17,10 @@ export function useAutoDeselect(
 
     const onDocClick = (e: MouseEvent) => {
       const el = ref.current;
-      const target = e.target as HTMLElement;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
 
-      // Ignore clicks inside the element
       if (el && el.contains(target)) return;
-      
-      // Ignore clicks inside portals (like Dropdowns/Dialogs)
       if (target.closest("[data-radix-portal]")) return;
 
       onDeselect();

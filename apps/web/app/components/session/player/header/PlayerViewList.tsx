@@ -3,27 +3,37 @@ import { useState } from "react";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { Tabs, TabsList, TabsTrigger } from "~/components/Tabs";
-import { useSessionDataSync } from "~/hooks/useSessionDataSync";
+import type { View } from "~/data/mock-session-data";
 
 import { AddViewDialog } from "./AddViewDialog";
 
-export function PlayerViewList() {
-  const { activeSession, activeViewId, setActiveViewId } = useSessionDataSync();
+interface PlayerViewListProps {
+  views: View[];
+  activeViewId: string;
+  onChangeView: (viewId: string) => void;
+  sessionId: number | null;
+}
+
+export function PlayerViewList({
+  views,
+  activeViewId,
+  onChangeView,
+  sessionId,
+}: PlayerViewListProps) {
   const [isAddViewOpen, setIsAddViewOpen] = useState(false);
 
-  if (!activeSession) return null;
+  if (!sessionId) return null;
 
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* View Tabs */}
         <Tabs
           value={activeViewId}
-          onValueChange={setActiveViewId}
+          onValueChange={onChangeView}
           className="min-w-0 flex-1"
         >
           <TabsList className="custom-scrollbar horizontal-scroll-fade w-full flex-nowrap justify-start gap-2 overflow-x-auto rounded-none pb-2 -mb-2 mr-2">
-            {activeSession.views.map((view) => (
+            {views.map((view) => (
               <TabsTrigger
                 key={view.id}
                 value={view.id}
@@ -38,7 +48,6 @@ export function PlayerViewList() {
           </TabsList>
         </Tabs>
 
-        {/* Add View Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -52,8 +61,8 @@ export function PlayerViewList() {
       <AddViewDialog
         open={isAddViewOpen}
         onOpenChange={setIsAddViewOpen}
-        sessionId={activeSession.id}
-        onViewCreated={setActiveViewId}
+        sessionId={sessionId}
+        onViewCreated={onChangeView}
       />
     </>
   );

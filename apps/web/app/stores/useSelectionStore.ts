@@ -7,12 +7,13 @@ export type SelectionStore = {
   selectedType: SelectionType;
   actions: {
     setSelection: (type: SelectionType, id: number) => void;
+    selectSelection: (type: SelectionType, id: number) => void;
     clearSelection: () => void;
   };
 };
 
 /**
- * Centralized store for managing mutually exclusive global selection state 
+ * Centralized store for managing mutually exclusive global selection state
  * across different analysis panel tabs.
  */
 export const useSelectionStore = create<SelectionStore>((set) => ({
@@ -22,14 +23,19 @@ export const useSelectionStore = create<SelectionStore>((set) => ({
   actions: {
     setSelection: (type, id) =>
       set((state) => {
-        // If the user clicks the currently active item, toggle it off
         if (state.selectedType === type && state.selectedId === id) {
           return { selectedId: null, selectedType: null };
         }
-        // Otherwise, set the new selection globally
+
         return { selectedType: type, selectedId: id };
       }),
-      
+
+    selectSelection: (type, id) =>
+      set({
+        selectedType: type,
+        selectedId: id,
+      }),
+
     clearSelection: () => set({ selectedId: null, selectedType: null }),
   },
 }));

@@ -43,9 +43,7 @@ export function AddViewDialog({
       file,
     });
 
-    if (createdViewId) {
-      onViewCreated?.(createdViewId);
-    }
+    if (createdViewId) onViewCreated?.(createdViewId);
 
     handleClose();
   };

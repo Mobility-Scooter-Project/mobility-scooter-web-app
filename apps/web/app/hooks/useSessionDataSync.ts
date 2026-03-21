@@ -1,57 +1,53 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { usePointStore } from "~/stores/usePointsStore";
 
 /**
- * Manages the synchronization between the Active Session/View
- * and the specific data stores (Chapters, Annotations, Points).
- *
- * @returns The currently active view ID and a setter for it.
+ * Syncs the active session/view with the derived stores.
  */
 export function useSessionDataSync() {
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
-  
+  const activeViewId = useSessionStore((state) => state.activeViewId);
+  const setActiveViewId = useSessionStore((state) => state.actions.setActiveViewId);
+
   const loadChapters = useChapterStore((state) => state.actions.loadChapters);
   const setAnnotations = useAnnotationStore((state) => state.actions.setAnnotations);
   const setPoints = usePointStore((state) => state.actions.setPoints);
 
-  const [activeViewId, setActiveViewId] = useState<string>("");
-
   const activeSession = useMemo(
     () => sessions.find((s) => s.id.toString() === activeSessionId.toString()),
-    [sessions, activeSessionId]
+    [sessions, activeSessionId],
   );
 
-  // Auto-select the first view when the session changes
   useEffect(() => {
-    if (activeSession && activeSession.views.length > 0) {
-      const viewExists = activeSession.views.some((v) => v.id === activeViewId);
-      if (!viewExists || !activeViewId) {
-        setActiveViewId(activeSession.views[0].id);
-      }
-    } else {
-      setActiveViewId("");
+    if (!activeSession) {
+      if (activeViewId) setActiveViewId("");
+      return;
     }
-  }, [activeSession, activeViewId]);
 
-  // Hydrate stores whenever the Active View changes
-  useEffect(() => {
-    if (!activeSession || !activeViewId) {
-        // Optional: Clear stores if no view is selected
-        return; 
+    const viewExists = activeSession.views.some((v) => v.id === activeViewId);
+    const nextViewId = viewExists
+      ? activeViewId
+      : (activeSession.views[0]?.id ?? "");
+
+    if (nextViewId !== activeViewId) {
+      setActiveViewId(nextViewId);
     }
+  }, [activeSession, activeViewId, setActiveViewId]);
+
+  useEffect(() => {
+    if (!activeSession || !activeViewId) return;
 
     const view = activeSession.views.find((v) => v.id === activeViewId);
-    if (view) {
-      // Load data into global stores
-      loadChapters(activeSession.id, activeViewId);
-      setAnnotations(view.annotations);
-      setPoints(view.points);
-    }
-  }, [activeViewId, activeSession, loadChapters, setAnnotations, setPoints]);
+    if (!view) return;
+
+    loadChapters(activeSession.id, activeViewId);
+    setAnnotations(view.annotations);
+    setPoints(view.points);
+  }, [activeSession, activeViewId, loadChapters, setAnnotations, setPoints]);
 
   return {
     activeSession,
