@@ -1,7 +1,5 @@
-import { Card } from "~/components/ui/card";
-import { Icon } from "~/components/ui/icon";
-import { SessionList } from "~/components/SessionList";
-import { SearchInput } from "~/components/SearchInput";
+import { Card } from "~/components/Card";
+import { Icon } from "~/components/Icon";
 import type { Route } from "./+types/home";
 
 export function meta({}: Route.MetaArgs) {
@@ -33,12 +31,6 @@ export default function Home() {
       <section>
         <Icon name="House" size="primary" />
         <Icon name="Settings" size="secondary" />
-      </section>
-      <Card>
-        <SessionList sessions={[{ id: "1", date: "2023-01-01" }]} />
-      </Card>
-      <section>
-        <SearchInput placeholder="Search" />
       </section>
     </main>
   );

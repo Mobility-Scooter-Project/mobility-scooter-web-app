@@ -57,12 +57,14 @@ export function DropzoneBox({
     const el = boxRef.current;
     if (!el) return;
     const measure = () => {
-      const rect = el.getBoundingClientRect();
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      
       const cs = getComputedStyle(el);
       const rPx = parseFloat(cs.borderTopLeftRadius || "0");
       setMetrics({
-        w: rect.width,
-        h: rect.height,
+        w,
+        h,
         r: Number.isFinite(rPx) ? rPx : 0,
       });
     };

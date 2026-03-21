@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Button } from "~/components/ui/button";
-import { Icon } from "~/components/ui/icon";
-import type { IconProps } from "~/components/ui/icon";
+import { Button } from "~/components/Button";
+import { Icon } from "~/components/Icon";
+import type { IconProps } from "~/components/Icon";
 import { cn } from "~/lib/utils";
 
 interface NavItem {
@@ -30,7 +30,7 @@ function SidebarButton({
     <Button
       size={isCollapsed ? "icon" : "default"}
       className={cn(
-        "w-full",
+        "w-full bg-transparent shadow-none text-foreground hover:bg-foreground/20",
         !isCollapsed && "justify-start",
         item.active && "bg-accent"
       )}
@@ -59,7 +59,7 @@ export function Sidebar() {
       <Button
         onClick={handleToggle}
         className={cn(
-          "mt-1 flex items-center w-full",
+          "mt-1 flex items-center w-full bg-transparent shadow-none text-foreground hover:bg-foreground/20",
           isCollapsed ? "justify-center" : "justify-between"
         )}
       >
@@ -78,7 +78,7 @@ export function Sidebar() {
       </Button>
 
       {/* Main Navigation */}
-      <div className="mt-4 flex flex-col gap-1 flex-grow">
+      <div className="mt-4 flex flex-col gap-1 grow">
         {navItems.map((item) => (
           <SidebarButton
             key={item.name}
