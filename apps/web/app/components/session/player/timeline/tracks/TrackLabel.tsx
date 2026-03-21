@@ -4,7 +4,7 @@ import { Icon, type IconProps } from "~/components/Icon";
 import { cn } from "~/lib/utils";
 
 const trackLabelVariants = cva(
-  `absolute top-0 inline-flex h-6.5 select-none items-center justify-center rounded-full px-2 py-1
+  `absolute top-0 inline-flex h-6.5 select-none items-center justify-start rounded-full px-2 py-1
   transition-shadow duration-150
   `,
   {
@@ -20,7 +20,7 @@ const trackLabelVariants = cva(
       },
       interactive: {
         true: "cursor-grab active:cursor-grabbing",
-        false: "",
+        false: "hover:brightness-100",
       },
     },
     defaultVariants: {

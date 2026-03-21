@@ -70,17 +70,18 @@ export function PlayerControls() {
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
 
-        <span>•</span>
-
         {currentChapter && (
-          <Button
-            variant={null}
-            onClick={handleChapterClick}
-            className="hover:opacity-80 -ml-3"
-          >
-            <span className="truncate">{currentChapter.title}</span>
-            <Icon name="ChevronRight" />
-          </Button>
+          <>
+            <span>•</span>
+            <Button
+              variant={null}
+              onClick={handleChapterClick}
+              className="hover:opacity-80 -ml-3"
+            >
+              <span className="truncate">{currentChapter.title}</span>
+              <Icon name="ChevronRight" />
+            </Button>
+          </>
         )}
       </div>
 
