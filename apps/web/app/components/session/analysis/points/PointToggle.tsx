@@ -37,11 +37,11 @@ export const PointToggle = memo(function PointToggle({
       isActive={state.isSelectable && isSelected}
       onClick={state.isSelectable && !isSelected ? onSelect : undefined}
       className={cn(
-        "flex flex-row items-center justify-between px-4 py-3 transition-all duration-150",
+        "flex flex-row items-center justify-between px-4 py-3 transition-all duration-150 text-foreground",
         state.cardClassName,
       )}
     >
-      <span className={cn("text-base", state.labelClassName)}>{data.name}</span>
+      <span className={cn("text-headline", state.labelClassName)}>{data.name}</span>
 
       <Button
         variant="ghost"

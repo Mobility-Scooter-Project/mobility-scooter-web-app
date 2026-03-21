@@ -33,9 +33,9 @@ export function getPointToggleState(
         isSelectable: true,
         actionLabel: `Hide point ${pointName}`,
         iconName: "Eye",
-        cardClassName: "border-transparent text-foreground",
-        labelClassName: "font-semibold",
-        actionClassName: "text-primary hover:bg-primary/10",
+        cardClassName: "border-transparent",
+        labelClassName: "",
+        actionClassName: "",
       };
 
     case "hidden":
@@ -43,9 +43,9 @@ export function getPointToggleState(
         isSelectable: true,
         actionLabel: `Show point ${pointName}`,
         iconName: "EyeOff",
-        cardClassName: "border-transparent text-foreground/80 opacity-70",
-        labelClassName: "font-medium",
-        actionClassName: "text-muted-foreground hover:bg-accent/50",
+        cardClassName: "border-transparent text-foreground/50",
+        labelClassName: "",
+        actionClassName: "text-foreground hover:bg-accent/50",
       };
 
     case "inactive":
@@ -54,11 +54,9 @@ export function getPointToggleState(
         isSelectable: false,
         actionLabel: `Enable point ${pointName}`,
         iconName: "Plus",
-        cardClassName:
-          "cursor-pointer border-2 border-dashed bg-muted/30 text-muted-foreground grayscale hover:bg-muted/50",
-        labelClassName: "font-semibold",
-        actionClassName:
-          "text-muted-foreground/80 hover:bg-accent hover:text-foreground",
+        cardClassName: "cursor-not-allowed bg-transparent border-2 border-foreground/25",
+        labelClassName: "",
+        actionClassName: "",
       };
   }
 }
