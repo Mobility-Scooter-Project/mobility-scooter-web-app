@@ -3,7 +3,7 @@ import { TimelineTicks } from "./TimelineTicks";
 import { AnnotationTrack } from "./tracks/AnnotationTrack";
 import { RiskTrack } from "./tracks/RiskTrack";
 import { ChapterTrack } from "./tracks/ChapterTrack";
-import { PlayerControls } from "./PlayerControls";
+import { PlayerControls } from "./controls/PlayerControls";
 import { useVideoStore } from "~/stores/useVideoStore";
 
 interface PlayerTimelineProps {

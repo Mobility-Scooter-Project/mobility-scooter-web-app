@@ -38,7 +38,7 @@ export function PlayerPanel() {
       <PanelSectionBody>
         <PanelScrollArea className="flex flex-col justify-between gap-y-4.5">
           <div className="flex flex-col gap-y-4.5">
-            <VideoStage activeView={activeView} />
+            <VideoStage />
             {/* <PlayerToolbar /> */}
           </div>
 

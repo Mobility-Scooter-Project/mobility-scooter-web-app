@@ -182,46 +182,4 @@ body {
     border-radius: 10px;
     cursor: grab;
   }
-
-  .scroll-fade {
-    /* Two masks placed side-by-side:
-     1. The vertical fade for the content (width: 100% - 12px to avoid scrollbar).
-     2. A solid mask for the scrollbar track on the right (width: 12px).
-  */
-    -webkit-mask-image:
-      linear-gradient(
-        to bottom,
-        transparent 0px,
-        black 18px,
-        black calc(100% - 24px),
-        transparent 100%
-      ),
-      linear-gradient(to bottom, black 0%, black 100%);
-    mask-image:
-      linear-gradient(
-        to bottom,
-        transparent 0px,
-        black 18px,
-        black calc(100% - 24px),
-        transparent 100%
-      ),
-      linear-gradient(to bottom, black 0%, black 100%);
-
-    -webkit-mask-size:
-      calc(100% - 12px) 100%,
-      12px 100%;
-    mask-size:
-      calc(100% - 12px) 100%,
-      12px 100%;
-
-    -webkit-mask-position:
-      left top,
-      right top;
-    mask-position:
-      left top,
-      right top;
-
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-  }
 }

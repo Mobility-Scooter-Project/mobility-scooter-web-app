@@ -7,10 +7,7 @@ interface PanelSectionHeaderProps extends React.ComponentProps<"div"> {}
 
 interface PanelSectionBodyProps extends React.ComponentProps<"div"> {}
 
-interface PanelScrollAreaProps extends React.ComponentProps<"div"> {
-  /* Adds extra bottom padding to prevent content from being hidden behind floating action buttons */
-  bottomSpacing?: boolean;
-}
+interface PanelScrollAreaProps extends React.ComponentProps<"div"> {}
 
 export function PanelSection({
   className,
@@ -40,13 +37,12 @@ export function PanelSectionBody({
 
 export function PanelScrollArea({
   className,
-  bottomSpacing = false,
   ...props
 }: PanelScrollAreaProps) {
   return (
     <div
       className={cn(
-        "h-full overflow-y-auto custom-scrollbar scroll-fade -mt-2 pt-3 -mr-4.5 pr-4.5",
+        "h-full overflow-y-auto custom-scrollbar -mr-4.5 pr-4.5",
         className,
       )}
       {...props}
