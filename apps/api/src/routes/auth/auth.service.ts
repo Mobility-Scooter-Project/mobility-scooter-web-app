@@ -195,7 +195,7 @@ export class AuthService {
         `refreshToken=${encodeURIComponent(refreshToken)}; ` +
         `HttpOnly; Path=/api/v1/auth/refresh-token; Max-Age=2592000; SameSite=Lax` +
         (secure ? '; Secure' : '');
-      res.append('Set-Cookie', cookie);
+      res.setHeader('Set-Cookie', cookie);
     }
 
     return { token, refreshToken };
