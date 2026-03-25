@@ -46,7 +46,7 @@ CMD [ "pnpm", "start" ]
 # 5. PYTHON WORKER: BUILDER STAGE
 # ==========================================
 # Start with a slim Python image to build the worker environment.
-FROM python:3.12-slim AS worker-builder
+FROM python:3.11-slim AS worker-builder
 
 # Install system-level build tools needed for C++ or database extensions.
 # rm -rf /var/lib/apt/lists/* keeps the layer size small.
@@ -78,7 +78,7 @@ COPY ./apps/video-worker/ /app/
 # 6. PYTHON WORKER: FINAL RUNTIME
 # ==========================================
 # Start fresh with a clean Python image (this discards the 1GB+ of build tools).
-FROM python:3.12-slim AS worker
+FROM python:3.11-slim AS worker
 
 # Install only the runtime libraries (graphics and database drivers).
 RUN apt-get update && apt-get install --no-install-recommends -y \
