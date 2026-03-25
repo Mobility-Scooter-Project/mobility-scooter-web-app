@@ -177,4 +177,97 @@ describe('VideosService', () => {
       expect(s3.presignedUrl).toHaveBeenCalled();
     });
   });
+
+  describe('reprocessVideo', () => {
+    it('enqueues reprocess job including transcriptGetUrl and steps', async () => {
+      const userId = 'user-1';
+      const videoId = 'test-video-id';
+      const filePath =
+        'patients/test-patient-id/sessions/test-session-id/test-video.mp4';
+      const unitId = 'unit-1';
+      const transcriptPutUrl = 'http://transcript-put-url';
+      const transcriptGetUrl = 'http://transcript-get-url';
+      const videoUrl = 'http://video-url';
+
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
+        id: videoId,
+        file: { path: filePath },
+        session: {
+          id: 'test-session-id',
+          patient: { id: 'test-patient-id' },
+          unit: { id: unitId },
+        },
+      } as any);
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        id: userId,
+        unit: { id: unitId },
+      } as User);
+
+      jest.spyOn(s3, 'presignedUrl').mockResolvedValueOnce(videoUrl);
+      jest
+        .spyOn(s3, 'presignedUrl')
+        .mockResolvedValueOnce(transcriptPutUrl);
+      jest
+        .spyOn(s3, 'presignedUrl')
+        .mockResolvedValueOnce(transcriptGetUrl);
+
+      const producerSend = jest.fn().mockResolvedValue({});
+      jest.spyOn(queue, 'getProducer').mockReturnValue({
+        send: producerSend,
+      } as any);
+
+      const dto = { steps: ['transcription'] } as any;
+      await service.reprocessVideo(userId, videoId, dto);
+
+      expect(videoRepository.findOne).toHaveBeenCalledWith({
+        where: { id: videoId },
+        relations: { file: true, session: { patient: true, unit: true } },
+        select: {
+          file: { id: true, path: true },
+          session: {
+            id: true,
+            patient: { id: true },
+            unit: { id: true },
+          },
+        },
+      });
+
+      expect(s3.presignedUrl).toHaveBeenCalledWith(
+        'GET',
+        filePath,
+        60 * 60 * 24,
+      );
+
+      // transcriptPath is derived from the mp4 -> csv replacement
+      const transcriptPath = filePath.replace(/\.mp4$/, '.csv');
+      expect(s3.presignedUrl).toHaveBeenCalledWith(
+        'PUT',
+        transcriptPath,
+        60 * 60 * 24,
+      );
+      expect(s3.presignedUrl).toHaveBeenCalledWith(
+        'GET',
+        transcriptPath,
+        60 * 60 * 24,
+      );
+
+      expect(producerSend).toHaveBeenCalledWith({
+        topic: 'videos',
+        messages: [
+          {
+            key: videoId,
+            value: JSON.stringify({
+              id: videoId,
+              url: videoUrl,
+              filename: filePath,
+              transcriptPutUrl,
+              transcriptGetUrl,
+              steps: dto.steps,
+            }),
+          },
+        ],
+      });
+    });
+  });
 });
