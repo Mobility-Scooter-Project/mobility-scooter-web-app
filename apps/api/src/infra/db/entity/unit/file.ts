@@ -35,11 +35,11 @@ export class File {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => User)
-  @JoinColumn({ name: 'uploadedById' })
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   uploadedBy: User;
 
-  @OneToOne(() => Unit)
-  @JoinColumn({ name: 'unitId' })
+  @OneToOne(() => Unit, { nullable: false })
+  @JoinColumn()
   unit: Unit;
 }

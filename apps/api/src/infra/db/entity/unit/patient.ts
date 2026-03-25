@@ -3,7 +3,7 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
@@ -33,7 +33,7 @@ export class Patient {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Unit)
-  @JoinColumn({ name: 'unitId' })
+  @ManyToOne(() => Unit, { nullable: false })
+  @JoinColumn()
   unit: Unit;
 }

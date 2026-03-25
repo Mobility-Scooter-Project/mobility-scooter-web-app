@@ -26,7 +26,7 @@ export class VideoTask {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => Video)
+  @ManyToOne(() => Video, { nullable: false })
   video: Video;
 
   @Column({ type: 'jsonb' })

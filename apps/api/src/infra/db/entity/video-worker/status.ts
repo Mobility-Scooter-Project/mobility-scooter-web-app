@@ -12,11 +12,11 @@ export class VideoWorkerStatus {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @OneToOne(() => Video)
-  @JoinColumn({ name: 'videoId' })
+  @OneToOne(() => Video, { nullable: false })
+  @JoinColumn()
   video: Video;
 
-  @OneToOne(() => VideoWorkerEvent)
+  @OneToOne(() => VideoWorkerEvent, { nullable: false })
   @JoinColumn()
   statusEvent: VideoWorkerEvent;
 
