@@ -14,7 +14,7 @@ export class VideoWorkerStepStatus {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => Video)
+  @ManyToOne(() => Video, { nullable: false })
   @JoinColumn({ name: 'videoId' })
   video: Video;
 

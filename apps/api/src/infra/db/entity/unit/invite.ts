@@ -48,11 +48,11 @@ export class UnitInvite {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Unit)
-  @JoinColumn({ name: 'unitId' })
+  @OneToOne(() => Unit, { nullable: false })
+  @JoinColumn()
   unit: Unit;
 
-  @OneToOne(() => User)
-  @JoinColumn({ name: 'invitedById' })
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   invitedBy: User;
 }

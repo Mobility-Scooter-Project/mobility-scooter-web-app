@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Application } from './application';
 import { CreateUpdateDeleteFields } from '../shared';
-import { Department } from './department';
+import { Unit } from '../unit/unit';
 
 @Entity({ schema: SCHEMAS.ORGS })
 export class Org {
@@ -26,7 +26,7 @@ export class Org {
    * Here we link to the application that was used to create this org.
    * Not every application will result in an org, but every org must have had an application.
    */
-  @OneToOne(() => Application)
+  @OneToOne(() => Application, { nullable: false })
   @JoinColumn()
   application: Application;
 
@@ -39,6 +39,6 @@ export class Org {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToMany(() => Department, (department) => department.org)
-  departments: Department[];
+  @OneToMany(() => Unit, (unit) => unit.org)
+  units: Unit[];
 }

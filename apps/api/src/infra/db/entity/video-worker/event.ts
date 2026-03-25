@@ -11,7 +11,7 @@ export class VideoWorkerEvent {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => Video)
+  @ManyToOne(() => Video, { nullable: false })
   video: Video;
 
   @Column({ type: 'text' })

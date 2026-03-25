@@ -17,9 +17,9 @@ export class VideoLabel {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
-  @ManyToOne(() => Video)
+  @ManyToOne(() => Video, { nullable: false })
   video: Video;
 
-  @ManyToOne(() => Assignment)
+  @ManyToOne(() => Assignment, { nullable: false })
   assignment: Assignment;
 }

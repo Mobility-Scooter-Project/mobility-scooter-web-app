@@ -31,15 +31,15 @@ export class Assignment {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => PatientSession)
-  @JoinColumn({ name: 'sessionId' })
+  @OneToOne(() => PatientSession, { nullable: false })
+  @JoinColumn()
   session: PatientSession;
 
-  @OneToOne(() => User)
-  @JoinColumn({ name: 'assignedToId' })
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   assignedTo: User;
 
-  @OneToOne(() => User)
-  @JoinColumn({ name: 'assignedById' })
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   assignedBy: User;
 }

@@ -19,10 +19,10 @@ export class Video {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @ManyToOne(() => PatientSession)
+  @ManyToOne(() => PatientSession, { nullable: false })
   session: PatientSession;
 
-  @OneToOne(() => File)
-  @JoinColumn({ name: 'fileId' })
+  @OneToOne(() => File, { nullable: false })
+  @JoinColumn()
   file: File;
 }
