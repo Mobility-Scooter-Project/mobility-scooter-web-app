@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VideosService } from './videos.service';
-import { InfraModule } from '@infra/infra.module';
-import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
-import config from '@config/constants';
 import { S3Service } from '@src/infra/openstack/s3/s3.service';
 import { SwiftService } from '@src/infra/openstack/swift/swift.service';
 import { QueueService } from '@src/infra/queue/queue.service';
@@ -14,6 +10,7 @@ import { PatientSession } from '@src/infra/db/entity/video/session';
 import { Video } from '@src/infra/db/entity/video/video';
 import { User } from '@src/infra/db/entity/user/user';
 import { createMock } from '@golevelup/ts-jest';
+import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 describe('VideosService', () => {
   let service: VideosService;
@@ -28,16 +25,28 @@ describe('VideosService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-          load: [config],
-        }),
-        InfraModule,
-        JwtModule,
-        TypeOrmModule.forFeature([File, Video, PatientSession, User]),
+      imports: [TypeOrmModule.forFeature([File, Video, PatientSession, User])],
+      providers: [
+        VideosService,
+        UnitAuthorizationService,
+        // Mock infra clients to keep tests fully isolated from OpenStack/Kafka.
+        {
+          provide: S3Service,
+          useValue: { presignedUrl: jest.fn() } as Partial<S3Service>,
+        },
+        {
+          provide: SwiftService,
+          useValue: { putObjectStream: jest.fn() } as Partial<SwiftService>,
+        },
+        {
+          provide: QueueService,
+          useValue: {
+            getProducer: jest.fn().mockReturnValue({
+              send: jest.fn(),
+            }),
+          } as Partial<QueueService>,
+        },
       ],
-      providers: [VideosService],
     })
       .useMocker(createMock)
       .compile();
