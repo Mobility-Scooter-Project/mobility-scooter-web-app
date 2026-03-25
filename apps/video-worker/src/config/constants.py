@@ -16,57 +16,6 @@ TASKS = [
   "Descends low curb",
 ] 
 
-FASTER_WHISPER_EXAMPLES = f"""
-<EXAMPLES>
-Example 1:
-Input: 
-364.01,366.11,"Alright, so I'm gonna have you go right around the cones."
-378.03,387.53,we're going to go back towards the cones and do left around the cones oh okay so so i go back over and yeah we'll flip come back around and you're going to go left around the cones okay
-387.53,388.97,okay
-Output: 
-371.2,Turning right around the cone 
-398.6,Turning left around the cone    
-\n
-Example 2:
-Input: 
-13.1,17.18,We're gonna go back to the grass and then back down that same walkway.
-17.38,17.7,Okay.
-19.26,19.6,Alright.
-32.17,32.95,"Easy enough, huh?"
-Output: 
-20.93333333,Going forward on a soft surface 6 feet
-\n
-Example 3 (No valid tasks):
-Input: 
-569.82,579.08,And then we're going to go right back up the same way.
-579.34,589.06,Be mindful of that camera.
-590.22,591.0,Good turn.
-591.14,591.5,Beautiful.
-592.02,594.42,"And we're going to come right back out the exact same way we just came, OK?"
-Output: 
-(no tasks detected)
-\n
-Example 4 (No valid tasks):
-Input:
-519.29,525.64,I think my portion I'm helping out with as long as they get through all the tasks.
-526.99,528.35,So we're gonna keep going straight.
-528.47,529.61,We're gonna go to that arch there.
-530.11,531.13,It's covered in green.
-534.54,537.82,We're pretty much gonna go up that arch to the right.
-577.48,581.0,"Going up here, we're gonna make sure to stay to the left because the camera is on the right."
-Output:
-(no tasks detected)
-\n
-Example 5 (No valid tasks):
-Input:
-338.62,339.54,That's good enough.
-339.62,342.74,So we're gonna flip around and we're gonna go towards these cones right here.
-343.96,344.38,Okay.
-Output:
-(no tasks detected)
-</EXAMPLES>
-"""
-
 WHISPERX_EXAMPLES = f"""
 <EXAMPLES>
 Example 1:
