@@ -5,17 +5,20 @@ import { QueueService } from '@infra/queue/queue.service';
 import { Readable } from 'stream';
 import { Repository } from 'typeorm';
 import { File } from '@infra/db/entity/unit/file';
+import { PatientSession } from '@infra/db/entity/video/session';
 import { Video } from '@infra/db/entity/video/video';
+import { User } from '@infra/db/entity/user/user';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ReprocessVideoDto, VideoMetadataDto } from './videos.dto';
 
 type VideoMetadataOutput = {
   id: string;
 };
 
-/** Shape used when we only need the stored file path (object key). */
+/** Shape used when we only need the stored file path (object key) and unit for auth. */
 type VideoWithPath = {
   file: { path: string };
-  session: { patient: { id: string } };
+  session: { patient: { id: string }; unit: { id: string } };
 };
 
 @Injectable()
@@ -30,6 +33,10 @@ export class VideosService {
     private readonly fileRepository: Repository<File>,
     @InjectRepository(Video)
     private readonly videoRepository: Repository<Video>,
+    @InjectRepository(PatientSession)
+    private readonly patientSessionRepository: Repository<PatientSession>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   /**
@@ -43,9 +50,8 @@ export class VideosService {
    *
    * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
    *
-   * @param patientId - The id of the patient that owns the session (used in storage path only).
-   * @param sessionId - The id of the session to which the video belongs (must exist).
-   * @param fileName - The filename of the uploaded video (used to build the storage path and file metadata).
+   * @param userId - ID of the user creating the video metadata.
+   * @param dto - `patientId`, `sessionId`, `fileName` from validated request body.
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
    * @throws {HttpException} Throws an HttpException with status INTERNAL_SERVER_ERROR if persisting
@@ -54,16 +60,50 @@ export class VideosService {
    * @async
    */
   public async createVideoMetadata(
-    patientId: string,
-    sessionId: string,
-    fileName: string,
+    userId: string,
+    dto: VideoMetadataDto,
   ): Promise<VideoMetadataOutput> {
-    const path = `patients/${patientId}/sessions/${sessionId}/${fileName}`;
+    let session: PatientSession | null;
+    try {
+      session = await this.patientSessionRepository.findOne({
+        where: { id: dto.sessionId },
+        relations: { unit: true, patient: true },
+      });
+    } catch (error) {
+      this.logger.error('Failed to load session for video metadata', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (!session) {
+      this.logger.warn(
+        `Session ${dto.sessionId} not found for create video metadata`,
+      );
+      throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.assertUserInUnit(userId, session.unit.id);
+
+    if (session.patient.id !== dto.patientId) {
+      this.logger.warn(
+        `patientId ${dto.patientId} does not match session ${dto.sessionId} patient`,
+      );
+      throw new HttpException(
+        'Patient does not match session',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const path = `patients/${dto.patientId}/sessions/${dto.sessionId}/${dto.fileName}`;
 
     const newFile = this.fileRepository.create({
-      name: fileName,
+      name: dto.fileName,
       type: 'video/mp4',
       path,
+      uploadedBy: { id: userId },
+      unit: { id: session.unit.id },
     });
 
     let videoFile: File;
@@ -78,7 +118,7 @@ export class VideosService {
     }
 
     const newVideo = this.videoRepository.create({
-      session: { id: sessionId },
+      session: { id: dto.sessionId },
       file: videoFile,
     });
 
@@ -119,6 +159,7 @@ export class VideosService {
    * - The method is asynchronous and returns a Promise that resolves once the upload and enqueue operations
    *   have been initiated/completed.
    *
+   * @param userId - ID of the user uploading the video.
    * @param videoId - The id of the video record to associate with this upload.
    * @param file - The uploaded file provided by Multer (expects file.buffer to be present).
    *
@@ -127,6 +168,7 @@ export class VideosService {
    * @returns Promise<void> - Resolves when the upload and queueing steps complete.
    */
   public async uploadVideo(
+    userId: string,
     videoId: string,
     file: Express.Multer.File,
   ): Promise<void> {
@@ -134,10 +176,10 @@ export class VideosService {
     try {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true, session: { patient: true } },
+        relations: { file: true, session: { patient: true, unit: true } },
         select: {
-          file: { path: true },
-          session: { patient: { id: true } },
+          file: { id: true, path: true },
+          session: { id: true, patient: { id: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -146,14 +188,18 @@ export class VideosService {
     }
 
     if (!video) {
-      throw new HttpException('Video not found', 404);
+      this.logger.warn(`Video ${videoId} not found for upload`);
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
+
+    await this.assertUserInUnit(userId, video.session.unit.id);
 
     const filePath = video.file.path;
     const objectFilePath = filePath;
 
     // Convert buffer to readable stream since multer stores file as buffer
     if (!file.buffer) {
+      this.logger.warn(`Upload for video ${videoId}: missing file buffer`);
       throw new HttpException('No file buffer found', HttpStatus.BAD_REQUEST);
     }
 
@@ -220,6 +266,7 @@ export class VideosService {
    * The S3 presigned URL is generated by calling `this.s3.presignedUrl('GET', objectKey, ttlSeconds)`
    * with a TTL of 60 * 60 * 24 (24 hours). Any errors thrown by the S3 client will propagate to the caller.
    *
+   * @param userId - ID of the user generating the presigned URL.
    * @param videoId - The unique identifier of the video to generate a presigned URL for.
    * @returns A promise that resolves to the presigned URL string.
    *
@@ -230,15 +277,18 @@ export class VideosService {
    * - Expects the repository query to return the video with relations: file.path.
    * - The constructed object key uses the stored file path.
    */
-  async getVideoPresignedUrl(videoId: string): Promise<string> {
+  async getVideoPresignedUrl(
+    userId: string,
+    videoId: string,
+  ): Promise<string> {
     let video: VideoWithPath | null;
     try {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true, session: { patient: true } },
+        relations: { file: true, session: { patient: true, unit: true } },
         select: {
-          file: { path: true },
-          session: { patient: { id: true } },
+          file: { id: true, path: true },
+          session: { id: true, patient: { id: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -247,8 +297,11 @@ export class VideosService {
     }
 
     if (!video) {
-      throw new HttpException('Video not found', 404);
+      this.logger.warn(`Video ${videoId} not found for presigned URL`);
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
+
+    await this.assertUserInUnit(userId, video.session.unit.id);
 
     const objectFilePath = video.file.path;
     const expires = 60 * 60 * 24; // 24 hours
@@ -263,22 +316,24 @@ export class VideosService {
    * and transcript path, requests presigned URLs, and sends a message to the "videos" topic with
    * optional `steps` to limit which pipeline steps run.
    *
+   * @param userId - ID of the user reprocessing the video.
    * @param videoId - The id of the video to reprocess.
-   * @param steps - Optional list of steps: 'pose_estimation' | 'transcription' | 'task_detection'.
+   * @param dto - Optional `steps` to limit pipeline runs.
    * @throws HttpException 400 on repo error, 404 when video not found.
    */
   public async reprocessVideo(
+    userId: string,
     videoId: string,
-    steps?: ('pose_estimation' | 'transcription' | 'task_detection')[],
+    dto: ReprocessVideoDto,
   ): Promise<void> {
     let video: VideoWithPath | null;
     try {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
-        relations: { file: true, session: { patient: true } },
+        relations: { file: true, session: { patient: true, unit: true } },
         select: {
-          file: { path: true },
-          session: { patient: { id: true } },
+          file: { id: true, path: true },
+          session: { id: true, patient: { id: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -287,8 +342,11 @@ export class VideosService {
     }
 
     if (!video) {
+      this.logger.warn(`Video ${videoId} not found for reprocess`);
       throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
+
+    await this.assertUserInUnit(userId, video.session.unit.id);
 
     const filePath = video.file.path;
     const objectFilePath = filePath;
@@ -312,10 +370,36 @@ export class VideosService {
             filename: filePath,
             transcriptPutUrl,
             transcriptGetUrl,
-            ...(steps && { steps }),
+            ...(dto.steps && { steps: dto.steps }),
           }),
         },
       ],
     });
+  }
+
+  private async assertUserInUnit(userId: string, unitId: string): Promise<void> {
+    let user: User | null;
+    try {
+      user = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: { unit: true },
+      });
+    } catch (error) {
+      this.logger.error('Failed to verify user unit for video', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (!user?.unit || user.unit.id !== unitId) {
+      this.logger.warn(
+        `User ${userId} attempted video access in unit ${unitId} but does not belong to that unit`,
+      );
+      throw new HttpException(
+        'User does not belong to this unit',
+        HttpStatus.FORBIDDEN,
+      );
+    }
   }
 }

@@ -10,7 +10,9 @@ import { QueueService } from '@src/infra/queue/queue.service';
 import { Repository } from 'typeorm';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { File } from '@src/infra/db/entity/unit/file';
+import { PatientSession } from '@src/infra/db/entity/video/session';
 import { Video } from '@src/infra/db/entity/video/video';
+import { User } from '@src/infra/db/entity/user/user';
 import { createMock } from '@golevelup/ts-jest';
 
 describe('VideosService', () => {
@@ -21,6 +23,8 @@ describe('VideosService', () => {
 
   let fileRepository: Repository<File>;
   let videoRepository: Repository<Video>;
+  let patientSessionRepository: Repository<PatientSession>;
+  let userRepository: Repository<User>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,7 +35,7 @@ describe('VideosService', () => {
         }),
         InfraModule,
         JwtModule,
-        TypeOrmModule.forFeature([File, Video]),
+        TypeOrmModule.forFeature([File, Video, PatientSession, User]),
       ],
       providers: [VideosService],
     })
@@ -45,6 +49,10 @@ describe('VideosService', () => {
 
     fileRepository = module.get<Repository<File>>(getRepositoryToken(File));
     videoRepository = module.get<Repository<Video>>(getRepositoryToken(Video));
+    patientSessionRepository = module.get<Repository<PatientSession>>(
+      getRepositoryToken(PatientSession),
+    );
+    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   it('should be defined', () => {
@@ -56,6 +64,17 @@ describe('VideosService', () => {
       const patientId = 'test-patient-id';
       const sessionId = 'test-session-id';
       const fileName = 'test-video.mp4';
+      const unitId = 'unit-1';
+
+      jest.spyOn(patientSessionRepository, 'findOne').mockResolvedValue({
+        id: sessionId,
+        unit: { id: unitId },
+        patient: { id: patientId },
+      } as PatientSession);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        id: 'user-1',
+        unit: { id: unitId },
+      } as User);
 
       jest
         .spyOn(fileRepository, 'create')
@@ -79,12 +98,27 @@ describe('VideosService', () => {
           }) as any,
       );
 
-      const result = await service.createVideoMetadata(
+      const result = await service.createVideoMetadata('user-1', {
         patientId,
         sessionId,
         fileName,
-      );
+      });
       expect(result).toHaveProperty('id');
+      expect(fileRepository.create).toHaveBeenCalledWith({
+        name: fileName,
+        type: 'video/mp4',
+        path: `patients/${patientId}/sessions/${sessionId}/${fileName}`,
+        uploadedBy: { id: 'user-1' },
+        unit: { id: unitId },
+      });
+      expect(videoRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          session: { id: sessionId },
+          file: expect.objectContaining({
+            id: 'file-id',
+          }),
+        }),
+      );
     });
   });
 
@@ -101,8 +135,14 @@ describe('VideosService', () => {
         file: {
           path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
         },
-        session: { patient: { id: 'test-patient-id' } },
+        session: {
+          patient: { id: 'test-patient-id' },
+          unit: { id: 'unit-1' },
+        },
       } as any);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        unit: { id: 'unit-1' },
+      } as User);
 
       jest.spyOn(swift, 'putObjectStream').mockResolvedValue();
       jest.spyOn(s3, 'presignedUrl').mockResolvedValue('http://presigned-url');
@@ -111,7 +151,19 @@ describe('VideosService', () => {
         send: jest.fn().mockResolvedValue({}),
       } as any);
 
-      await service.uploadVideo(videoId, file);
+      await service.uploadVideo('user-1', videoId, file);
+      expect(videoRepository.findOne).toHaveBeenCalledWith({
+        where: { id: videoId },
+        relations: { file: true, session: { patient: true, unit: true } },
+        select: {
+          file: { id: true, path: true },
+          session: {
+            id: true,
+            patient: { id: true },
+            unit: { id: true },
+          },
+        },
+      });
       expect(swift.putObjectStream).toHaveBeenCalled();
       expect(s3.presignedUrl).toHaveBeenCalled();
     });

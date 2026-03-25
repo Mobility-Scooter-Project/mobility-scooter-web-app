@@ -4,7 +4,9 @@ import {
   Get,
   Logger,
   Param,
+  ParseUUIDPipe,
   Post,
+  Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -14,46 +16,46 @@ import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('videos')
 export class VideosController {
-  private readonly videos: VideosService;
   private logger: Logger = new Logger(VideosController.name);
 
-  constructor(private readonly videosService: VideosService) {
-    this.videos = videosService;
-  }
+  constructor(private readonly videosService: VideosService) {}
 
   @Post('upload')
-  async uploadVideo(@Body() body: VideoMetadataDto) {
-    const { patientId, sessionId, fileName } = body;
-    return await this.videos.createVideoMetadata(
-      patientId,
-      sessionId,
-      fileName,
-    );
+  async uploadVideo(
+    @Req() req: { locals: { userId: string } },
+    @Body() body: VideoMetadataDto,
+  ) {
+    return this.videosService.createVideoMetadata(req.locals.userId, body);
   }
 
   @UseInterceptors(FileInterceptor('file'))
   @Post(':videoId/upload')
   async upload(
-    @Param('videoId') videoId: string,
+    @Req() req: { locals: { userId: string } },
+    @Param('videoId', ParseUUIDPipe) videoId: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     this.logger.log(
       `Uploading file for videoId: ${videoId}, originalname: ${file.originalname}, mimetype: ${file.mimetype}, size: ${file.size}`,
     );
-    return await this.videos.uploadVideo(videoId, file);
+    return this.videosService.uploadVideo(req.locals.userId, videoId, file);
   }
 
   @Post(':videoId/reprocess')
   async reprocessVideo(
-    @Param('videoId') videoId: string,
+    @Req() req: { locals: { userId: string } },
+    @Param('videoId', ParseUUIDPipe) videoId: string,
     @Body() body: ReprocessVideoDto,
   ) {
     this.logger.log(`Reprocessing videoId: ${videoId}, steps: ${body.steps}`);
-    return await this.videos.reprocessVideo(videoId, body.steps);
+    return this.videosService.reprocessVideo(req.locals.userId, videoId, body);
   }
 
   @Get(':videoId/download')
-  async getPresignedUrl(@Param('videoId') videoId: string) {
-    return await this.videosService.getVideoPresignedUrl(videoId);
+  async getPresignedUrl(
+    @Req() req: { locals: { userId: string } },
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+  ) {
+    return this.videosService.getVideoPresignedUrl(req.locals.userId, videoId);
   }
 }
