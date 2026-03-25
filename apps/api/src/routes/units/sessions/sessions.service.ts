@@ -1,11 +1,11 @@
 import { Patient } from '@infra/db/entity/unit/patient';
 import { PatientSession } from '@infra/db/entity/video/session';
 import { Unit } from '@infra/db/entity/unit/unit';
-import { User } from '@infra/db/entity/user/user';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionDto } from './sessions.dto';
+import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 @Injectable()
 export class SessionsService {
@@ -16,8 +16,7 @@ export class SessionsService {
     private readonly patientSessionRepository: Repository<PatientSession>,
     @InjectRepository(Patient)
     private readonly patientRepository: Repository<Patient>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly unitAuthorizationService: UnitAuthorizationService,
   ) {}
 
   /**
@@ -35,7 +34,7 @@ export class SessionsService {
     unitId: string,
     dto: SessionDto,
   ): Promise<{ sessionId: string }> {
-    await this.assertUserInUnit(userId, unitId);
+    await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let patient: Patient | null;
     try {
@@ -124,7 +123,7 @@ export class SessionsService {
       sessionTime: string;
     }>
   > {
-    await this.assertUserInUnit(userId, unitId);
+    await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let sessions: PatientSession[];
     try {
@@ -173,7 +172,7 @@ export class SessionsService {
     sessionDate: string;
     sessionTime: string;
   }> {
-    await this.assertUserInUnit(userId, unitId);
+    await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let session: PatientSession | null;
     try {
@@ -225,7 +224,7 @@ export class SessionsService {
     sessionId: string,
     dto: SessionDto,
   ): Promise<{ sessionId: string }> {
-    await this.assertUserInUnit(userId, unitId);
+    await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let session: PatientSession | null;
     try {
@@ -294,40 +293,6 @@ export class SessionsService {
     }
 
     return { sessionId: saved.id };
-  }
-
-  /**
-   * Ensures the user belongs to the given unit.
-   * @param userId - ID of the user
-   * @param unitId - ID of the unit
-   * @returns void
-   * @throws HttpException with appropriate status code and message on failure
-   */
-  private async assertUserInUnit(userId: string, unitId: string): Promise<void> {
-    let user: User | null;
-    try {
-      user = await this.userRepository.findOne({
-        where: { id: userId },
-        relations: { unit: true },
-        select: { id: true, unit: { id: true } },
-      });
-    } catch (error) {
-      this.logger.error('Failed to verify user unit', error);
-      throw new HttpException(
-        'Internal Server Error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    if (!user?.unit || user.unit.id !== unitId) {
-      this.logger.warn(
-        `User ${userId} attempted access to unit ${unitId} but does not belong to that unit`,
-      );
-      throw new HttpException(
-        'User does not belong to this unit',
-        HttpStatus.FORBIDDEN,
-      );
-    }
   }
 
   /**

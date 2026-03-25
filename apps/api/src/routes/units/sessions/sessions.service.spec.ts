@@ -8,6 +8,7 @@ import { PatientSession } from '@infra/db/entity/video/session';
 import { User } from '@infra/db/entity/user/user';
 import { SessionsService } from './sessions.service';
 import { SessionDto } from './sessions.dto';
+import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 describe('SessionsService', () => {
   let service: SessionsService;
@@ -35,7 +36,7 @@ describe('SessionsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TypeOrmModule.forFeature([PatientSession, Patient, User])],
-      providers: [SessionsService],
+      providers: [SessionsService, UnitAuthorizationService],
     })
       .useMocker(createMock)
       .compile();

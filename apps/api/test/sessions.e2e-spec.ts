@@ -13,6 +13,7 @@ import { SessionsService } from '@src/routes/units/sessions/sessions.service';
 import { Patient } from '@infra/db/entity/unit/patient';
 import { PatientSession } from '@infra/db/entity/video/session';
 import { User } from '@infra/db/entity/user/user';
+import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { User } from '@infra/db/entity/user/user';
   controllers: [SessionsController],
   providers: [
     SessionsService,
+    UnitAuthorizationService,
     // Provide repository mocks so we don't need a real DB connection for 401 tests.
     { provide: getRepositoryToken(PatientSession), useValue: {} },
     { provide: getRepositoryToken(Patient), useValue: {} },

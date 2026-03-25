@@ -9,6 +9,7 @@ import { Video } from '@src/infra/db/entity/video/video';
 import { File } from '@src/infra/db/entity/unit/file';
 import { PatientSession } from '@src/infra/db/entity/video/session';
 import { User } from '@src/infra/db/entity/user/user';
+import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { User } from '@src/infra/db/entity/user/user';
     JwtModule,
     TypeOrmModule.forFeature([Video, File, PatientSession, User]),
   ],
-  providers: [VideosService],
+  providers: [VideosService, UnitAuthorizationService],
   controllers: [VideosController],
 })
 export class VideosModule {

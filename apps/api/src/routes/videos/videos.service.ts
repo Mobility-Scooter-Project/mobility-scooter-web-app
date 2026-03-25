@@ -7,9 +7,9 @@ import { Repository } from 'typeorm';
 import { File } from '@infra/db/entity/unit/file';
 import { PatientSession } from '@infra/db/entity/video/session';
 import { Video } from '@infra/db/entity/video/video';
-import { User } from '@infra/db/entity/user/user';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReprocessVideoDto, VideoMetadataDto } from './videos.dto';
+import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 type VideoMetadataOutput = {
   id: string;
@@ -35,8 +35,7 @@ export class VideosService {
     private readonly videoRepository: Repository<Video>,
     @InjectRepository(PatientSession)
     private readonly patientSessionRepository: Repository<PatientSession>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly unitAuthorizationService: UnitAuthorizationService,
   ) {}
 
   /**
@@ -84,7 +83,7 @@ export class VideosService {
       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.assertUserInUnit(userId, session.unit.id);
+    await this.unitAuthorizationService.assertUserInUnit(userId, session.unit.id);
 
     if (session.patient.id !== dto.patientId) {
       this.logger.warn(
@@ -151,6 +150,7 @@ export class VideosService {
    * - Requests two presigned URLs from the S3 abstraction:
    *   - a GET presigned URL for the uploaded video (24-hour expiry).
    *   - a PUT presigned URL for uploading the transcript (configurable expiry, here set to 24 hours).
+   *   - a GET presigned URL for the transcript (24-hour expiry).
    * - Publishes a message to the "videos" topic containing the video id, the presigned video URL,
    *   the original filename/path, and the transcript PUT URL.
    *
@@ -192,7 +192,10 @@ export class VideosService {
       throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.assertUserInUnit(userId, video.session.unit.id);
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      video.session.unit.id,
+    );
 
     const filePath = video.file.path;
     const objectFilePath = filePath;
@@ -301,7 +304,10 @@ export class VideosService {
       throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.assertUserInUnit(userId, video.session.unit.id);
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      video.session.unit.id,
+    );
 
     const objectFilePath = video.file.path;
     const expires = 60 * 60 * 24; // 24 hours
@@ -346,7 +352,10 @@ export class VideosService {
       throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.assertUserInUnit(userId, video.session.unit.id);
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      video.session.unit.id,
+    );
 
     const filePath = video.file.path;
     const objectFilePath = filePath;
@@ -377,29 +386,4 @@ export class VideosService {
     });
   }
 
-  private async assertUserInUnit(userId: string, unitId: string): Promise<void> {
-    let user: User | null;
-    try {
-      user = await this.userRepository.findOne({
-        where: { id: userId },
-        relations: { unit: true },
-      });
-    } catch (error) {
-      this.logger.error('Failed to verify user unit for video', error);
-      throw new HttpException(
-        'Internal Server Error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    if (!user?.unit || user.unit.id !== unitId) {
-      this.logger.warn(
-        `User ${userId} attempted video access in unit ${unitId} but does not belong to that unit`,
-      );
-      throw new HttpException(
-        'User does not belong to this unit',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-  }
 }
