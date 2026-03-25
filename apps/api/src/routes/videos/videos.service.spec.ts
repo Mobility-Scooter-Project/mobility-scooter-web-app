@@ -70,15 +70,15 @@ describe('VideosService', () => {
 
   describe('createVideoMetadata', () => {
     it('should create video metadata', async () => {
-      const patientId = 'test-patient-id';
-      const sessionId = 'test-session-id';
+      const patientUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+      const sessionId = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
       const fileName = 'test-video.mp4';
-      const unitId = 'unit-1';
+      const unitId = '33333333-4444-5555-6666-777777777777';
 
       jest.spyOn(patientSessionRepository, 'findOne').mockResolvedValue({
         id: sessionId,
         unit: { id: unitId },
-        patient: { id: patientId },
+        patient: { id: patientUuid },
       } as PatientSession);
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: 'user-1',
@@ -108,7 +108,7 @@ describe('VideosService', () => {
       );
 
       const result = await service.createVideoMetadata('user-1', {
-        patientId,
+        patientId: patientUuid,
         sessionId,
         fileName,
       });
@@ -116,7 +116,7 @@ describe('VideosService', () => {
       expect(fileRepository.create).toHaveBeenCalledWith({
         name: fileName,
         type: 'video/mp4',
-        path: `patients/${patientId}/sessions/${sessionId}/${fileName}`,
+        path: `patients/${patientUuid}/sessions/${sessionId}/${fileName}`,
         uploadedBy: { id: 'user-1' },
         unit: { id: unitId },
       });

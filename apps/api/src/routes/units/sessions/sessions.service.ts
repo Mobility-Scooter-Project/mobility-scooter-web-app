@@ -5,6 +5,7 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionDto } from './sessions.dto';
+import { findPatientByRef } from '@src/shared/patient-ref';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 @Injectable()
@@ -26,23 +27,24 @@ export class SessionsService {
    * @param userId - ID of the user creating the session
    * @param unitId - ID of the unit
    * @param dto - SessionDto containing the session details
-   * @returns { sessionId: string } - The ID of the created session
+   * @returns Canonical session id and internal patient UUID (for video flows).
    * @throws HttpException with appropriate status code and message on failure
    */
   public async createSession(
     userId: string,
     unitId: string,
     dto: SessionDto,
-  ): Promise<{ sessionId: string }> {
+  ): Promise<{ sessionId: string; patientId: string }> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
+    const patientRef = dto.patientInputId.trim();
     let patient: Patient | null;
     try {
-      patient = await this.patientRepository.findOne({
-        where: { id: dto.patientId },
-        relations: { unit: true },
-        select: { id: true, unit: { id: true } },
-      });
+      patient = await findPatientByRef(
+        this.patientRepository,
+        unitId,
+        patientRef,
+      );
     } catch (error) {
       this.logger.error('Failed to load patient for session', error);
       throw new HttpException(
@@ -55,10 +57,7 @@ export class SessionsService {
       try {
         patient = await this.patientRepository.save(
           this.patientRepository.create({
-            id: dto.patientId,
-            age: 0,
-            gender: 'unknown',
-            notes: JSON.stringify({}),
+            patientInputId: patientRef,
             unit: { id: unitId } as Unit,
           }),
         );
@@ -73,7 +72,7 @@ export class SessionsService {
 
     if (patient.unit.id !== unitId) {
       this.logger.warn(
-        `Patient ${dto.patientId} does not belong to unit ${unitId}`,
+        `Patient ${patientRef} does not belong to unit ${unitId}`,
       );
       throw new HttpException(
         'Patient does not belong to this unit',
@@ -84,7 +83,7 @@ export class SessionsService {
     const sessionTime = this.normalizeSessionTime(dto.sessionTime);
 
     const session = this.patientSessionRepository.create({
-      patient: { id: dto.patientId } as Patient,
+      patient: { id: patient.id } as Patient,
       unit: { id: unitId } as Unit,
       sessionDate: dto.sessionDate,
       sessionTime,
@@ -101,7 +100,7 @@ export class SessionsService {
       );
     }
 
-    return { sessionId: saved.id };
+    return { sessionId: saved.id, patientId: patient.id };
   }
 
   /**
@@ -247,13 +246,14 @@ export class SessionsService {
       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
     }
 
+    const patientRef = dto.patientInputId.trim();
     let patient: Patient | null;
     try {
-      patient = await this.patientRepository.findOne({
-        where: { id: dto.patientId },
-        relations: { unit: true },
-        select: { id: true, unit: { id: true } },
-      });
+      patient = await findPatientByRef(
+        this.patientRepository,
+        unitId,
+        patientRef,
+      );
     } catch (error) {
       this.logger.error('Failed to load patient for update', error);
       throw new HttpException(
@@ -263,13 +263,13 @@ export class SessionsService {
     }
 
     if (!patient) {
-      this.logger.warn(`Patient ${dto.patientId} not found for session update`);
+      this.logger.warn(`Patient ${patientRef} not found for session update`);
       throw new HttpException('Patient not found', HttpStatus.NOT_FOUND);
     }
 
     if (patient.unit.id !== unitId) {
       this.logger.warn(
-        `Patient ${dto.patientId} does not belong to unit ${unitId}`,
+        `Patient ${patientRef} does not belong to unit ${unitId}`,
       );
       throw new HttpException(
         'Patient does not belong to this unit',
@@ -277,7 +277,7 @@ export class SessionsService {
       );
     }
 
-    session.patient = { id: dto.patientId } as Patient;
+    session.patient = patient;
     session.sessionDate = dto.sessionDate;
     session.sessionTime = this.normalizeSessionTime(dto.sessionTime);
 

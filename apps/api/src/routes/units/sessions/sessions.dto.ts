@@ -1,8 +1,11 @@
-import { IsNotEmpty, IsUUID, Matches } from 'class-validator';
+import { IsNotEmpty, Matches, MaxLength, MinLength } from 'class-validator';
 
+/** Unit-scoped patient id from the client (e.g. "10", "STUDY-001"). */
 export class SessionDto {
-  @IsUUID()
-  patientId: string;
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(64)
+  patientInputId: string;
 
   // YYYY-MM-DD
   @IsNotEmpty()
