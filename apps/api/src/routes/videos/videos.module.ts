@@ -7,9 +7,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Video } from '@src/infra/db/entity/video/video';
 import { File } from '@src/infra/db/entity/unit/file';
+import { PatientSession } from '@src/infra/db/entity/video/session';
+import { User } from '@src/infra/db/entity/user/user';
 
 @Module({
-  imports: [InfraModule, JwtModule, TypeOrmModule.forFeature([Video, File])],
+  imports: [
+    InfraModule,
+    JwtModule,
+    TypeOrmModule.forFeature([Video, File, PatientSession, User]),
+  ],
   providers: [VideosService],
   controllers: [VideosController],
 })

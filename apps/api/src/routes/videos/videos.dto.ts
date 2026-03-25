@@ -1,10 +1,17 @@
-import { IsNotEmpty, IsOptional, IsArray } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 
 export class VideoMetadataDto {
-  @IsNotEmpty()
+  @IsUUID()
   patientId: string;
-  @IsNotEmpty()
+
+  @IsUUID()
   sessionId: string;
+
   @IsNotEmpty()
   fileName: string;
 }
