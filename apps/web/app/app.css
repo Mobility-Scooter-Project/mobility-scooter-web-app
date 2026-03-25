@@ -9,8 +9,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   --text-display: 34px;
   --text-display--line-height: 41px;
@@ -169,7 +170,16 @@ body {
     @apply bg-background text-foreground;
   }
 
-  .scroll-fade {
-    mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--color-accent);
+    border-radius: 10px;
+    cursor: grab;
   }
 }
