@@ -1,6 +1,7 @@
 import ray
 import json
 import time
+import requests
 from kafka import KafkaConsumer, KafkaProducer
 from datetime import datetime
 
@@ -8,7 +9,12 @@ from utils.logger import logger
 from pipeline.task_identification import TaskIdentification
 from pipeline.pose_estimation import PoseEstimation
 from core.db import DBActor
-from config.config import ALL_STEPS, MAX_STEP_RETRIES
+from config.config import (
+  ALL_STEPS,
+  MAX_STEP_RETRIES,
+  VIDEO_WORKER_COMPLETED_URL,
+  VIDEO_WORKER_SECRET,
+)
 
 @ray.remote
 class KafkaActor:
@@ -52,6 +58,38 @@ class KafkaActor:
     self.pose_actor = PoseEstimation.remote()
     self.audio_actor = TaskIdentification.remote()
     self.db = DBActor.remote()
+
+  def _notify_backend_video_completed(self, video_id, duration_sec):
+    if not VIDEO_WORKER_COMPLETED_URL:
+      return
+
+    payload = {
+      "videoId": video_id,
+      "durationSec": duration_sec,
+    }
+    headers = {
+      "Content-Type": "application/json",
+      "X-Video-Worker-Secret": VIDEO_WORKER_SECRET,
+    }
+
+    try:
+      response = requests.post(
+        VIDEO_WORKER_COMPLETED_URL,
+        json=payload,
+        headers=headers,
+        timeout=10,
+      )
+
+      # Treat anything outside 2xx as a failure (webhook is best-effort).
+      if response.status_code >= 300:
+        logger.error(
+          f"Completion webhook non-2xx for {video_id}: HTTP {response.status_code}"
+        )
+      else:
+        logger.info(f"Completion webhook sent for {video_id}")
+    except requests.RequestException as e:
+      # Transport/runtime failure (DNS, timeout, connection refused, etc.)
+      logger.error(f"Completion webhook failed for {video_id}: {e}")
       
   def consume(self):
     try: 
@@ -134,6 +172,7 @@ class KafkaActor:
         else:
           logger.info(f"Video processing complete after {overall_duration_sec} seconds")
           ray.get(self.db.update_processing_status.remote(video_id, "processed", overall_duration_sec))
+          self._notify_backend_video_completed(video_id, overall_duration_sec)
 
         self.consumer.commit()
     except Exception as e:

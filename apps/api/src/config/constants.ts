@@ -2,6 +2,8 @@ const config = () => ({
   jwtSecret: process.env.JWT_SECRET || 'missing JWT_SECRET',
   baseUrl: process.env.BASE_URL || 'missing BASE_URL',
   environment: process.env.ENVIRONMENT || 'development',
+  videoWorkerSecret:
+    process.env.VIDEO_WORKER_SECRET || 'missing VIDEO_WORKER_SECRET',
 
   database: {
     host: process.env.DATABASE_HOST || 'missing DATABASE_HOST',
