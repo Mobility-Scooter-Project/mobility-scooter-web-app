@@ -8,6 +8,13 @@ DATABASE_URL = environ.get("DATABASE_URL")
 GOOGLE_API_KEY = environ.get("GOOGLE_API_KEY")
 HF_TOKEN = environ.get("HF_TOKEN")
 
+# Shared secret used for x-video-worker-secret
+VIDEO_WORKER_SECRET = environ.get("VIDEO_WORKER_SECRET")
+
+API_BASE_URL = environ.get("API_BASE_URL")
+VIDEO_WORKER_COMPLETED_PATH = "/api/v1/video-worker/completed"
+VIDEO_WORKER_COMPLETED_URL = f"{API_BASE_URL}{VIDEO_WORKER_COMPLETED_PATH}"
+
 WHISPERX_SIZES = [
     "tiny",
     "base",
@@ -30,7 +37,7 @@ VAD_OFFSET = 0.500
 POSE_MODEL = "yolo11n-pose.pt"
 POSE_BATCH_SIZE = 1 # 4 for GPU, 1 for CPU
 POSE_FRAME_SKIP = 6 # process every 6 frames to reduce database writes => 5 frames per second
-MAX_FRAMES = 13 # None for GPU, 13 for CPU
+MAX_FRAMES = 300 # None for GPU, 300 for CPU
 
 # Task Detection Model
 GOOGLE_LLMS = [

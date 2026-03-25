@@ -7,6 +7,7 @@ import { UnitsModule } from './units/units.module';
 import { OrgsModule } from './orgs/orgs.module';
 import { MeModule } from './me/me.module';
 import { VideosModule } from './videos/videos.module';
+import { VideoWorkerModule } from './video-worker/video-worker.module';
 import config, { AppConfig } from '@config/constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -51,6 +52,7 @@ import { KvService } from '@infra/kv/kv.service';
     OrgsModule,
     MeModule,
     VideosModule,
+    VideoWorkerModule,
   ],
   controllers: [AppController],
   providers: [
