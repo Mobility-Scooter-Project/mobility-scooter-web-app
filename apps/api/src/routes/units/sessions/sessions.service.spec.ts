@@ -19,7 +19,10 @@ describe('SessionsService', () => {
   const userId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
   const unitId = '11111111-2222-3333-4444-555555555555';
   const otherUnitId = '99999999-8888-7777-6666-555555555555';
+  /** Internal patient PK (UUID) returned by API as `patientId`. */
   const patientId = '66666666-7777-8888-9999-aaaaaaaaaaaa';
+  /** Unit-scoped client id (SessionDto.patientInputId), e.g. "10". */
+  const patientCode = '10';
   const sessionId = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
 
   const userInUnit = {
@@ -28,7 +31,7 @@ describe('SessionsService', () => {
   } as User;
 
   const dto: SessionDto = {
-    patientId,
+    patientInputId: patientCode,
     sessionDate: '2025-03-01',
     sessionTime: '14:30',
   };
@@ -63,6 +66,7 @@ describe('SessionsService', () => {
     it('creates a session and normalizes session time', async () => {
       const patientInUnit = {
         id: patientId,
+        patientInputId: patientCode,
         unit: { id: unitId },
       } as Patient;
 
@@ -76,7 +80,7 @@ describe('SessionsService', () => {
 
       const result = await service.createSession(userId, unitId, dto);
 
-      expect(result).toEqual({ sessionId });
+      expect(result).toEqual({ sessionId, patientId });
       expect(patientSessionRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionDate: dto.sessionDate,
@@ -122,6 +126,7 @@ describe('SessionsService', () => {
         .mockImplementation((e) => e as Patient);
       jest.spyOn(patientRepository, 'save').mockResolvedValue({
         id: patientId,
+        patientInputId: patientCode,
         unit: { id: unitId },
       } as Patient);
       jest
@@ -135,19 +140,21 @@ describe('SessionsService', () => {
 
       expect(patientRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: patientId,
+          patientInputId: patientCode,
           unit: { id: unitId },
         }),
       );
       expect(patientRepository.save).toHaveBeenCalled();
       expect(result).toEqual({
         sessionId,
+        patientId,
       });
     });
 
     it('throws FORBIDDEN when patient belongs to another unit', async () => {
       jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
         id: patientId,
+        patientInputId: patientCode,
         unit: { id: otherUnitId },
       } as Patient);
 
@@ -175,6 +182,7 @@ describe('SessionsService', () => {
     it('throws INTERNAL_SERVER_ERROR when save fails', async () => {
       jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
         id: patientId,
+        patientInputId: patientCode,
         unit: { id: unitId },
       } as Patient);
       jest
@@ -329,7 +337,7 @@ describe('SessionsService', () => {
     it('updates session when patient and session belong to unit', async () => {
       const newPatientId = 'cccccccc-dddd-eeee-ffff-000000000001';
       const updateDto: SessionDto = {
-        patientId: newPatientId,
+        patientInputId: newPatientId,
         sessionDate: '2025-04-01',
         sessionTime: '16:45',
       };
@@ -339,6 +347,7 @@ describe('SessionsService', () => {
         .mockResolvedValue(existingSession);
       jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
         id: newPatientId,
+        patientInputId: newPatientId,
         unit: { id: unitId },
       } as Patient);
       jest.spyOn(patientSessionRepository, 'save').mockResolvedValue({
@@ -393,6 +402,7 @@ describe('SessionsService', () => {
         .mockResolvedValue(existingSession);
       jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
         id: patientId,
+        patientInputId: patientCode,
         unit: { id: otherUnitId },
       } as Patient);
 
@@ -410,6 +420,7 @@ describe('SessionsService', () => {
         .mockResolvedValue(existingSession);
       jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
         id: patientId,
+        patientInputId: patientCode,
         unit: { id: unitId },
       } as Patient);
       jest

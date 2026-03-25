@@ -16,19 +16,29 @@ export class Patient {
 
   @Column({
     type: 'int',
+    default: 0,
   })
   age: number;
 
   @Column({
     type: 'varchar',
     length: 10,
+    default: 'unknown',
   })
   gender: string;
 
   @Column({
     type: 'jsonb',
+    default: '{}',
   })
   notes: string;
+
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: false,
+  })
+  patientInputId: string;
 
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;

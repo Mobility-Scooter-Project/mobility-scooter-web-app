@@ -50,7 +50,7 @@ export class VideosService {
    * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
    *
    * @param userId - ID of the user creating the video metadata.
-   * @param dto - `patientId`, `sessionId`, `fileName` from validated request body.
+   * @param dto - `patientId` is internal `Patient.id` from session create; plus `sessionId` and `fileName`.
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
    * @throws {HttpException} Throws an HttpException with status INTERNAL_SERVER_ERROR if persisting
