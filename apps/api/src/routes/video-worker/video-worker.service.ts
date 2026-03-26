@@ -52,7 +52,7 @@ export class VideoWorkerService {
    * This handler only validates, logs, and returns canonical state so the API
    * can later hook side effects (e.g. notify clients, unlock tasks) without
    * duplicating `video_worker` writes.
-   * 
+   *
    * @param dto - VideoWorkerCompletedDto containing the videoId and durationSec
    * @returns VideoWorkerCompletionResponse containing the videoId, overallStatus, durationSec, and steps
    * @throws HttpException with appropriate status code and message on failure
@@ -62,7 +62,9 @@ export class VideoWorkerService {
   ): Promise<VideoWorkerCompletionResponse> {
     let video: Video | null;
     try {
-      video = await this.videoRepository.findOne({ where: { id: dto.videoId } });
+      video = await this.videoRepository.findOne({
+        where: { id: dto.videoId },
+      });
     } catch (error) {
       this.logger.error('Failed to load video for completion webhook', error);
       throw new HttpException(
@@ -100,7 +102,9 @@ export class VideoWorkerService {
    * @returns VideoWorkerResyncResponse containing the videoId, overallStatus, durationSec, and steps
    * @throws HttpException with appropriate status code and message on failure
    */
-  public async getWorkerStatus(videoId: string): Promise<VideoWorkerResyncResponse> {
+  public async getWorkerStatus(
+    videoId: string,
+  ): Promise<VideoWorkerResyncResponse> {
     const statusRow = await this.statusRepository.findOne({
       where: { videoId },
       relations: { statusEvent: true },

@@ -9,12 +9,6 @@ import { InfraModule } from '@infra/infra.module';
 
 @Module({
   controllers: [UnitsController, AssignmentsController],
-  imports: [
-    UsersModule,
-    JwtModule,
-    InvitesModule,
-    SessionsModule,
-    InfraModule,
-  ],
+  imports: [UsersModule, JwtModule, InvitesModule, SessionsModule, InfraModule],
 })
 export class UnitsModule {}

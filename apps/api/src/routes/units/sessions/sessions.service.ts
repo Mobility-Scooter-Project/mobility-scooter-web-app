@@ -23,7 +23,7 @@ export class SessionsService {
   /**
    * Creates a patient_session for the given unit after verifying the caller
    * belongs to that unit. If the patient does not exist, it is created in the unit.
-   * 
+   *
    * @param userId - ID of the user creating the session
    * @param unitId - ID of the unit
    * @param dto - SessionDto containing the session details
@@ -109,7 +109,7 @@ export class SessionsService {
    * @param unitId - ID of the unit
    * @returns Array of sessions with sessionId, patientId, sessionDate, and sessionTime
    * @throws HttpException with appropriate status code and message on failure
-   * @returns 
+   * @returns
    */
   public async getSessions(
     userId: string,
@@ -194,9 +194,7 @@ export class SessionsService {
     }
 
     if (!session) {
-      this.logger.warn(
-        `Session ${sessionId} not found for unit ${unitId}`,
-      );
+      this.logger.warn(`Session ${sessionId} not found for unit ${unitId}`);
       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
     }
 

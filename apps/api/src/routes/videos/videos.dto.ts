@@ -1,9 +1,4 @@
-import {
-  IsArray,
-  IsNotEmpty,
-  IsOptional,
-  IsUUID,
-} from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class VideoMetadataDto {
   /** Internal `Patient.id` from `POST .../sessions` (`patientId` in the response). */

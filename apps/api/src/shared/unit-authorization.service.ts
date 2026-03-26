@@ -16,10 +16,7 @@ export class UnitAuthorizationService {
   /**
    * Ensures the user belongs to the given unit.
    */
-  public async assertUserInUnit(
-    userId: string,
-    unitId: string,
-  ): Promise<void> {
+  public async assertUserInUnit(userId: string, unitId: string): Promise<void> {
     let user: User | null;
     try {
       user = await this.userRepository.findOne({
@@ -46,4 +43,3 @@ export class UnitAuthorizationService {
     }
   }
 }
-
