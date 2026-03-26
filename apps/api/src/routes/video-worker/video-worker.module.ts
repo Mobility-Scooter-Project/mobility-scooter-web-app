@@ -12,11 +12,7 @@ import { VideoWorkerController } from './video-worker.controller';
   imports: [
     ConfigModule,
     InfraModule,
-    TypeOrmModule.forFeature([
-      VideoWorkerStatus,
-      VideoWorkerStepStatus,
-      Video,
-    ]),
+    TypeOrmModule.forFeature([VideoWorkerStatus, VideoWorkerStepStatus, Video]),
   ],
   providers: [VideoWorkerService],
   controllers: [VideoWorkerController],

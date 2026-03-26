@@ -75,7 +75,9 @@ describe('VideoWorkerController (e2e)', () => {
       .expect(200);
 
     expect(res.body).toHaveProperty('videoId', videoId);
-    expect(mockVideoWorkerService.getWorkerStatus).toHaveBeenCalledWith(videoId);
+    expect(mockVideoWorkerService.getWorkerStatus).toHaveBeenCalledWith(
+      videoId,
+    );
   });
 
   it('GET /video-worker/:videoId/:step/status returns 200', async () => {
@@ -122,4 +124,3 @@ describe('VideoWorkerController (e2e)', () => {
       .expect(400);
   });
 });
-

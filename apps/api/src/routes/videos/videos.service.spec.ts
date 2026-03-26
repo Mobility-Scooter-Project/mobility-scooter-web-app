@@ -205,12 +205,8 @@ describe('VideosService', () => {
       } as User);
 
       jest.spyOn(s3, 'presignedUrl').mockResolvedValueOnce(videoUrl);
-      jest
-        .spyOn(s3, 'presignedUrl')
-        .mockResolvedValueOnce(transcriptPutUrl);
-      jest
-        .spyOn(s3, 'presignedUrl')
-        .mockResolvedValueOnce(transcriptGetUrl);
+      jest.spyOn(s3, 'presignedUrl').mockResolvedValueOnce(transcriptPutUrl);
+      jest.spyOn(s3, 'presignedUrl').mockResolvedValueOnce(transcriptGetUrl);
 
       const producerSend = jest.fn().mockResolvedValue({});
       jest.spyOn(queue, 'getProducer').mockReturnValue({

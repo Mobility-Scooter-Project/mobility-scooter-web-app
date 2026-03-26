@@ -21,7 +21,13 @@ describe('VideoWorkerService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TypeOrmModule.forFeature([Video, VideoWorkerStatus, VideoWorkerStepStatus])],
+      imports: [
+        TypeOrmModule.forFeature([
+          Video,
+          VideoWorkerStatus,
+          VideoWorkerStepStatus,
+        ]),
+      ],
       providers: [VideoWorkerService],
     })
       .useMocker(createMock)
@@ -54,7 +60,9 @@ describe('VideoWorkerService', () => {
     });
 
     it('throws INTERNAL_SERVER_ERROR when video lookup fails', async () => {
-      jest.spyOn(videoRepository, 'findOne').mockRejectedValue(new Error('db error'));
+      jest
+        .spyOn(videoRepository, 'findOne')
+        .mockRejectedValue(new Error('db error'));
 
       await expect(
         service.markVideoCompleted({ videoId, durationSec: 12 }),
@@ -88,7 +96,10 @@ describe('VideoWorkerService', () => {
         .spyOn(service, 'getWorkerStatus')
         .mockResolvedValue(workerStatus as any);
 
-      const result = await service.markVideoCompleted({ videoId, durationSec: 99 });
+      const result = await service.markVideoCompleted({
+        videoId,
+        durationSec: 99,
+      });
       expect(service.getWorkerStatus).toHaveBeenCalledWith(videoId);
       expect(result).toEqual({ ...workerStatus, acknowledged: true });
     });
@@ -211,7 +222,9 @@ describe('VideoWorkerService', () => {
     });
 
     it('throws INTERNAL_SERVER_ERROR when lookup fails', async () => {
-      jest.spyOn(stepStatusRepository, 'findOne').mockRejectedValue(new Error('db error'));
+      jest
+        .spyOn(stepStatusRepository, 'findOne')
+        .mockRejectedValue(new Error('db error'));
 
       await expect(
         service.getWorkerStepStatus(videoId, step),
@@ -222,4 +235,3 @@ describe('VideoWorkerService', () => {
     });
   });
 });
-

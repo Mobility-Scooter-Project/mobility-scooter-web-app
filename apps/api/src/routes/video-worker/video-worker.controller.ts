@@ -33,7 +33,8 @@ export class VideoWorkerController {
   @Get(':videoId/:step/status')
   async getStepStatus(
     @Param('videoId', ParseUUIDPipe) videoId: string,
-    @Param('step', new ParseEnumPipe(VIDEO_WORKER_STEPS)) step: VIDEO_WORKER_STEPS,
+    @Param('step', new ParseEnumPipe(VIDEO_WORKER_STEPS))
+    step: VIDEO_WORKER_STEPS,
   ) {
     return this.videoWorkerService.getWorkerStepStatus(videoId, step);
   }
@@ -54,9 +55,6 @@ export class VideoWorkerController {
       }
     }
 
-    return this.videoWorkerService.markVideoCompleted(
-      body,
-    );
+    return this.videoWorkerService.markVideoCompleted(body);
   }
-
 }

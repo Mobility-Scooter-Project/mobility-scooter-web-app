@@ -83,7 +83,10 @@ export class VideosService {
       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
     }
 
-    await this.unitAuthorizationService.assertUserInUnit(userId, session.unit.id);
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      session.unit.id,
+    );
 
     if (session.patient.id !== dto.patientId) {
       this.logger.warn(
@@ -280,10 +283,7 @@ export class VideosService {
    * - Expects the repository query to return the video with relations: file.path.
    * - The constructed object key uses the stored file path.
    */
-  async getVideoPresignedUrl(
-    userId: string,
-    videoId: string,
-  ): Promise<string> {
+  async getVideoPresignedUrl(userId: string, videoId: string): Promise<string> {
     let video: VideoWithPath | null;
     try {
       video = (await this.videoRepository.findOne({
@@ -385,5 +385,4 @@ export class VideosService {
       ],
     });
   }
-
 }
