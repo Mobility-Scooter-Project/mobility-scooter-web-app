@@ -11,7 +11,6 @@ export default function AuthLayout() {
   const location = useLocation();
   const path = location.pathname;
 
-  // hyperlink underneath input form
   const underlinkMap: Record<string, { to: string; msg: string }> = {
     "/login": {
       to: "/signup",

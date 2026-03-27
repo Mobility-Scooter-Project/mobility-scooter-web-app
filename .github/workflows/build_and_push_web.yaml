@@ -68,7 +68,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           bbuild-args: |
             VITE_API_BASE_URL=https://cis240470.projects.jetstream-cloud.org
-            VITE_API_KEY=your-secure-api-key-here
+            VITE_API_KEY=your-api-key
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2

@@ -21,8 +21,8 @@ WORKDIR /usr/src/mswa
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # expose env var to build process
 ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ARG VITE_API_KEY
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_API_KEY=$VITE_API_KEY
 # Run the build script (likely using Turborepo) to compile all apps.
 RUN pnpm build
