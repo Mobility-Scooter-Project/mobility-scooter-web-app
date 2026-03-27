@@ -28,14 +28,14 @@ services:
       - REDPANDA_ADVERTISED_LISTENERS=PLAINTEXT://
 
   web:
-    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO_NAME/web:develop
+    image: ghcr.io/Mobility-Scooter-Project/mobility-scooter-web-app/web:develop
     ports:
       - "80:3000"
     depends_on:
       - api
 
   api:
-    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO_NAME/api:develop
+    image: ghcr.io/Mobility-Scooter-Project/mobility-scooter-web-app/api:develop
     ports:
       - "3000:3000"
     depends_on:
@@ -43,7 +43,7 @@ services:
       - kv
 
   worker:
-    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO_NAME/worker:develop
+    image: ghcr.io/Mobility-Scooter-Project/mobility-scooter-web-app/worker:develop
     depends_on:
       - db
       - queue
