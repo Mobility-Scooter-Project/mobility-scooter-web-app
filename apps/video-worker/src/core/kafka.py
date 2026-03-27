@@ -1,0 +1,181 @@
+import ray
+import json
+import time
+import requests
+from kafka import KafkaConsumer, KafkaProducer
+from datetime import datetime
+
+from utils.logger import logger
+from pipeline.task_identification import TaskIdentification
+from pipeline.pose_estimation import PoseEstimation
+from core.db import DBActor
+from config.config import (
+  ALL_STEPS,
+  MAX_STEP_RETRIES,
+  VIDEO_WORKER_COMPLETED_URL,
+  VIDEO_WORKER_SECRET,
+)
+
+@ray.remote
+class KafkaActor:
+  def __init__(self, brokers, topic, group_id="ray-group"):
+    retry_count = 0
+    connected = False
+    while retry_count < 5 and not connected:
+      try:
+        self.consumer = KafkaConsumer(
+          bootstrap_servers=brokers,
+          group_id=group_id,
+          auto_offset_reset="earliest",
+          client_id="video_worker",
+          enable_auto_commit=False,
+          max_poll_interval_ms=60 * 60 * 1000,  # 1 hour (CPU)
+          max_poll_records=1, # consume only one message at a time (CPU)
+        )
+          
+      except Exception as e:
+        logger.error(f"Failed to connect to broker: {e}")
+        delay = 3 + retry_count
+        logger.debug(f"Failed to connect to broker, retrying in {delay} seconds")
+        retry_count += 1
+        time.sleep(delay)
+      else:
+        connected = True
+        self.consumer.subscribe([topic])
+        logger.info(f"Successfully connected to broker after {retry_count + 1} attempt(s)")
+        self.producer = KafkaProducer(
+          bootstrap_servers=brokers,
+          value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+          key_serializer=lambda k: k.encode("utf-8") if k else None,
+        )
+          
+    if not connected:
+      error = f"Failed to connect to broker after {retry_count} attempt(s)"
+      raise Exception(error)
+
+    self.topic = topic
+    
+    self.pose_actor = PoseEstimation.remote()
+    self.audio_actor = TaskIdentification.remote()
+    self.db = DBActor.remote()
+
+  def _notify_backend_video_completed(self, video_id, duration_sec):
+    if not VIDEO_WORKER_COMPLETED_URL:
+      return
+
+    payload = {
+      "videoId": video_id,
+      "durationSec": duration_sec,
+    }
+    headers = {
+      "Content-Type": "application/json",
+      "X-Video-Worker-Secret": VIDEO_WORKER_SECRET,
+    }
+
+    try:
+      response = requests.post(
+        VIDEO_WORKER_COMPLETED_URL,
+        json=payload,
+        headers=headers,
+        timeout=10,
+      )
+
+      # Treat anything outside 2xx as a failure (webhook is best-effort).
+      if response.status_code >= 300:
+        logger.error(
+          f"Completion webhook non-2xx for {video_id}: HTTP {response.status_code}"
+        )
+      else:
+        logger.info(f"Completion webhook sent for {video_id}")
+    except requests.RequestException as e:
+      # Transport/runtime failure (DNS, timeout, connection refused, etc.)
+      logger.error(f"Completion webhook failed for {video_id}: {e}")
+      
+  def consume(self):
+    try: 
+      for msg in self.consumer:
+        data = json.loads(msg.value)
+        
+        video_id = data["id"]
+        video_url = data["url"]
+        transcript_put_url = data["transcriptPutUrl"]
+        transcript_get_url = data["transcriptGetUrl"]
+        filename = data["filename"]
+
+        # Reset per-step attempts when we receive a new upload for this video
+        ray.get(self.db.reset_step_attempts.remote(video_id))
+
+        # if not provided, set all steps
+        steps = set(data.get("steps", [])) or ALL_STEPS
+        # skip pose for side-view videos (filename contains "side")
+        if "side" in filename.lower():
+          steps.discard("pose_estimation")
+  
+        start = datetime.now()
+        ray.get(self.db.update_processing_status.remote(video_id, "processing"))
+
+        refs = {}
+        if "pose_estimation" in steps:
+          refs["pose_estimation"] = self.pose_actor.process_video.remote(video_url, filename, video_id)
+
+        if "transcription" in steps or "task_detection" in steps:
+          skip_transcription = "transcription" not in steps
+          refs["task_identification"] = self.audio_actor.process_video.remote(
+            video_url, transcript_put_url, transcript_get_url, filename, video_id,
+            skip_transcription=skip_transcription,
+          )
+
+        has_failure = False
+        for name, ref in refs.items():
+          try:
+            ray.get(ref)
+          except Exception as e:
+            logger.error(f"{name} failed for {video_id}: {e}")
+            has_failure = True
+
+        end = datetime.now()
+        overall_duration_sec = round((end - start).total_seconds(), 3)
+
+        if has_failure:
+          logger.error(
+            f"Processing had failures, took {overall_duration_sec} seconds"
+          )
+
+          retryable, exhausted = ray.get(
+            self.db.get_retryable_steps.remote(video_id, MAX_STEP_RETRIES)
+          )
+
+          if retryable:
+            retry_msg = {
+              "id": video_id,
+              "url": video_url,
+              "filename": filename,
+              "transcriptPutUrl": transcript_put_url,
+              "transcriptGetUrl": transcript_get_url,
+              "steps": list(retryable),
+            }
+            time.sleep(1)
+            self.producer.send(self.topic, key=video_id, value=retry_msg)
+            self.producer.flush()
+            logger.info(f"Queued retry for {video_id}, steps: {retryable}")
+
+          if exhausted:
+            logger.error(f"Steps exhausted all {MAX_STEP_RETRIES} retries for {video_id}: {exhausted}")
+
+          if not retryable and exhausted:
+            status = "partially_processed" if any(
+              s not in exhausted for s in ALL_STEPS
+            ) else "failed"
+            ray.get(self.db.update_processing_status.remote(video_id, status, overall_duration_sec))
+            logger.error(f"Video {video_id} marked '{status}': no retryable steps remain")
+
+        else:
+          logger.info(f"Video processing complete after {overall_duration_sec} seconds")
+          ray.get(self.db.update_processing_status.remote(video_id, "processed", overall_duration_sec))
+          self._notify_backend_video_completed(video_id, overall_duration_sec)
+
+        self.consumer.commit()
+    except Exception as e:
+      logger.error(f"Failed to consume messages: {e}")
+      raise e
+        
