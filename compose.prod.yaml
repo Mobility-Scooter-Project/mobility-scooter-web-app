@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "postgres"
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+  
+  kv:
+    image: valkey/valkey:latest
+    ports:
+      - "6379:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+  
+  queue:
+    image: redpandadata/redpanda
+    ports:
+      - "127.0.0.1:9092:9092"
+    volumes:
+      - queue:/var/lib/redpanda/data
+    environment:
+      - REDPANDA_AUTO_CREATE_TOPICS_ENABLE=true
+      - REDPANDA_ADVERTISED_LISTENERS=PLAINTEXT://
+
+  web:
+    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO_NAME/web:develop
+    ports:
+      - "80:3000"
+    depends_on:
+      - api
+
+  api:
+    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO_NAME/api:develop
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - kv
+
+  worker:
+    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO_NAME/worker:develop
+    depends_on:
+      - db
+      - queue
+
+volumes:
+  db:
+  queue:  
