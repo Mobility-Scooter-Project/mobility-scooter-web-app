@@ -1,5 +1,11 @@
 import { SCHEMAS } from '@config/schemas';
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Unit } from './unit';
 
@@ -10,23 +16,34 @@ export class Patient {
 
   @Column({
     type: 'int',
+    default: 0,
   })
   age: number;
 
   @Column({
     type: 'varchar',
     length: 10,
+    default: 'unknown',
   })
   gender: string;
 
   @Column({
     type: 'jsonb',
+    default: '{}',
   })
   notes: string;
+
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: false,
+  })
+  patientInputId: string;
 
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Unit, (unit) => unit.id)
+  @ManyToOne(() => Unit, { nullable: false })
+  @JoinColumn()
   unit: Unit;
 }

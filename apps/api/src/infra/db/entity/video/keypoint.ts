@@ -1,10 +1,16 @@
 import { SCHEMAS } from '@config/schemas';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 import { CreateUpdateFields } from '../shared';
 import { Video } from './video';
-import { Assignment } from '../unit/assignment';
 
 @Entity({ schema: SCHEMAS.VIDEOS })
+@Unique(['video', 'frameIndex'])
 export class Keypoint {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -12,14 +18,26 @@ export class Keypoint {
   @Column(() => CreateUpdateFields)
   cu: CreateUpdateFields;
 
+  @ManyToOne(() => Video, { nullable: false })
+  video: Video;
+
+  @Column({
+    type: 'int',
+  })
+  frameIndex: number;
+
+  @Column({
+    type: 'double precision',
+  })
+  timestamp: number;
+
+  @Column({
+    type: 'double precision',
+  })
+  angle: number;
+
   @Column({
     type: 'jsonb',
   })
-  data: Record<string, any>;
-
-  @ManyToOne(() => Video, (video) => video.id)
-  video: Video;
-
-  @ManyToOne(() => Assignment, (assignment) => assignment.id)
-  assignment: Assignment;
+  keypoints: Record<string, any>;
 }

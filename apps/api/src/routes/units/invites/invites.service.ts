@@ -69,8 +69,8 @@ export class InvitesService {
     let inviteId: string;
     try {
       const inviteRecord = {
-        unitId,
-        senderId: userId,
+        unit: { id: unitId },
+        invitedBy: { id: userId },
         role,
         expiresAt: new Date(exp * 1000),
         invite_url: 'TODO FE',

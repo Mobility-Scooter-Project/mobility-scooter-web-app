@@ -4,4 +4,5 @@ export enum SCHEMAS {
   USERS = 'users',
   VIDEOS = 'videos',
   ASSIGNMENTS = 'assignments',
+  VIDEO_WORKER = 'video_worker',
 }
