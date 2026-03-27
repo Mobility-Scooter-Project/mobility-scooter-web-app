@@ -96,13 +96,13 @@ function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
 
 // Updated video sources
 const VIDEO_1 =
-  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
 const VIDEO_2 =
-  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
 const VIDEO_3 =
-  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 const VIDEO_4 =
-  "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 
 /* ---------------- Mock Data ---------------- */
 
