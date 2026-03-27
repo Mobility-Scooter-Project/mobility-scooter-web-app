@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from "react-router";
 import { Button } from "~/components/Button";
 import { publicOnlyLoader } from "~/lib/auth";
 
-// Prevent authenticated users from accessing public auth pages (login, signup, etc)
+// Prevent authenticated users from accessing public auth pages (login, signup, etc) 
 export async function clientLoader({ request }: { request: Request }) {
   return await publicOnlyLoader({ request });
 }
