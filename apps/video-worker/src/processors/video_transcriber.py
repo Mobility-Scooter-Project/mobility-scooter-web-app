@@ -29,6 +29,7 @@ from utils.logger import logger
 from whisperx.diarize import DiarizationPipeline 
 from config.config import HF_TOKEN, WHISPERX_SIZE, BATCH_SIZE, COMPUTE_TYPE, VAD_ONSET, VAD_OFFSET
 
+# gpu actions to be replaced by model service
 class VideoTranscriber:
   def __init__(self):
     self.model_device = "cuda" if torch.cuda.is_available() else "cpu"
