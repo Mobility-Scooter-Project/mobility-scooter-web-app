@@ -38,8 +38,13 @@ export enum INVITE_STATUS {
   REVOKED = 'revoked',
 }
 
-export enum VIDEO_WORKER_STEPS {
+export enum VIDEO_WORKER_OVERALL_STATUS {
+  PROCESSED = 'processed',
+  FAILED = 'failed',
+  PARTIALLY_PROCESSED = 'partially_processed',
+}
+
+export enum VIDEO_WORKER_COMPLETED_STEPS {
   POSE_ESTIMATION = 'pose_estimation',
-  TRANSCRIPTION = 'transcription',
   TASK_DETECTION = 'task_detection',
 }

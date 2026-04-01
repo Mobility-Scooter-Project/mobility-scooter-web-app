@@ -54,38 +54,18 @@ class DBActor():
     else:
       self.connection.commit()
   
-  def get_retryable_steps(self, video_id, max_retries):
-    """Return failed steps that haven't exhausted their per-step retry limit.
-    If transcription is retryable, task_detection is also included (dependency).
+  def update_step_status(
+    self,
+    video_id,
+    step,
+    status,
+    error=None,
+    duration_sec=None,
+    attempts=1,
+  ):
     """
-    self._lazyInit()
-    query = """
-      SELECT step, attempts FROM video_worker.step_status
-      WHERE "videoId" = %s AND status = 'failed';
+    Upsert per-step row for a terminal outcome (processing, completed or failed) with explicit attempt count.
     """
-    try:
-      self.cursor.execute(query, (video_id,))
-      rows = self.cursor.fetchall()
-
-      retryable = []
-      exhausted = []
-      for step, attempts in rows:
-        if attempts < max_retries:
-          retryable.append(step)
-        else:
-          exhausted.append(step)
-
-      if "transcription" in retryable and "task_detection" not in retryable:
-        retryable.append("task_detection")
-
-      return retryable, exhausted
-
-    except Exception as e:
-      logger.error(f"Failed to get retryable steps: {e}")
-      return [], []
-
-  def update_step_status(self, video_id, step, status, error=None, duration_sec=None):
-    """Upsert per-step status and append an audit event."""
     self._lazyInit()
     query = """
       WITH new_event AS (
@@ -94,11 +74,11 @@ class DBActor():
         RETURNING id
       )
       INSERT INTO video_worker.step_status ("videoId", step, status, attempts, "lastError", "durationSec")
-      VALUES (%s, %s, %s, 1, %s, %s)
+      VALUES (%s, %s, %s, %s, %s, %s)
       ON CONFLICT ("videoId", step)
       DO UPDATE SET
         status = EXCLUDED.status,
-        attempts = video_worker.step_status.attempts + CASE WHEN EXCLUDED.status = 'processing' THEN 1 ELSE 0 END,
+        attempts = EXCLUDED.attempts,
         "lastError" = EXCLUDED."lastError",
         "durationSec" = EXCLUDED."durationSec",
         "cuUpdatedat" = NOW();
@@ -106,27 +86,21 @@ class DBActor():
     try:
       self.cursor.execute(
         query,
-        (video_id, step, status, video_id, step, status, error, duration_sec),
+        (
+          video_id,
+          step,
+          status,
+          video_id,
+          step,
+          status,
+          attempts,
+          error,
+          duration_sec,
+        ),
       )
     except Exception as e:
       self.connection.rollback()
       logger.error(f"Failed to update step status ({step}={status}): {e}")
-    else:
-      self.connection.commit()
-
-  def reset_step_attempts(self, video_id):
-    """Reset per-step attempts and status for a given video upload."""
-    self._lazyInit()
-    query = """
-      UPDATE video_worker.step_status
-      SET attempts = 0
-      WHERE "videoId" = %s;
-    """
-    try:
-      self.cursor.execute(query, (video_id,))
-    except Exception as e:
-      self.connection.rollback()
-      logger.error(f"Failed to reset step attempts for video {video_id}: {e}")
     else:
       self.connection.commit()
 

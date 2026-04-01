@@ -29,7 +29,7 @@ class TaskDetector:
     Parse model text output into a list of tasks.
 
     Supports:
-    - JSON array: [{"time": 1.2, "task": "..."}, ...]
+    - JSON array: [{"timestamp": 1.2, "task": "..."}, ...]
     - Line-based: "time, task" per line
     """
     if not text or not text.strip():
@@ -52,17 +52,17 @@ class TaskDetector:
       if not task:
         continue
       
-      tasks.append({"time": t, "task": task})
+      tasks.append({"timestamp": t, "task": task})
 
-    tasks.sort(key=lambda x: x["time"])
+    tasks.sort(key=lambda x: x["timestamp"])
     return tasks
 
   def detect_task(self, transcript_csv: str):
     """
     Detect tasks from transcript CSV text.
 
-    Returns a list of { "time": float, "task": str }.
-    Retries on transient failures.
+    Returns (tasks, attempt_count) where tasks is a list of
+    { "timestamp": float, "task": str }. Retries on transient failures.
     """
     prompt = self._load_transcript(transcript_csv)
 
@@ -76,7 +76,7 @@ class TaskDetector:
           contents=f"{prompt}",
           config={"temperature": 0.0},
         )
-        return self._parse_tasks_text(response.text)
+        return self._parse_tasks_text(response.text), attempt + 1
 
       except Exception as e:
         logger.error(f"Task detection attempt {attempt + 1} failed: {e}")

@@ -13,7 +13,10 @@ VIDEO_WORKER_SECRET = environ.get("VIDEO_WORKER_SECRET")
 
 API_BASE_URL = environ.get("API_BASE_URL")
 VIDEO_WORKER_COMPLETED_PATH = "/api/v1/video-worker/completed"
+VIDEO_WORKER_STEP_COMPLETED_PATH = "/api/v1/video-worker/step-completed"
+
 VIDEO_WORKER_COMPLETED_URL = f"{API_BASE_URL}{VIDEO_WORKER_COMPLETED_PATH}"
+VIDEO_WORKER_STEP_COMPLETED_URL = f"{API_BASE_URL}{VIDEO_WORKER_STEP_COMPLETED_PATH}"
 
 WHISPERX_SIZES = [
     "tiny",
@@ -52,5 +55,8 @@ TASK_DETECTION_MODEL = "gemma-3-27b-it"  # Choose from the above list
 # Pipeline retry configuration
 ALL_STEPS = {"pose_estimation", "transcription", "task_detection"}
 MAX_STEP_RETRIES = 3
+# Backoff cap for step retries (seconds)
+STEP_RETRY_BACKOFF_CAP_SEC = 60
+
 TASK_DETECTION_MAX_RETRIES = 2
-TASK_DETECTION_RETRY_DELAY = 60  # seconds between task detection retries
+TASK_DETECTION_RETRY_DELAY = 60  # seconds between task detection retries (seconds)

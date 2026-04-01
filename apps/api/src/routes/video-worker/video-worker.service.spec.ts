@@ -8,6 +8,10 @@ import { VideoWorkerService } from './video-worker.service';
 import { VideoWorkerStatus } from '@infra/db/entity/video-worker/status';
 import { VideoWorkerStepStatus } from '@infra/db/entity/video-worker/step-status';
 import { Video } from '@infra/db/entity/video/video';
+import {
+  VIDEO_WORKER_COMPLETED_STEPS,
+  VIDEO_WORKER_OVERALL_STATUS,
+} from '@config/enums';
 
 describe('VideoWorkerService', () => {
   let service: VideoWorkerService;
@@ -52,7 +56,11 @@ describe('VideoWorkerService', () => {
       jest.spyOn(videoRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
-        service.markVideoCompleted({ videoId, durationSec: 12 }),
+        service.markVideoCompleted({
+          videoId,
+          durationSec: 12,
+          overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
+        }),
       ).rejects.toMatchObject({
         response: 'Video not found',
         status: HttpStatus.NOT_FOUND,
@@ -65,7 +73,11 @@ describe('VideoWorkerService', () => {
         .mockRejectedValue(new Error('db error'));
 
       await expect(
-        service.markVideoCompleted({ videoId, durationSec: 12 }),
+        service.markVideoCompleted({
+          videoId,
+          durationSec: 12,
+          overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
+        }),
       ).rejects.toMatchObject({
         response: 'Internal Server Error',
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -79,17 +91,9 @@ describe('VideoWorkerService', () => {
 
       const workerStatus = {
         videoId,
-        overallStatus: 'processed',
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
         durationSec: 99,
-        steps: [
-          {
-            step: 'transcription',
-            status: 'processed',
-            attempts: 2,
-            lastError: null,
-            durationSec: 12,
-          },
-        ],
+        steps: [{ step: 'transcription', status: 'processed' }],
       };
 
       jest
@@ -99,9 +103,55 @@ describe('VideoWorkerService', () => {
       const result = await service.markVideoCompleted({
         videoId,
         durationSec: 99,
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
       });
       expect(service.getWorkerStatus).toHaveBeenCalledWith(videoId);
       expect(result).toEqual({ ...workerStatus, acknowledged: true });
+    });
+  });
+
+  describe('markStepCompleted', () => {
+    it('throws NOT_FOUND when video is missing', async () => {
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.markStepCompleted({
+          videoId,
+          step: VIDEO_WORKER_COMPLETED_STEPS.TASK_DETECTION,
+          durationSec: 10,
+        }),
+      ).rejects.toMatchObject({
+        response: 'Video not found',
+        status: HttpStatus.NOT_FOUND,
+      });
+    });
+
+    it('returns canonical step state and acknowledged=true', async () => {
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
+        id: videoId,
+      } as Video);
+
+      const stepSnapshot = {
+        videoId,
+        step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+        status: 'completed',
+        attempts: 1,
+        durationSec: 12,
+      };
+
+      jest.spyOn(service, 'getWorkerStepStatus').mockResolvedValue(stepSnapshot);
+
+      const result = await service.markStepCompleted({
+        videoId,
+        step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+        durationSec: 12,
+      });
+
+      expect(service.getWorkerStepStatus).toHaveBeenCalledWith(
+        videoId,
+        VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+      );
+      expect(result).toEqual({ ...stepSnapshot, acknowledged: true });
     });
   });
 
@@ -110,7 +160,7 @@ describe('VideoWorkerService', () => {
       jest.spyOn(statusRepository, 'findOne').mockResolvedValue({
         videoId,
         durationSec: 123,
-        statusEvent: { status: 'processed' },
+        statusEvent: { status: VIDEO_WORKER_OVERALL_STATUS.PROCESSED },
       } as any);
 
       jest.spyOn(stepStatusRepository, 'find').mockResolvedValue([
@@ -144,23 +194,11 @@ describe('VideoWorkerService', () => {
 
       expect(result).toEqual({
         videoId,
-        overallStatus: 'processed',
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
         durationSec: 123,
         steps: [
-          {
-            step: 'step1',
-            status: 'done',
-            attempts: 2,
-            lastError: 'boom',
-            durationSec: 9,
-          },
-          {
-            step: 'step2',
-            status: 'pending',
-            attempts: 0,
-            lastError: null,
-            durationSec: null,
-          },
+          { step: 'step1', status: 'done' },
+          { step: 'step2', status: 'pending' },
         ],
       });
     });
@@ -201,7 +239,6 @@ describe('VideoWorkerService', () => {
         step,
         status: 'done',
         attempts: 3,
-        lastError: 'err',
         durationSec: 7,
       });
     });
@@ -215,8 +252,7 @@ describe('VideoWorkerService', () => {
         videoId,
         step,
         status: null,
-        attempts: null,
-        lastError: null,
+        attempts: 0,
         durationSec: null,
       });
     });

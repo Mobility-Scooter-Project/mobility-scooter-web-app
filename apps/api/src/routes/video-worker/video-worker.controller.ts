@@ -12,8 +12,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/constants';
-import { VIDEO_WORKER_STEPS } from '@config/enums';
-import { VideoWorkerCompletedDto } from './video-worker-status.dto';
+import { VIDEO_WORKER_COMPLETED_STEPS } from '@config/enums';
+import {
+  VideoWorkerCompletedDto,
+  VideoWorkerStepCompletedDto,
+} from './video-worker-status.dto';
 import { VideoWorkerService } from './video-worker.service';
 
 @Controller('video-worker')
@@ -23,23 +26,23 @@ export class VideoWorkerController {
     private readonly videoWorkerService: VideoWorkerService,
   ) {}
 
-  /** Frontend status polling/read endpoint. */
+  // Get overallstatus for a video. 
   @Get(':videoId/status')
   async getStatus(@Param('videoId', ParseUUIDPipe) videoId: string) {
     return this.videoWorkerService.getWorkerStatus(videoId);
   }
 
-  /** Get status for a single processing step for a video. */
+  // Get status for a single processing step for a video. 
   @Get(':videoId/:step/status')
   async getStepStatus(
     @Param('videoId', ParseUUIDPipe) videoId: string,
-    @Param('step', new ParseEnumPipe(VIDEO_WORKER_STEPS))
-    step: VIDEO_WORKER_STEPS,
+    @Param('step', new ParseEnumPipe(VIDEO_WORKER_COMPLETED_STEPS))
+    step: VIDEO_WORKER_COMPLETED_STEPS,
   ) {
     return this.videoWorkerService.getWorkerStepStatus(videoId, step);
   }
 
-  /** Internal completion webhook used by worker when processing is done. */
+  // Internal completion webhook used by worker when processing is done. 
   @Post('completed')
   @HttpCode(200)
   async markCompleted(
@@ -56,5 +59,23 @@ export class VideoWorkerController {
     }
 
     return this.videoWorkerService.markVideoCompleted(body);
+  }
+
+  // Internal webhook when `pose_estimation` or `task_detection` reaches completion.
+  @Post('step-completed')
+  @HttpCode(200)
+  async markStepCompleted(
+    @Body() body: VideoWorkerStepCompletedDto,
+    @Headers('X-Video-Worker-Secret') secretHeader?: string,
+  ) {
+    const expectedSecret = this.configService.get('videoWorkerSecret');
+
+    if (expectedSecret) {
+      if (!secretHeader || secretHeader !== expectedSecret) {
+        throw new UnauthorizedException('Invalid webhook secret');
+      }
+    }
+
+    return this.videoWorkerService.markStepCompleted(body);
   }
 }

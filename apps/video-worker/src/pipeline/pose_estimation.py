@@ -12,8 +12,16 @@ from ultralytics import YOLO
 from ray.experimental.tqdm_ray import tqdm
  
 from utils.logger import logger
+from utils.retry import step_retry_sleep
 from core.db import DBActor
-from config.config import POSE_MODEL, POSE_BATCH_SIZE, POSE_FRAME_SKIP, MAX_FRAMES
+from core.api_webhook import notify_step_completed
+from config.config import (
+  POSE_MODEL,
+  POSE_BATCH_SIZE,
+  POSE_FRAME_SKIP,
+  MAX_FRAMES,
+  MAX_STEP_RETRIES,
+)
  
 device = "cuda" if torch.cuda.is_available() else "cpu"
 num_gpus = 0.5 if device == "cuda" else 0
@@ -338,23 +346,37 @@ class PoseEstimation:
           logger.error(f"Failed to clean up temp file: {e}")
  
   def process_video(self, video_url, filename, video_id):
+    """
+    Run pose with in-process retries; persist terminal step status. Returns completed/failed step names.
+
+    Args:
+      video_url (str): The URL of the video to process.
+      filename (str): The filename of the video.
+      video_id (str): The ID of the video.
+
+    Returns:
+      str: The name of the step that was completed or failed.
+    """
     ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "processing"))
-    step_start = datetime.now()
-    try:
-      self._run_pose_estimation(video_url, filename, video_id)
-    except Exception as e:
-      logger.error(f"Pose estimation failed for {filename}: {e}")
-      ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "failed", str(e)))
-      raise
-    else:
-      step_end = datetime.now()
-      duration_sec = round((step_end - step_start).total_seconds(), 3)
-      logger.info(
-        f"Pose estimation complete for {filename} in {duration_sec:.2f} seconds"
-      )
-      ray.get(
-        self.db.update_step_status.remote(
-          video_id, "pose_estimation", "completed", None, duration_sec
-        )
-      )
+    start_time = datetime.now()
+    for attempt in range(1, MAX_STEP_RETRIES + 1):
+      try:
+        self._run_pose_estimation(video_url, filename, video_id)
+        duration_sec = round((datetime.now() - start_time).total_seconds(), 3)
+        logger.info(f"[pose_estimation] completed for {video_id} in {duration_sec} seconds")
+
+        # update step status as completed and notify backend
+        ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "completed", None, duration_sec, attempt))
+        notify_step_completed(video_id, "pose_estimation", duration_sec)
+        return "completed"
+      except Exception as e:
+        logger.error(f"[pose_estimation] failed for {video_id} (attempt {attempt}/{MAX_STEP_RETRIES}): {e}")
+
+        # if max retries reached, update step status as failed and notify backend
+        if attempt >= MAX_STEP_RETRIES:
+          duration_sec = round((datetime.now() - start_time).total_seconds(), 3)
+          ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "failed", str(e), duration_sec, attempt))
+          return "failed"
+
+        step_retry_sleep(attempt - 1)
         

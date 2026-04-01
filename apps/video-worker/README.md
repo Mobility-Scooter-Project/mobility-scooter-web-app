@@ -13,9 +13,17 @@ Python worker that consumes video-processing jobs from Kafka, runs selected pipe
   - keypoints to `videos.keypoint`
   - tasks to `videos.video_task`
   - step/overall status to `video_worker.step_status` and `video_worker.status`
-- Sends completion webhook to API:
-  - `POST {API_BASE_URL}/api/v1/video-worker/completed`
-  - Header: `X-Video-Worker-Secret`
+- Sends webhooks to API (same header `X-Video-Worker-Secret`):
+  - **Keypoints ready** (`pose_estimation` → `completed`): `POST {API_BASE_URL}/api/v1/video-worker/step-completed`
+  - **Tasks available** (`task_detection` → `completed`): `POST {API_BASE_URL}/api/v1/video-worker/step-completed`
+  - **Overall job finished** (terminal overall status after DB commit): `POST {API_BASE_URL}/api/v1/video-worker/completed`
+
+  Body includes `videoId`, `durationSec`, and `overallStatus`: `processed` (all steps succeeded), `failed` (all relevant steps failed after retries), or `partially_processed` (some steps succeeded, some exhausted retries). Same as success path, **failed** runs are notified so the client can stop polling and show errors.
+
+  `step-completed` is best-effort and currently emitted only when:
+  - `pose_estimation` reaches `completed` (not `failed`)
+  - `task_detection` reaches `completed` (not intermediate `failed` attempts)
+  This lets the UI switch to displaying keypoints/tasks without reacting to retry failures.
 
 ## Message format
 
@@ -79,14 +87,16 @@ The worker starts Ray, creates a Kafka actor, subscribes to topic `videos`, and 
 
 ## Retry behavior
 
-- Per-step retries are tracked in DB (`video_worker.step_status.attempts`).
-- Global retry cap is controlled by `MAX_STEP_RETRIES` in `src/config/config.py`.
-- If failed steps are retryable, worker republishes a reduced `steps` set to Kafka.
-- If retries are exhausted, overall status is marked `partially_processed` or `failed`.
+- Per-step retries run **in-process** inside `PoseEstimation` / `TaskIdentification` (exponential backoff via `utils/retry.py`); the worker does **not** republish to Kafka for step retries.
+- **Pose** and the **transcription/task_detection** pipeline are started in **parallel** (both `.remote()` before `ray.get`), so GPU/CPU work can overlap again.
+- Terminal outcomes are written once to `video_worker.step_status` via `update_step_status` (`completed` or `failed` with `attempts` set to the attempt number that produced the outcome).
+- `MAX_STEP_RETRIES` in `src/config/config.py` caps each step.
+- When any step fails, overall status is `partially_processed` if some other requested step succeeded, otherwise `failed`.
 
 ## Related API endpoints
 
 - `GET /api/v1/video-worker/:videoId/status`
 - `GET /api/v1/video-worker/:videoId/:step/status`
 - `POST /api/v1/video-worker/completed`
+- `POST /api/v1/video-worker/step-completed`
 

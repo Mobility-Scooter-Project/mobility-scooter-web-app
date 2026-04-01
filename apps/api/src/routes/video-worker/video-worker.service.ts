@@ -4,39 +4,37 @@ import { Repository } from 'typeorm';
 import { VideoWorkerStatus } from '@infra/db/entity/video-worker/status';
 import { VideoWorkerStepStatus } from '@infra/db/entity/video-worker/step-status';
 import { Video } from '@infra/db/entity/video/video';
-import { VideoWorkerCompletedDto } from './video-worker-status.dto';
+import {
+  VideoWorkerCompletedDto,
+  VideoWorkerStepCompletedDto,
+} from './video-worker-status.dto';
 
-export type WorkerStepInfo = {
-  step: string;
-  status: string;
-  attempts: number;
-  lastError: string | null;
-  durationSec: number | null;
-};
-
-export type VideoWorkerResyncResponse = {
-  videoId: string;
-  overallStatus: string | null;
-  durationSec: number | null;
-  steps: WorkerStepInfo[];
-};
-
-export type VideoWorkerStepStatusResponse = {
+type StepStatusInfo = {
   videoId: string;
   step: string;
   status: string | null;
-  attempts: number | null;
-  lastError: string | null;
   durationSec: number | null;
+  attempts: number;
 };
 
-export type VideoWorkerCompletionResponse = VideoWorkerResyncResponse & {
-  acknowledged: true;
+type StatusInfo = {
+  videoId: string;
+  overallStatus: string | null;
+  durationSec: number | null;
+  steps: { step: string; status: string }[];
+};
+
+type StepCompletionResponse = StepStatusInfo & {
+  acknowledged: boolean;
+};
+
+type CompletionResponse = StatusInfo & {
+  acknowledged: boolean;
 };
 
 @Injectable()
 export class VideoWorkerService {
-  private readonly logger = new Logger(VideoWorkerService.name);
+  private logger = new Logger(VideoWorkerService.name);
 
   constructor(
     @InjectRepository(VideoWorkerStatus)
@@ -52,14 +50,14 @@ export class VideoWorkerService {
    * This handler only validates, logs, and returns canonical state so the API
    * can later hook side effects (e.g. notify clients, unlock tasks) without
    * duplicating `video_worker` writes.
-   *
-   * @param dto - VideoWorkerCompletedDto containing the videoId and durationSec
-   * @returns VideoWorkerCompletionResponse containing the videoId, overallStatus, durationSec, and steps
+   * 
+   * @param dto - VideoWorkerCompletedDto (videoId, durationSec, overallStatus)
+   * @returns CompletionResponse containing the videoId, overallStatus, durationSec, and steps
    * @throws HttpException with appropriate status code and message on failure
    */
   public async markVideoCompleted(
     dto: VideoWorkerCompletedDto,
-  ): Promise<VideoWorkerCompletionResponse> {
+  ): Promise<CompletionResponse> {
     let video: Video | null;
     try {
       video = await this.videoRepository.findOne({
@@ -77,19 +75,11 @@ export class VideoWorkerService {
       throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
     }
 
-    if (dto.durationSec !== undefined) {
-      this.logger.log(
-        `Completion webhook: videoId=${dto.videoId} worker reported durationSec=${dto.durationSec}`,
-      );
-    }
-
+    this.logger.log(
+      `Completion webhook: videoId=${dto.videoId} status=${dto.overallStatus} durationSec=${dto.durationSec}`,
+    );
+    
     const status = await this.getWorkerStatus(dto.videoId);
-
-    if (status.overallStatus !== 'processed') {
-      this.logger.warn(
-        `Completion webhook for ${dto.videoId} but DB overallStatus is "${status.overallStatus}"`,
-      );
-    }
 
     // Future: emit event / enqueue work so UI can show tasks, etc.
 
@@ -97,14 +87,48 @@ export class VideoWorkerService {
   }
 
   /**
-   * Gets the worker status for a given video.
-   * @param videoId - ID of the video
-   * @returns VideoWorkerResyncResponse containing the videoId, overallStatus, durationSec, and steps
+   * Mark a step as completed.
+   * @param dto - VideoWorkerStepCompletedDto (videoId, step, durationSec)
+   * @returns StepCompletionResponse containing the videoId, step, status, attempts, durationSec, and acknowledged
    * @throws HttpException with appropriate status code and message on failure
    */
-  public async getWorkerStatus(
-    videoId: string,
-  ): Promise<VideoWorkerResyncResponse> {
+  public async markStepCompleted(
+    dto: VideoWorkerStepCompletedDto,
+  ): Promise<StepCompletionResponse> {
+    let video: Video | null;
+    try {
+      video = await this.videoRepository.findOne({ where: { id: dto.videoId } });
+    } catch (error) {
+      this.logger.error('Failed to load video for step webhook', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (!video) {
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
+    }
+
+    this.logger.log(
+      `Step webhook: videoId=${dto.videoId} step=${dto.step} durationSec=${dto.durationSec}`,
+    );
+
+    const step_status = await this.getWorkerStepStatus(dto.videoId, dto.step);
+   
+    return {
+      ...step_status,
+      acknowledged: true,
+    };
+  }
+
+  /**
+   * Gets the worker status for a given video.
+   * @param videoId - ID of the video
+   * @returns StatusInfo containing the videoId, overallStatus, durationSec, and steps
+   * @throws HttpException with appropriate status code and message on failure
+   */
+  public async getWorkerStatus(videoId: string): Promise<StatusInfo> {
     const statusRow = await this.statusRepository.findOne({
       where: { videoId },
       relations: { statusEvent: true },
@@ -121,9 +145,6 @@ export class VideoWorkerService {
       steps: steps.map((s) => ({
         step: s.step,
         status: s.status,
-        attempts: s.attempts,
-        lastError: s.lastError,
-        durationSec: s.durationSec,
       })),
     };
   }
@@ -132,13 +153,13 @@ export class VideoWorkerService {
    * Gets the worker step status for a given video and step.
    * @param videoId - ID of the video
    * @param step - The step to get the status for
-   * @returns VideoWorkerStepStatusResponse containing the videoId, step, status, attempts, lastError, and durationSec
+   * @returns StepStatusInfo containing the videoId, step, status, attempts, durationSec
    * @throws HttpException with appropriate status code and message on failure
    */
   public async getWorkerStepStatus(
     videoId: string,
     step: string,
-  ): Promise<VideoWorkerStepStatusResponse> {
+  ): Promise<StepStatusInfo> {
     let stepRow: VideoWorkerStepStatus | null;
     try {
       stepRow = await this.stepStatusRepository.findOne({
@@ -152,14 +173,13 @@ export class VideoWorkerService {
       );
     }
 
-    // If the step row doesn't exist yet, surface a null status instead of 404 so polling clients can keep waiting.
+    // If the step row doesn't exist yet, surface a null status instead of 404
     return {
       videoId,
       step,
       status: stepRow?.status ?? null,
-      attempts: stepRow?.attempts ?? null,
-      lastError: stepRow?.lastError ?? null,
       durationSec: stepRow?.durationSec ?? null,
+      attempts: stepRow?.attempts ?? 0,
     };
   }
 }
