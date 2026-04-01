@@ -56,7 +56,7 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE TYPE "units"."assignment_status_enum" AS ENUM('todo', 'in_progress', 'submitted', 'approved', 'denied')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "units"."assignment" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "dueBy" TIMESTAMP NOT NULL, "status" "units"."assignment_status_enum" NOT NULL DEFAULT 'todo', "sessionId" uuid NOT NULL, "assignedToId" uuid NOT NULL, "assignedById" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "REL_54d5f4839413371d1316ef58ec" UNIQUE ("sessionId"), CONSTRAINT "REL_321b7c9b8b021bbb72c0dd6601" UNIQUE ("assignedToId"), CONSTRAINT "REL_89872b43ab55aa4e9058fadb9d" UNIQUE ("assignedById"), CONSTRAINT "PK_43c2f5a3859f54cedafb270f37e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "units"."assignment" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "dueBy" TIMESTAMP NOT NULL, "status" "units"."assignment_status_enum" NOT NULL DEFAULT 'todo', "sessionId" uuid NOT NULL, "assignedToId" uuid NOT NULL, "assignedById" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "REL_54d5f4839413371d1316ef58ec" UNIQUE ("sessionId"), CONSTRAINT "PK_43c2f5a3859f54cedafb270f37e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "videos"."video_label" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "data" jsonb NOT NULL, "videoId" uuid NOT NULL, "assignmentId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_cb58407551f39f22ac8df128152" PRIMARY KEY ("id"))`,
@@ -98,7 +98,7 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE TYPE "units"."unit_invite_status_enum" AS ENUM('pending', 'accepted', 'revoked')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "units"."unit_invite" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "role" "units"."unit_invite_role_enum" NOT NULL, "expiresAt" TIMESTAMP NOT NULL, "invite_url" text NOT NULL, "status" "units"."unit_invite_status_enum" NOT NULL DEFAULT 'pending', "inviteeEmail" character varying(255) NOT NULL, "unitId" uuid NOT NULL, "invitedById" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "REL_a55a0b7a4b51ad002f4fdbee6c" UNIQUE ("unitId"), CONSTRAINT "REL_0cde52749dda28cc3f1b1aa3a0" UNIQUE ("invitedById"), CONSTRAINT "PK_42f3eb5a196648b1f27e6d41edb" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "units"."unit_invite" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "role" "units"."unit_invite_role_enum" NOT NULL, "expiresAt" TIMESTAMP NOT NULL, "invite_url" text NOT NULL, "status" "units"."unit_invite_status_enum" NOT NULL DEFAULT 'pending', "inviteeEmail" character varying(255) NOT NULL, "unitId" uuid NOT NULL, "invitedById" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "PK_42f3eb5a196648b1f27e6d41edb" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "orgs"."org" ADD CONSTRAINT "FK_6110d072780dc2530458daa22f8" FOREIGN KEY ("applicationId") REFERENCES "orgs"."application"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
