@@ -10,12 +10,16 @@ import { File } from '@src/infra/db/entity/unit/file';
 import { PatientSession } from '@src/infra/db/entity/video/session';
 import { User } from '@src/infra/db/entity/user/user';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
+import { KeypointsModule } from './keypoints/keypoints.module';
+import { VideoTasksModule } from './tasks/video-tasks.module';
 
 @Module({
   imports: [
     InfraModule,
     JwtModule,
     TypeOrmModule.forFeature([Video, File, PatientSession, User]),
+    KeypointsModule,
+    VideoTasksModule,
   ],
   providers: [VideosService, UnitAuthorizationService],
   controllers: [VideosController],
