@@ -113,5 +113,32 @@ describe('VideoWorkerSseService', () => {
       expect.stringContaining('"videoId":"v1"'),
     );
   });
+
+  it('completes the stream after emitting terminal overall status', async () => {
+    const terminalPayload = {
+      type: 'overall' as const,
+      videoId: 'vid-a',
+      overallStatus: 'processed',
+      durationSec: 9,
+      steps: [],
+    };
+
+    const received: string[] = [];
+    await new Promise<void>((resolve, reject) => {
+      service.streamForVideo('vid-a').subscribe({
+        next: (evt) => received.push(String(evt.data)),
+        error: reject,
+        complete: resolve,
+      });
+
+      messageHandler(
+        'mswa:video-worker-status',
+        JSON.stringify(terminalPayload),
+      );
+    });
+
+    expect(received).toHaveLength(1);
+    expect(received[0]).toBe(JSON.stringify(terminalPayload));
+  });
 });
 

@@ -1,8 +1,9 @@
 import { Injectable, Logger, MessageEvent } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
+import { filter, map, takeWhile } from 'rxjs/operators';
 import Redis from 'ioredis';
 import { KvService } from '@infra/kv/kv.service';
+import { VIDEO_WORKER_OVERALL_STATUS } from '@config/enums';
 
 type VideoWorkerSsePayload =
   | {
@@ -39,6 +40,8 @@ export class VideoWorkerSseService {
    * Called once during app boot when this provider is instantiated.
    * Sets up the Redis pub/sub subscription so worker status events can be fanned out
    * to SSE clients connected to this API instance.
+   * 
+   * @throws Error if the Redis subscription or duplicate connection fails.
    */
   public async onModuleInit(): Promise<void> {
     try {
@@ -60,12 +63,9 @@ export class VideoWorkerSseService {
           this.logger.warn('Ignoring invalid SSE fanout message', error);
         }
       });
-
-      // Enable redis fan-out in `emit()`.
       this.redisFanout = true;
       this.logger.log(`Subscribed to Redis channel ${REDIS_CHANNEL} for worker SSE`);
     } catch (error) {
-      // If Redis subscription fails, fall back to in-process delivery only.
       this.logger.warn(
         `Redis SSE subscriber failed; using in-process fanout only (${(error as Error).message})`,
       );
@@ -85,6 +85,8 @@ export class VideoWorkerSseService {
    * Lifecycle hook:
    * Called once when the app/module is shutting down.
    * Cleans up the Redis pub/sub subscription to avoid dangling connections.
+   * 
+   * @throws Error if the Redis unsubscribe or quit fails.
    */
   public async onModuleDestroy(): Promise<void> {
     if (!this.subscriber) {
@@ -106,6 +108,7 @@ export class VideoWorkerSseService {
    * If Redis fanout is off, emits only locally.
    *
    * @param payload - The worker status event to publish.
+   * @throws Error if the Redis publish or local delivery fails.
    */
   emit(payload: VideoWorkerSsePayload): void {
     try {
@@ -115,7 +118,6 @@ export class VideoWorkerSseService {
         void this.kvService.kv
           .publish(REDIS_CHANNEL, JSON.stringify(payload))
           .catch((err: Error) => {
-            // If publish fails, still deliver locally so the UI doesn't stop updating.
             this.logger.warn(
               `SSE Redis publish failed, emitting locally: ${err.message}`,
             );
@@ -125,7 +127,6 @@ export class VideoWorkerSseService {
         this.bus.next(payload);
       }
     } catch (error) {
-      // Defensive fallback: don't let an exception prevent UI updates.
       this.logger.warn(
         `SSE emit error, attempting local delivery: ${(error as Error).message}`,
       );
@@ -140,11 +141,22 @@ export class VideoWorkerSseService {
    * @returns An Observable of SSE `MessageEvent`s for the video.
    */
   streamForVideo(videoId: string): Observable<MessageEvent> {
-    // Create a per-request stream view over the shared in-memory bus:
-    // 1) filter events to only the requested `videoId`
-    // 2) adapt them into SSE `MessageEvent`s (JSON string payload)
+    // Create a per-request stream view over the shared in-memory bus
+    // filter events to only the requested `videoId` and auto-complete after the terminal `overall` status so the SSE connection can close.
     return this.bus.asObservable().pipe(
       filter((e) => e.videoId === videoId),
+      takeWhile(
+        (e) =>
+          !(
+            e.type === 'overall' &&
+            e.overallStatus !== null &&
+            Object.values(VIDEO_WORKER_OVERALL_STATUS).includes(
+              e.overallStatus as VIDEO_WORKER_OVERALL_STATUS,
+            )
+          ),
+        // Include the terminal `overall` event, then complete.
+        true,
+      ),
       map(
         (e) =>
           ({
