@@ -1,4 +1,10 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import {
   VIDEO_WORKER_OVERALL_STATUS,
   VIDEO_WORKER_COMPLETED_STEPS,
@@ -18,7 +24,7 @@ export class VideoWorkerCompletedDto {
   overallStatus: VIDEO_WORKER_OVERALL_STATUS;
 }
 
-// Webhook payload when `pose_estimation` or `task_detection` completes successfully (no `failed` path). 
+// Webhook payload when `pose_estimation` or `task_detection` completes successfully (no `failed` path).
 export class VideoWorkerStepCompletedDto {
   @IsNotEmpty()
   @IsUUID()

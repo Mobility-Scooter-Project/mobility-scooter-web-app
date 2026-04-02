@@ -68,10 +68,9 @@ describe('VideoTasksService', () => {
     it('asserts user can access the video before querying', async () => {
       await service.getVideoTasks(userId, videoId);
 
-      expect(videoAuthorizationService.assertUserCanAccessVideo).toHaveBeenCalledWith(
-        userId,
-        videoId,
-      );
+      expect(
+        videoAuthorizationService.assertUserCanAccessVideo,
+      ).toHaveBeenCalledWith(userId, videoId);
     });
 
     it('loads tasks via video join query', async () => {
@@ -111,7 +110,9 @@ describe('VideoTasksService', () => {
     });
 
     it('returns empty array when row exists but tasks is missing', async () => {
-      queryBuilder.getOne.mockResolvedValue({ tasks: undefined } as unknown as VideoTask);
+      queryBuilder.getOne.mockResolvedValue({
+        tasks: undefined,
+      } as unknown as VideoTask);
 
       const result = await service.getVideoTasks(userId, videoId);
 
@@ -123,7 +124,9 @@ describe('VideoTasksService', () => {
         new HttpException('Video not found', HttpStatus.NOT_FOUND),
       );
 
-      await expect(service.getVideoTasks(userId, videoId)).rejects.toMatchObject({
+      await expect(
+        service.getVideoTasks(userId, videoId),
+      ).rejects.toMatchObject({
         response: 'Video not found',
         status: HttpStatus.NOT_FOUND,
       });

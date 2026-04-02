@@ -8,6 +8,7 @@ import {
   VideoWorkerCompletedDto,
   VideoWorkerStepCompletedDto,
 } from './video-worker-status.dto';
+import { VideoWorkerSseService } from './sse/video-worker-sse.service';
 
 type StepStatusInfo = {
   videoId: string;
@@ -43,6 +44,7 @@ export class VideoWorkerService {
     private readonly stepStatusRepository: Repository<VideoWorkerStepStatus>,
     @InjectRepository(Video)
     private readonly videoRepository: Repository<Video>,
+    private readonly videoWorkerSseService: VideoWorkerSseService,
   ) {}
 
   /**
@@ -50,7 +52,7 @@ export class VideoWorkerService {
    * This handler only validates, logs, and returns canonical state so the API
    * can later hook side effects (e.g. notify clients, unlock tasks) without
    * duplicating `video_worker` writes.
-   * 
+   *
    * @param dto - VideoWorkerCompletedDto (videoId, durationSec, overallStatus)
    * @returns CompletionResponse containing the videoId, overallStatus, durationSec, and steps
    * @throws HttpException with appropriate status code and message on failure
@@ -78,10 +80,17 @@ export class VideoWorkerService {
     this.logger.log(
       `Completion webhook: videoId=${dto.videoId} status=${dto.overallStatus} durationSec=${dto.durationSec}`,
     );
-    
+
     const status = await this.getWorkerStatus(dto.videoId);
 
-    // Future: emit event / enqueue work so UI can show tasks, etc.
+    // emit event / enqueue work so client knows the video is completed
+    this.videoWorkerSseService.emit({
+      type: 'overall',
+      videoId: dto.videoId,
+      overallStatus: status.overallStatus,
+      durationSec: status.durationSec,
+      steps: status.steps,
+    });
 
     return { ...status, acknowledged: true };
   }
@@ -97,7 +106,9 @@ export class VideoWorkerService {
   ): Promise<StepCompletionResponse> {
     let video: Video | null;
     try {
-      video = await this.videoRepository.findOne({ where: { id: dto.videoId } });
+      video = await this.videoRepository.findOne({
+        where: { id: dto.videoId },
+      });
     } catch (error) {
       this.logger.error('Failed to load video for step webhook', error);
       throw new HttpException(
@@ -115,7 +126,17 @@ export class VideoWorkerService {
     );
 
     const step_status = await this.getWorkerStepStatus(dto.videoId, dto.step);
-   
+
+    // emit event / enqueue work so client knows the step is completed and UI can show tasks
+    this.videoWorkerSseService.emit({
+      type: 'step',
+      videoId: dto.videoId,
+      step: step_status.step,
+      status: step_status.status,
+      durationSec: step_status.durationSec,
+      attempts: step_status.attempts,
+    });
+
     return {
       ...step_status,
       acknowledged: true,

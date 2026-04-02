@@ -5,6 +5,7 @@ import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { VideoWorkerService } from './video-worker.service';
+import { VideoWorkerSseService } from './sse/video-worker-sse.service';
 import { VideoWorkerStatus } from '@infra/db/entity/video-worker/status';
 import { VideoWorkerStepStatus } from '@infra/db/entity/video-worker/step-status';
 import { Video } from '@infra/db/entity/video/video';
@@ -23,7 +24,10 @@ describe('VideoWorkerService', () => {
   const videoId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
   const step = 'transcription';
 
+  const videoWorkerSseService = { emit: jest.fn() };
+
   beforeEach(async () => {
+    videoWorkerSseService.emit.mockClear();
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forFeature([
@@ -32,7 +36,10 @@ describe('VideoWorkerService', () => {
           VideoWorkerStepStatus,
         ]),
       ],
-      providers: [VideoWorkerService],
+      providers: [
+        VideoWorkerService,
+        { provide: VideoWorkerSseService, useValue: videoWorkerSseService },
+      ],
     })
       .useMocker(createMock)
       .compile();
@@ -107,6 +114,13 @@ describe('VideoWorkerService', () => {
       });
       expect(service.getWorkerStatus).toHaveBeenCalledWith(videoId);
       expect(result).toEqual({ ...workerStatus, acknowledged: true });
+      expect(videoWorkerSseService.emit).toHaveBeenCalledWith({
+        type: 'overall',
+        videoId,
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
+        durationSec: 99,
+        steps: workerStatus.steps,
+      });
     });
   });
 
@@ -139,7 +153,9 @@ describe('VideoWorkerService', () => {
         durationSec: 12,
       };
 
-      jest.spyOn(service, 'getWorkerStepStatus').mockResolvedValue(stepSnapshot);
+      jest
+        .spyOn(service, 'getWorkerStepStatus')
+        .mockResolvedValue(stepSnapshot);
 
       const result = await service.markStepCompleted({
         videoId,
@@ -152,6 +168,14 @@ describe('VideoWorkerService', () => {
         VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
       );
       expect(result).toEqual({ ...stepSnapshot, acknowledged: true });
+      expect(videoWorkerSseService.emit).toHaveBeenCalledWith({
+        type: 'step',
+        videoId,
+        step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+        status: 'completed',
+        durationSec: 12,
+        attempts: 1,
+      });
     });
   });
 
