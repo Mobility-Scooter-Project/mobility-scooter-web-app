@@ -165,7 +165,6 @@ class PoseEstimation:
     for result, (frame_idx, timestamp) in zip(batch_results, batch_metadata):
       # Skip frame if no detections
       if result.keypoints is None or result.boxes is None:
-        logger.debug(f"No detections at frame {frame_idx}.")
         continue
 
       # Get boxes 
@@ -176,6 +175,10 @@ class PoseEstimation:
 
       # Get normalized keypoints
       keypoints_norm = result.keypoints.xyn
+
+      # Skip frames where YOLO returns empty tensors (non-None but size 0).
+      if len(boxes) == 0 or len(keypoints_px) == 0 or len(keypoints_norm) == 0:
+        continue
 
       # Keypoints confidence
       keypoints_conf = result.keypoints.conf if hasattr(result.keypoints, "conf") else None

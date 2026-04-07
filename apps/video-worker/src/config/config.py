@@ -40,7 +40,7 @@ VAD_OFFSET = 0.500
 POSE_MODEL = "yolo11n-pose.pt"
 POSE_BATCH_SIZE = 1 # 4 for GPU, 1 for CPU
 POSE_FRAME_SKIP = 6 # process every 6 frames to reduce database writes => 5 frames per second
-MAX_FRAMES = 300 # keep at 300 for testing, None for production
+MAX_FRAMES = None # keep at 300 for short testing, None for production
 
 # Task Detection Model
 GOOGLE_LLMS = [
