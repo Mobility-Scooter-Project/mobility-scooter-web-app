@@ -1,21 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { useSessionDataSync } from "~/hooks/useSessionDataSync";
-import { VideoStageToggles } from "./VideoStageToggles";
-import { VideoSurface } from "./VideoSurface";
+import { useAnalysisData } from "~/hooks/useAnalysisData";
 import { useVideoStore } from "~/stores/useVideoStore";
-
-export type StageOverlayKey = "gait" | "sway" | "points";
-
-const DEFAULT_OVERLAYS: Record<StageOverlayKey, boolean> = {
-  gait: true,
-  sway: false,
-  points: false,
-};
+import { VideoStageToggles } from "./VideoStageToggles";
+import { StageOverlay } from "./StageOverlay";
 
 export function VideoStage() {
   const { activeSession, activeViewId } = useSessionDataSync();
-
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const isPlaying = useVideoStore((s) => s.isPlaying);
@@ -26,17 +18,11 @@ export function VideoStage() {
     (s) => s.actions,
   );
 
-  const currentView = activeSession?.views.find((view) => view.id === activeViewId);
+  const currentView = activeSession?.views.find(
+    (view) => view.id === activeViewId,
+  );
 
-  const [enabledOverlays, setEnabledOverlays] =
-    useState<Record<StageOverlayKey, boolean>>(DEFAULT_OVERLAYS);
-
-  const handleToggle = (key: StageOverlayKey) => {
-    setEnabledOverlays((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  const fetchedFrames = useAnalysisData(currentView?.framesUrl, "csv");
 
   useEffect(() => {
     const video = videoRef.current;
@@ -51,12 +37,9 @@ export function VideoStage() {
     if (!video) return;
 
     if (isPlaying) {
-      void video.play().catch(() => {
-        setIsPlaying(false);
-      });
+      void video.play().catch(() => setIsPlaying(false));
       return;
     }
-
     video.pause();
   }, [isPlaying, setIsPlaying]);
 
@@ -64,7 +47,9 @@ export function VideoStage() {
     const video = videoRef.current;
     if (!video) return;
 
-    const maxTime = Number.isFinite(video.duration) ? video.duration : currentTime;
+    const maxTime = Number.isFinite(video.duration)
+      ? video.duration
+      : currentTime;
     const nextTime = Math.max(0, Math.min(currentTime, maxTime));
 
     if (Math.abs(video.currentTime - nextTime) > 0.05) {
@@ -85,19 +70,16 @@ export function VideoStage() {
 
   return (
     <section className="flex flex-col gap-y-3">
-      <VideoStageToggles
-        enabledOverlays={enabledOverlays}
-        onToggle={handleToggle}
-      />
+      <VideoStageToggles />
 
-      <VideoSurface enabledOverlays={enabledOverlays}>
+      <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black">
         {currentView?.videoUrl ? (
           <video
             key={currentView.id}
             ref={videoRef}
             src={currentView.videoUrl}
             preload="metadata"
-            className="block aspect-video w-full object-cover"
+            className="block h-full w-full object-contain"
             onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
             onDurationChange={(e) => setDuration(e.currentTarget.duration)}
             onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
@@ -106,11 +88,13 @@ export function VideoStage() {
             controls={false}
           />
         ) : (
-          <div className="flex aspect-video items-center justify-center rounded-3xl bg-black/5">
-            <span className="text-label text-foreground">No video selected</span>
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-label text-white/50">No video selected</span>
           </div>
         )}
-      </VideoSurface>
+
+        <StageOverlay frames={fetchedFrames} />
+      </div>
     </section>
   );
 }

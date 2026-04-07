@@ -51,6 +51,7 @@ export type View = {
   points: Point[];
   annotations: Annotation[];
   risks: Risk[];
+  framesUrl?: string;
 };
 
 export type Session = {
@@ -64,17 +65,21 @@ export type Session = {
 /* ---------------- Helpers ---------------- */
 
 /**
- * Generates mock point data for a session view.
+ * Generates mock point data for a session view, matching the YOLO CSV output.
  */
 function generatePoints(variation: "standard" | "injured" | "mixed"): Point[] {
   const basePoints: Point[] = [
     { id: 1, name: "Nose", status: "visible" },
     { id: 2, name: "Left Shoulder", status: "visible" },
     { id: 3, name: "Right Shoulder", status: "visible" },
-    { id: 4, name: "Left Elbow", status: "visible" },
-    { id: 5, name: "Right Elbow", status: "visible" },
-    { id: 6, name: "Left Hip", status: "visible" },
-    { id: 7, name: "Right Hip", status: "visible" },
+    { id: 4, name: "Midpoint Shoulder", status: "visible" },
+    { id: 5, name: "Left Elbow", status: "visible" },
+    { id: 6, name: "Right Elbow", status: "visible" },
+    { id: 7, name: "Left Wrist", status: "visible" },
+    { id: 8, name: "Right Wrist", status: "visible" },
+    { id: 9, name: "Left Hip", status: "visible" },
+    { id: 10, name: "Right Hip", status: "visible" },
+    { id: 11, name: "Midpoint Hip", status: "visible" },
   ];
 
   if (variation === "injured") {
@@ -348,6 +353,23 @@ export const MOCK_SESSIONS: Session[] = [
             source: "model",
           },
         ],
+      },
+    ],
+  },
+  {
+    id: 6,
+    date: "10/25/2025",
+    notification: true,
+    views: [
+      {
+        id: "v1",
+        label: "AI Overlay Test",
+        videoUrl: "/videos/test-video.mp4",
+        points: generatePoints("standard"),
+        chapters: [],
+        annotations: [],
+        risks: [],
+        framesUrl: "/data/videos_keypoint.csv",
       },
     ],
   },

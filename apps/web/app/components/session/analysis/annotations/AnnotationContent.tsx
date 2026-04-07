@@ -28,7 +28,7 @@ export function AnnotationContent() {
       </PanelSectionHeader>
 
       <PanelSectionBody>
-        <PanelScrollArea>
+        <PanelScrollArea className="pb-4.5">
           <AnnotationList />
         </PanelScrollArea>
       </PanelSectionBody>

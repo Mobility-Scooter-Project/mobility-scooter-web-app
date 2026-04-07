@@ -34,7 +34,7 @@ export function PointsContent() {
       </PanelSectionHeader>
 
       <PanelSectionBody>
-        <PanelScrollArea>
+        <PanelScrollArea className="pb-4.5">
           <PointList />
         </PanelScrollArea>
       </PanelSectionBody>
