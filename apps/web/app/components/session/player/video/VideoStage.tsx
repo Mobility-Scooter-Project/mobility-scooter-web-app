@@ -1,13 +1,16 @@
 import { useEffect, useRef } from "react";
 
-import { useSessionDataSync } from "~/hooks/useSessionDataSync";
+import type { View } from "~/data/mock-session-data";
 import { useAnalysisData } from "~/hooks/useAnalysisData";
 import { useVideoStore } from "~/stores/useVideoStore";
 import { VideoStageToggles } from "./VideoStageToggles";
 import { StageOverlay } from "./StageOverlay";
 
-export function VideoStage() {
-  const { activeSession, activeViewId } = useSessionDataSync();
+interface VideoStageProps {
+  activeView: View | null;
+}
+
+export function VideoStage({ activeView }: VideoStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const isPlaying = useVideoStore((s) => s.isPlaying);
@@ -18,12 +21,8 @@ export function VideoStage() {
     (s) => s.actions,
   );
 
-  const currentView = activeSession?.views.find(
-    (view) => view.id === activeViewId,
-  );
-
-  const fetchedFrames = useAnalysisData(currentView?.framesUrl, "csv");
-
+  const fetchedFrames = useAnalysisData(activeView?.framesUrl, "csv");
+  
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -57,6 +56,7 @@ export function VideoStage() {
     }
   }, [currentTime]);
 
+  // Reset playback position and read duration when the active view changes.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -66,18 +66,18 @@ export function VideoStage() {
     if (video.readyState >= 1 && Number.isFinite(video.duration)) {
       setDuration(video.duration);
     }
-  }, [currentView?.id, setCurrentTime, setDuration]);
+  }, [activeView?.id, setCurrentTime, setDuration]);
 
   return (
     <section className="flex flex-col gap-y-3">
       <VideoStageToggles />
 
       <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black">
-        {currentView?.videoUrl ? (
+        {activeView?.videoUrl ? (
           <video
-            key={currentView.id}
+            key={activeView.id}
             ref={videoRef}
-            src={currentView.videoUrl}
+            src={activeView.videoUrl}
             preload="metadata"
             className="block h-full w-full object-contain"
             onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}

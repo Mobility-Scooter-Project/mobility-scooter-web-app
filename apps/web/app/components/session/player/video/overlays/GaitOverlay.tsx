@@ -1,6 +1,6 @@
 import type { VideoFrameData } from "~/types/overlay";
-import { useCurrentKeypoints } from "./shared/useCurrentKeypoints";
-import { KEYPOINT_TO_NAME } from "./shared/overlay-utils";
+import { useCurrentKeypoints } from "./useCurrentKeypoints";
+import { KEYPOINT_TO_NAME } from "./overlay-utils";
 import { usePointStore } from "~/stores/usePointsStore";
 
 const SKELETON_CONNECTIONS: [string, string][] = [

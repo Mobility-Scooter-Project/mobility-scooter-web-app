@@ -1,6 +1,6 @@
 import { SessionCard } from "~/components/session/directory/SessionCard";
 import type { Session } from "~/data/mock-session-data";
-import { useSessionMRUSort } from "~/hooks/session/useMRUSort";
+import { useSessionMRUSort } from "~/hooks/useMRUSort";
 
 interface SessionListProps {
   /* List of sessions to display */

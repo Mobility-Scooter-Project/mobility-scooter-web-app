@@ -1,8 +1,8 @@
 import type { VideoFrameData } from "~/types/overlay";
-import { useCurrentKeypoints } from "./shared/useCurrentKeypoints";
+import { useCurrentKeypoints } from "./useCurrentKeypoints";
 import { useSelectionStore } from "~/stores/useSelectionStore";
 import { usePointStore } from "~/stores/usePointsStore";
-import { KEYPOINT_TO_NAME } from "./shared/overlay-utils";
+import { KEYPOINT_TO_NAME } from "./overlay-utils";
 
 interface PointsOverlayProps {
   frames: VideoFrameData[];
