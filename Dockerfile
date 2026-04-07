@@ -19,6 +19,11 @@ WORKDIR /usr/src/mswa
 # Install dependencies using a cache mount to speed up subsequent pnpm installs.
 # --frozen-lockfile ensures the build fails if the lockfile is out of sync.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+# expose env var to build process
+ARG VITE_API_BASE_URL
+ARG VITE_API_KEY
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_API_KEY=$VITE_API_KEY
 # Run the build script (likely using Turborepo) to compile all apps.
 RUN pnpm build
 
@@ -46,7 +51,7 @@ CMD [ "pnpm", "start" ]
 # 5. PYTHON WORKER: BUILDER STAGE
 # ==========================================
 # Start with a slim Python image to build the worker environment.
-FROM python:3.12-slim AS worker-builder
+FROM python:3.11-slim AS worker-builder
 
 # Install system-level build tools needed for C++ or database extensions.
 # rm -rf /var/lib/apt/lists/* keeps the layer size small.
@@ -78,7 +83,7 @@ COPY ./apps/video-worker/ /app/
 # 6. PYTHON WORKER: FINAL RUNTIME
 # ==========================================
 # Start fresh with a clean Python image (this discards the 1GB+ of build tools).
-FROM python:3.12-slim AS worker
+FROM python:3.11-slim AS worker
 
 # Install only the runtime libraries (graphics and database drivers).
 RUN apt-get update && apt-get install --no-install-recommends -y \

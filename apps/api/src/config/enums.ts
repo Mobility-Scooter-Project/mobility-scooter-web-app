@@ -37,3 +37,9 @@ export enum INVITE_STATUS {
   ACCEPTED = 'accepted',
   REVOKED = 'revoked',
 }
+
+export enum VIDEO_WORKER_STEPS {
+  POSE_ESTIMATION = 'pose_estimation',
+  TRANSCRIPTION = 'transcription',
+  TASK_DETECTION = 'task_detection',
+}

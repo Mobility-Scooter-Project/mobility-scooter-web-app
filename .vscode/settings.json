@@ -1,4 +1,6 @@
 {
   "cSpell.words": ["emailpass", "healthcheck", "mswa", "TOTP"],
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "python.defaultInterpreterPath": "${workspaceFolder}/apps/video-worker/.venv/bin/python",
+  "python.terminal.useEnvFile": true
 }

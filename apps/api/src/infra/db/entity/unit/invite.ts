@@ -1,4 +1,10 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { INVITE_STATUS, USER_ROLES } from '@config/enums';
 import { CreateUpdateDeleteFields } from '../shared';
 import { Unit } from './unit';
@@ -42,9 +48,11 @@ export class UnitInvite {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Unit, (unit) => unit.id)
+  @OneToOne(() => Unit, { nullable: false })
+  @JoinColumn()
   unit: Unit;
 
-  @OneToOne(() => User, (user) => user.id)
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   invitedBy: User;
 }

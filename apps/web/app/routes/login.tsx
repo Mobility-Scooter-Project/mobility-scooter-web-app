@@ -1,56 +1,73 @@
 // routes/login.tsx
 import { Eye, EyeOff } from "lucide-react";
-import { useState, type KeyboardEventHandler } from "react";
-import {
-  Form,
-  Link,
-  redirect,
-  useActionData,
-  type ActionFunctionArgs,
-} from "react-router";
+import { useState, type KeyboardEventHandler, useEffect } from "react";
+import { Form, Link, useActionData, useNavigate } from "react-router";
 import { Button } from "~/components/Button";
 import { TextInput } from "~/components/TextInput";
+import { redirect, type ActionFunctionArgs } from "react-router";
+import { userAuthStore } from "~/lib/auth";
+import { API_BASE_URL } from "~/config/constants";
 
+/**
+ * Server action to handle login form submission
+ *
+ * Flow:
+ * 1. Extract email and password from form
+ * 2. POST to /api/v1/auth/email to get access token
+ * 3. Return token to client (server cannot use Zustand)
+ * 4. Client useEffect handles Zustand store update and redirect
+ *
+ * @param request - Contains form data with email and password
+ * @returns Object with error or success with token
+ */
 export async function action({ request }: ActionFunctionArgs) {
-  const fd = await request.formData();
-  const email = String(fd.get("email") ?? "");
-  const password = String(fd.get("password") ?? "");
+  const formData = await request.formData();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const res = await fetch("http://localhost:3000/api/v1/auth/email", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/email`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!res.ok) {
-    let msg = "";
-    try {
-      msg = (await res.json())?.error ?? "";
-    } catch {}
-    return { error: msg || "Invalid email or password." };
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.message || "Login failed" };
+    }
+
+    const data = await response.json();
+
+    // Forward Set-Cookie header from API response to client response
+    const headers = new Headers();
+    
+    if (response.headers.getSetCookie) {
+      response.headers.getSetCookie().forEach((cookie) => {
+        headers.append("Set-Cookie", cookie);
+      });
+    } else {
+      const setCookie = response.headers.get("Set-Cookie");
+      if (setCookie) {
+        headers.append("Set-Cookie", setCookie);
+      }
+    }
+
+    return Response.json(
+      { success: true, token: data.token },
+      { headers }
+    );
+  } catch (error) {
+    return { error: "Network error occurred" };
   }
-
-  const data = await res.json();
-
-  return redirect("/", {
-    headers: {
-      "Set-Cookie": `auth=${data.token}; Path=/; HttpOnly; SameSite=Lax; Secure`,
-    },
-  });
 }
-
-// TODO: make util to set JWT auth token before redirecting
-// read token from query params, saves to local storage, redirects to dashboard
-
-// handle if refresh token is invalidated, start by checking status of token
-// AFTER validate if token is expired
-
-// add rate limiting?
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const disabled = email.trim() === "" || password.trim() === "";
 
@@ -64,7 +81,27 @@ export default function LoginPage() {
     }
   };
 
-  const actionData = useActionData() as { error?: string } | undefined;
+  const actionData = useActionData() as
+    | { error?: string; success?: boolean; token?: string }
+    | undefined;
+
+  /**
+   * Handle successful login on CLIENT side
+   *
+   * When server action returns success with token:
+   * 1. Update Zustand store with token
+   * 2. Fetch user profile
+   * 3. Navigate to session page
+   */
+  useEffect(() => {
+    if (actionData?.success && actionData?.token) {
+      const { signIn, fetchUser } = userAuthStore.getState();
+      signIn(actionData.token);
+      fetchUser().then(() => {
+        navigate("/session");
+      });
+    }
+  }, [actionData, navigate]);
 
   return (
     <Form
@@ -102,6 +139,7 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           rightElement={
             <Button
+              type="button"
               onClick={toggleVisibility}
               aria-pressed={showPassword}
               aria-label={showPassword ? "Hide password" : "Show password"}

@@ -1,5 +1,11 @@
 import { SCHEMAS } from '@config/schemas';
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
 import { PatientSession } from '../video/session';
 import { User } from '../user/user';
@@ -25,12 +31,15 @@ export class Assignment {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => PatientSession, (session) => session.id)
+  @OneToOne(() => PatientSession, { nullable: false })
+  @JoinColumn()
   session: PatientSession;
 
-  @OneToOne(() => User, (user) => user.id)
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   assignedTo: User;
 
-  @OneToOne(() => User, (user) => user.id)
+  @OneToOne(() => User, { nullable: false })
+  @JoinColumn()
   assignedBy: User;
 }
