@@ -1,9 +1,8 @@
 import { IsArray, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class VideoMetadataDto {
-  /** Internal `Patient.id` from `POST .../sessions` (`patientId` in the response). */
   @IsUUID()
-  patientId: string;
+  patientUuid: string;
 
   @IsUUID()
   sessionId: string;

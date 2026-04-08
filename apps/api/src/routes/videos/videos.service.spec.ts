@@ -11,9 +11,11 @@ import { Video } from '@src/infra/db/entity/video/video';
 import { User } from '@src/infra/db/entity/user/user';
 import { createMock } from '@golevelup/ts-jest';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
+import { HttpStatus } from '@nestjs/common';
 
 describe('VideosService', () => {
   let service: VideosService;
+  let unitAuthorizationService: UnitAuthorizationService;
   let s3: S3Service;
   let swift: SwiftService;
   let queue: QueueService;
@@ -52,6 +54,9 @@ describe('VideosService', () => {
       .compile();
 
     service = module.get<VideosService>(VideosService);
+    unitAuthorizationService = module.get<UnitAuthorizationService>(
+      UnitAuthorizationService,
+    );
     s3 = module.get<S3Service>(S3Service);
     swift = module.get<SwiftService>(SwiftService);
     queue = module.get<QueueService>(QueueService);
@@ -68,17 +73,60 @@ describe('VideosService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('getVideo', () => {
+    it('returns basic video info when found and user is in unit', async () => {
+      const userId = '11111111-1111-1111-1111-111111111111';
+      const videoId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+      const unitId = '33333333-4444-5555-6666-777777777777';
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
+        id: videoId,
+        file: {
+          name: 'clip.mp4',
+        },
+        session: {
+          id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          unit: { id: unitId },
+        },
+      } as any);
+
+      const assertSpy = jest
+        .spyOn(unitAuthorizationService, 'assertUserInUnit')
+        .mockResolvedValue(undefined);
+
+      const out = await service.getVideo(userId, videoId);
+
+      expect(assertSpy).toHaveBeenCalledWith(userId, unitId);
+      expect(out).toEqual({
+        videoId,
+        name: 'clip.mp4',
+      });
+    });
+
+    it('throws NOT_FOUND when video missing', async () => {
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.getVideo(
+          '11111111-1111-1111-1111-111111111111',
+          'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        ),
+      ).rejects.toMatchObject({
+        status: HttpStatus.NOT_FOUND,
+      });
+    });
+  });
+
   describe('createVideoMetadata', () => {
     it('should create video metadata', async () => {
       const patientUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
       const sessionId = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
-      const fileName = 'test-video.mp4';
+      const fileName = 'test-video';
       const unitId = '33333333-4444-5555-6666-777777777777';
 
       jest.spyOn(patientSessionRepository, 'findOne').mockResolvedValue({
         id: sessionId,
         unit: { id: unitId },
-        patient: { id: patientUuid },
+        patient: { uuid: patientUuid },
       } as PatientSession);
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: 'user-1',
@@ -108,7 +156,7 @@ describe('VideosService', () => {
       );
 
       const result = await service.createVideoMetadata('user-1', {
-        patientId: patientUuid,
+        patientUuid: patientUuid,
         sessionId,
         fileName,
       });
@@ -116,7 +164,7 @@ describe('VideosService', () => {
       expect(fileRepository.create).toHaveBeenCalledWith({
         name: fileName,
         type: 'video/mp4',
-        path: `patients/${patientUuid}/sessions/${sessionId}/${fileName}`,
+        path: `patients/${patientUuid}/sessions/${sessionId}/${fileName}.mp4`,
         uploadedBy: { id: 'user-1' },
         unit: { id: unitId },
       });
@@ -145,7 +193,7 @@ describe('VideosService', () => {
           path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
         },
         session: {
-          patient: { id: 'test-patient-id' },
+          patient: { uuid: 'test-patient-id' },
           unit: { id: 'unit-1' },
         },
       } as any);
@@ -168,7 +216,7 @@ describe('VideosService', () => {
           file: { id: true, path: true },
           session: {
             id: true,
-            patient: { id: true },
+            patient: { uuid: true },
             unit: { id: true },
           },
         },
@@ -194,7 +242,7 @@ describe('VideosService', () => {
         file: { path: filePath },
         session: {
           id: 'test-session-id',
-          patient: { id: 'test-patient-id' },
+          patient: { uuid: 'test-patient-id' },
           unit: { id: unitId },
         },
       } as any);
@@ -223,7 +271,7 @@ describe('VideosService', () => {
           file: { id: true, path: true },
           session: {
             id: true,
-            patient: { id: true },
+            patient: { uuid: true },
             unit: { id: true },
           },
         },

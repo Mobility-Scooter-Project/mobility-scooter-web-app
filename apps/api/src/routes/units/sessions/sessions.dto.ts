@@ -5,7 +5,7 @@ export class SessionDto {
   @IsNotEmpty()
   @MinLength(1)
   @MaxLength(64)
-  patientInputId: string;
+  patientId: string;
 
   // YYYY-MM-DD
   @IsNotEmpty()

@@ -4,6 +4,7 @@ import {
   Entity,
   JoinColumn,
   OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
@@ -35,11 +36,11 @@ export class Assignment {
   @JoinColumn()
   session: PatientSession;
 
-  @OneToOne(() => User, { nullable: false })
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn()
   assignedTo: User;
 
-  @OneToOne(() => User, { nullable: false })
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn()
   assignedBy: User;
 }

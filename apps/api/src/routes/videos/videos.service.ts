@@ -15,10 +15,15 @@ type VideoMetadataOutput = {
   id: string;
 };
 
+export type GetVideoOutput = {
+  videoId: string;
+  name: string;
+};
+
 /** Shape used when we only need the stored file path (object key) and unit for auth. */
 type VideoWithPath = {
   file: { path: string };
-  session: { patient: { id: string }; unit: { id: string } };
+  session: { patient: { uuid: string }; unit: { id: string } };
 };
 
 @Injectable()
@@ -42,7 +47,7 @@ export class VideosService {
    * Create metadata records for a video file and associate it with a session and patient.
    *
    * This method:
-   * 1. Constructs a storage path of the form `patients/{patientId}/sessions/{sessionId}/{fileName}`.
+   * 1. Constructs a storage path of the form `patients/{patientUuid}/sessions/{sessionId}/{fileName}`.
    * 2. Creates and persists a File entity (with name, MIME type "video/mp4", and the constructed path).
    * 3. Creates and persists a Video entity that references the saved File and the provided session id.
    * 4. Returns the id of the created Video metadata.
@@ -50,7 +55,7 @@ export class VideosService {
    * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
    *
    * @param userId - ID of the user creating the video metadata.
-   * @param dto - `patientId` is internal `Patient.id` from session create; plus `sessionId` and `fileName`.
+   * @param dto - `patientUuid` is internal `Patient.uuid` from session create; plus `sessionId` and `fileName`.
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
    * @throws {HttpException} Throws an HttpException with status INTERNAL_SERVER_ERROR if persisting
@@ -88,20 +93,24 @@ export class VideosService {
       session.unit.id,
     );
 
-    if (session.patient.id !== dto.patientId) {
+    if (session.patient.uuid !== dto.patientUuid) {
       this.logger.warn(
-        `patientId ${dto.patientId} does not match session ${dto.sessionId} patient`,
+        `patientUuid ${dto.patientUuid} does not match session ${dto.sessionId} patient`,
       );
       throw new HttpException(
         'Patient does not match session',
         HttpStatus.FORBIDDEN,
       );
     }
+    // remove whitespace
+    const fileName = dto.fileName.trim();
 
-    const path = `patients/${dto.patientId}/sessions/${dto.sessionId}/${dto.fileName}`;
+    // add .mp4 extension
+    const videoName = `${fileName}.mp4`;
+    const path = `patients/${dto.patientUuid}/sessions/${dto.sessionId}/${videoName}`;
 
     const newFile = this.fileRepository.create({
-      name: dto.fileName,
+      name: fileName,
       type: 'video/mp4',
       path,
       uploadedBy: { id: userId },
@@ -136,6 +145,50 @@ export class VideosService {
     }
 
     return { id: savedVideo.id };
+  }
+
+  /**
+   * Returns persisted metadata for a video.
+   * 
+   * @param userId - ID of the user getting the video
+   * @param videoId - ID of the video
+   * @returns Video with videoId and fileName
+   * @throws HttpException with appropriate status code and message on failure
+   */
+  public async getVideo(
+    userId: string,
+    videoId: string,
+  ): Promise<GetVideoOutput> {
+    let video: Video | null;
+    try {
+      video = await this.videoRepository.findOne({
+        where: { id: videoId },
+        relations: { file: true, session: { unit: true } },
+        select: {
+          id: true,
+          file: { name: true },
+          session: { id: true, unit: { id: true } },
+        },
+      });
+    } catch (error) {
+      this.logger.error('Error fetching video metadata', error);
+      throw new HttpException(`Invalid input`, HttpStatus.BAD_REQUEST);
+    }
+
+    if (!video) {
+      this.logger.warn(`Video ${videoId} not found`);
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      video.session.unit.id,
+    );
+
+    return {
+      videoId: video.id,
+      name: video.file.name,
+    };
   }
 
   /**
@@ -182,7 +235,7 @@ export class VideosService {
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
           file: { id: true, path: true },
-          session: { id: true, patient: { id: true }, unit: { id: true } },
+          session: { id: true, patient: { uuid: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -291,7 +344,7 @@ export class VideosService {
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
           file: { id: true, path: true },
-          session: { id: true, patient: { id: true }, unit: { id: true } },
+          session: { id: true, patient: { uuid: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -339,7 +392,7 @@ export class VideosService {
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
           file: { id: true, path: true },
-          session: { id: true, patient: { id: true }, unit: { id: true } },
+          session: { id: true, patient: { uuid: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {

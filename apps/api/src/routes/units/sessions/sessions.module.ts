@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InfraModule } from '@infra/infra.module';
 import { PatientSession } from '@infra/db/entity/video/session';
+import { Video } from '@infra/db/entity/video/video';
 import { Patient } from '@infra/db/entity/unit/patient';
 import { User } from '@infra/db/entity/user/user';
 import { JwtMiddleware } from '@src/middleware/jwt/jwt.middleware';
@@ -14,7 +15,7 @@ import { SessionsService } from './sessions.service';
   imports: [
     InfraModule,
     JwtModule,
-    TypeOrmModule.forFeature([PatientSession, Patient, User]),
+    TypeOrmModule.forFeature([PatientSession, Patient, User, Video]),
   ],
   controllers: [SessionsController],
   providers: [SessionsService, UnitAuthorizationService],

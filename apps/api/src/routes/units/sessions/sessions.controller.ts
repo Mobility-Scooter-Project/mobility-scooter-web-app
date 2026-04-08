@@ -32,6 +32,19 @@ export class SessionsController {
     return this.sessionsService.getSessions(req.locals.userId, unitId);
   }
 
+  @Get(':sessionId/videos')
+  async getSessionVideos(
+    @Req() req: { locals: { userId: string } },
+    @Param('unitId', ParseUUIDPipe) unitId: string,
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+  ) {
+    return this.sessionsService.getSessionVideos(
+      req.locals.userId,
+      unitId,
+      sessionId,
+    );
+  }
+
   @Get(':sessionId')
   async getSession(
     @Req() req: { locals: { userId: string } },

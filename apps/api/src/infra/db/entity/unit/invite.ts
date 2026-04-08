@@ -2,7 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { INVITE_STATUS, USER_ROLES } from '@config/enums';
@@ -48,11 +48,11 @@ export class UnitInvite {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => Unit, { nullable: false })
+  @ManyToOne(() => Unit, { nullable: false })
   @JoinColumn()
   unit: Unit;
 
-  @OneToOne(() => User, { nullable: false })
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn()
   invitedBy: User;
 }

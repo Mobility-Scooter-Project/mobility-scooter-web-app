@@ -3,7 +3,7 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CreateUpdateDeleteFields } from '../shared';
@@ -35,11 +35,11 @@ export class File {
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;
 
-  @OneToOne(() => User, { nullable: false })
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn()
   uploadedBy: User;
 
-  @OneToOne(() => Unit, { nullable: false })
+  @ManyToOne(() => Unit, { nullable: false })
   @JoinColumn()
   unit: Unit;
 }

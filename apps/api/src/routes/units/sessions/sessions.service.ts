@@ -1,4 +1,5 @@
 import { Patient } from '@infra/db/entity/unit/patient';
+import { Video } from '@infra/db/entity/video/video';
 import { PatientSession } from '@infra/db/entity/video/session';
 import { Unit } from '@infra/db/entity/unit/unit';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
@@ -7,6 +8,18 @@ import { Repository } from 'typeorm';
 import { SessionDto } from './sessions.dto';
 import { findPatientByRef } from '@src/shared/patient-ref';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
+
+type SessionVideoListItem = {
+  videoId: string;
+  name: string;
+};
+
+type SessionItem = {
+  sessionId: string;
+  patientUuid: string;
+  sessionDate: string;
+  sessionTime: string;
+};
 
 @Injectable()
 export class SessionsService {
@@ -17,6 +30,8 @@ export class SessionsService {
     private readonly patientSessionRepository: Repository<PatientSession>,
     @InjectRepository(Patient)
     private readonly patientRepository: Repository<Patient>,
+    @InjectRepository(Video)
+    private readonly videoRepository: Repository<Video>,
     private readonly unitAuthorizationService: UnitAuthorizationService,
   ) {}
 
@@ -34,10 +49,10 @@ export class SessionsService {
     userId: string,
     unitId: string,
     dto: SessionDto,
-  ): Promise<{ sessionId: string; patientId: string }> {
+  ): Promise<{ sessionId: string; patientUuid: string }> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
-    const patientRef = dto.patientInputId.trim();
+    const patientRef = dto.patientId.trim();
     let patient: Patient | null;
     try {
       patient = await findPatientByRef(
@@ -57,16 +72,45 @@ export class SessionsService {
       try {
         patient = await this.patientRepository.save(
           this.patientRepository.create({
-            patientInputId: patientRef,
+            patientId: patientRef,
             unit: { id: unitId } as Unit,
           }),
         );
       } catch (error) {
-        this.logger.error('Failed to create patient for session', error);
-        throw new HttpException(
-          'Internal Server Error',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        // Another request created this patient concurrently.
+        if ((error as { code?: string }).code === '23505') {
+          try {
+            patient = await findPatientByRef(
+              this.patientRepository,
+              unitId,
+              patientRef,
+            );
+          } catch (refetchError) {
+            this.logger.error(
+              'Failed to reload patient after concurrent create',
+              refetchError,
+            );
+            throw new HttpException(
+              'Internal Server Error',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+          if (!patient) {
+            this.logger.error(
+              'Patient unique violation without reloadable patient record',
+            );
+            throw new HttpException(
+              'Internal Server Error',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        } else {
+          this.logger.error('Failed to create patient for session', error);
+          throw new HttpException(
+            'Internal Server Error',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
       }
     }
 
@@ -83,7 +127,7 @@ export class SessionsService {
     const sessionTime = this.normalizeSessionTime(dto.sessionTime);
 
     const session = this.patientSessionRepository.create({
-      patient: { id: patient.id } as Patient,
+      patient: { uuid: patient.uuid } as Patient,
       unit: { id: unitId } as Unit,
       sessionDate: dto.sessionDate,
       sessionTime,
@@ -93,6 +137,13 @@ export class SessionsService {
     try {
       saved = await this.patientSessionRepository.save(session);
     } catch (error) {
+      // duplicate session for same patient.
+      if ((error as { code?: string }).code === '23505') {
+        throw new HttpException(
+          'Session already exists for this patient at that date/time',
+          HttpStatus.CONFLICT,
+        );
+      }
       this.logger.error('Failed to create session', error);
       throw new HttpException(
         'Internal Server Error',
@@ -100,7 +151,7 @@ export class SessionsService {
       );
     }
 
-    return { sessionId: saved.id, patientId: patient.id };
+    return { sessionId: saved.id, patientUuid: patient.uuid };
   }
 
   /**
@@ -114,14 +165,7 @@ export class SessionsService {
   public async getSessions(
     userId: string,
     unitId: string,
-  ): Promise<
-    Array<{
-      sessionId: string;
-      patientId: string;
-      sessionDate: string;
-      sessionTime: string;
-    }>
-  > {
+  ): Promise<SessionItem[]> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let sessions: PatientSession[];
@@ -134,7 +178,7 @@ export class SessionsService {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { id: true },
+          patient: { uuid: true },
         },
       });
     } catch (error) {
@@ -147,7 +191,7 @@ export class SessionsService {
 
     return sessions.map((session) => ({
       sessionId: session.id,
-      patientId: session.patient.id,
+      patientUuid: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     }));
@@ -165,12 +209,7 @@ export class SessionsService {
     userId: string,
     unitId: string,
     sessionId: string,
-  ): Promise<{
-    sessionId: string;
-    patientId: string;
-    sessionDate: string;
-    sessionTime: string;
-  }> {
+  ): Promise<SessionItem> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let session: PatientSession | null;
@@ -182,7 +221,7 @@ export class SessionsService {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { id: true },
+          patient: { uuid: true },
         },
       });
     } catch (error) {
@@ -200,10 +239,69 @@ export class SessionsService {
 
     return {
       sessionId: session.id,
-      patientId: session.patient.id,
+      patientUuid: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     };
+  }
+
+  /**
+   * Gets all videos for a given session.
+   * 
+   * @param userId - ID of the user getting the session videos
+   * @param unitId - ID of the unit
+   * @param sessionId - ID of the session
+   * @returns Array of videos with videoId, sessionId, patientId, unitId, sessionDate, sessionTime, fileId, fileName, fileType, and createdAt
+   * @throws HttpException with appropriate status code and message on failure
+   */
+  public async getSessionVideos(
+    userId: string,
+    unitId: string,
+    sessionId: string,
+  ): Promise<SessionVideoListItem[]> {
+    await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
+
+    let sessionRow: { id: string } | null;
+    try {
+      sessionRow = await this.patientSessionRepository.findOne({
+        where: { id: sessionId, unit: { id: unitId } },
+        select: { id: true },
+      });
+    } catch (error) {
+      this.logger.error('Failed to verify session for video list', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (!sessionRow) {
+      this.logger.warn(
+        `Session ${sessionId} not found for unit ${unitId} (videos list)`,
+      );
+      throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
+    }
+
+    let videos: Video[];
+    try {
+      videos = await this.videoRepository.find({
+        where: { session: { id: sessionId } },
+        relations: { file: true },
+        order: { cud: { createdAt: 'ASC' } },
+        select: { id: true, file: { name: true } },
+      });
+    } catch (error) {
+      this.logger.error('Failed to list session videos', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return videos.map((video) => ({
+      videoId: video.id,
+      name: video.file.name,
+    }));
   }
 
   /**
@@ -244,7 +342,7 @@ export class SessionsService {
       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
     }
 
-    const patientRef = dto.patientInputId.trim();
+    const patientRef = dto.patientId.trim();
     let patient: Patient | null;
     try {
       patient = await findPatientByRef(
@@ -283,6 +381,12 @@ export class SessionsService {
     try {
       saved = await this.patientSessionRepository.save(session);
     } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new HttpException(
+          'Session already exists for this patient at that date/time',
+          HttpStatus.CONFLICT,
+        );
+      }
       this.logger.error('Failed to update session', error);
       throw new HttpException(
         'Internal Server Error',
