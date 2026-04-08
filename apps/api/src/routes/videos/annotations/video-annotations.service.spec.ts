@@ -53,18 +53,21 @@ describe('VideoAnnotationsService', () => {
   it('creates an annotation', async () => {
     annotationRepository.create.mockReturnValue({
       video: { id: videoId } as any,
+      title: 'Important',
       description: 'note',
       startTime: 10,
       endTime: 15,
     } as VideoAnnotation);
     annotationRepository.save.mockResolvedValue({
       id: annotationId,
+      title: 'Important',
       description: 'note',
       startTime: 10,
       endTime: 15,
     } as VideoAnnotation);
 
     const out = await service.createAnnotation(userId, videoId, {
+      title: 'Important',
       description: 'note',
       startTime: 10,
       endTime: 15,
@@ -77,12 +80,14 @@ describe('VideoAnnotationsService', () => {
     expect(annotationRepository.create).toHaveBeenCalledWith({
       video: { id: videoId },
       user: { id: userId },
+      title: 'Important',
       description: 'note',
       startTime: 10,
       endTime: 15,
     });
     expect(out).toEqual({
       annotationId,
+      title: 'Important',
       description: 'note',
       startTime: 10,
       endTime: 15,
@@ -93,6 +98,7 @@ describe('VideoAnnotationsService', () => {
     annotationRepository.find.mockResolvedValue([
       {
         id: annotationId,
+        title: 'A',
         description: 'a',
         startTime: 1,
         endTime: null,
@@ -107,6 +113,7 @@ describe('VideoAnnotationsService', () => {
     expect(out).toEqual([
       {
         annotationId,
+        title: 'A',
         description: 'a',
         startTime: 1,
         endTime: null,

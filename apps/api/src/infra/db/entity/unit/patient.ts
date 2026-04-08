@@ -12,7 +12,7 @@ import { Unit } from './unit';
 @Entity({ schema: SCHEMAS.UNITS })
 export class Patient {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  uuid: string;
 
   @Column({
     type: 'int',
@@ -38,7 +38,7 @@ export class Patient {
     length: 64,
     nullable: false,
   })
-  patientInputId: string;
+  patientId: string;
 
   @Column(() => CreateUpdateDeleteFields)
   cud: CreateUpdateDeleteFields;

@@ -2,6 +2,9 @@ import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class VideoAnnotationDto {
   @IsString()
+  title: string;
+
+  @IsString()
   description: string;
 
   @IsNumber()

@@ -8,6 +8,7 @@ import { VideoAnnotationDto } from './video-annotations.dto';
 
 type VideoAnnotationOutput = {
   annotationId: string;
+  title: string;
   description: string;
   startTime: number;
   endTime: number | null;
@@ -31,6 +32,7 @@ export class VideoAnnotationsService {
   private toOutput(row: VideoAnnotation): VideoAnnotationOutput {
     return {
       annotationId: row.id,
+      title: row.title,
       description: row.description,
       startTime: row.startTime,
       endTime: row.endTime,
@@ -56,6 +58,7 @@ export class VideoAnnotationsService {
       const entity = this.annotationRepository.create({
         video: { id: videoId },
         user: { id: userId },
+        title: dto.title,
         description: dto.description,
         startTime: dto.startTime,
         endTime: dto.endTime ?? null,
@@ -157,6 +160,7 @@ export class VideoAnnotationsService {
     }
 
     existing.description = dto.description;
+    existing.title = dto.title;
     existing.startTime = dto.startTime;
     existing.endTime = dto.endTime ?? null;
 

@@ -2,31 +2,31 @@ import { Patient } from '@infra/db/entity/unit/patient';
 import { Repository } from 'typeorm';
 
 type PatientRefSelect = {
-  id: true;
+  uuid: true;
   unit: { id: true };
-  patientInputId: true;
+  patientId: true;
 };
 
 const patientRefSelect: PatientRefSelect = {
-  id: true,
+  uuid: true,
   unit: { id: true },
-  patientInputId: true,
+  patientId: true,
 };
 
-/** Find a patient by internal UUID or by unit + patientInputId.
+/** Find a patient by internal UUID or by unit + patientId.
  * @param patientRepository - The repository to use to find the patient.
  * @param unitId - The ID of the unit to find the patient in.
- * @param patientInputId - The ID of the patient to find.
+ * @param patientId - The ID of the patient to find.
  * @returns The patient if found, otherwise null.
  */
 export async function findPatientByRef(
   patientRepository: Repository<Patient>,
   unitId: string,
-  patientInputId: string,
+  patientId: string,
 ): Promise<Patient | null> {
-  const ref = patientInputId.trim();
+  const ref = patientId.trim();
   return patientRepository.findOne({
-    where: { unit: { id: unitId }, patientInputId: ref },
+    where: { unit: { id: unitId }, patientId: ref },
     relations: { unit: true },
     select: patientRefSelect,
   });

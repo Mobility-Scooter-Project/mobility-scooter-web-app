@@ -18,6 +18,9 @@ export class VideoAnnotation {
   @ManyToOne(() => User, { nullable: false })
   user: User;
 
+  @Column({ type: 'varchar', length: 255 })
+  title: string;
+
   @Column({ type: 'text' })
   description: string;
 

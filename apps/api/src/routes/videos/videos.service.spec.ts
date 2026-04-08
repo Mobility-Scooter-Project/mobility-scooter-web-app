@@ -126,7 +126,7 @@ describe('VideosService', () => {
       jest.spyOn(patientSessionRepository, 'findOne').mockResolvedValue({
         id: sessionId,
         unit: { id: unitId },
-        patient: { id: patientUuid },
+        patient: { uuid: patientUuid },
       } as PatientSession);
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
         id: 'user-1',
@@ -193,7 +193,7 @@ describe('VideosService', () => {
           path: 'patients/test-patient-id/sessions/test-session-id/test-video.mp4',
         },
         session: {
-          patient: { id: 'test-patient-id' },
+          patient: { uuid: 'test-patient-id' },
           unit: { id: 'unit-1' },
         },
       } as any);
@@ -216,7 +216,7 @@ describe('VideosService', () => {
           file: { id: true, path: true },
           session: {
             id: true,
-            patient: { id: true },
+            patient: { uuid: true },
             unit: { id: true },
           },
         },
@@ -242,7 +242,7 @@ describe('VideosService', () => {
         file: { path: filePath },
         session: {
           id: 'test-session-id',
-          patient: { id: 'test-patient-id' },
+          patient: { uuid: 'test-patient-id' },
           unit: { id: unitId },
         },
       } as any);
@@ -271,7 +271,7 @@ describe('VideosService', () => {
           file: { id: true, path: true },
           session: {
             id: true,
-            patient: { id: true },
+            patient: { uuid: true },
             unit: { id: true },
           },
         },

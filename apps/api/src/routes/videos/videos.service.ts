@@ -23,7 +23,7 @@ export type GetVideoOutput = {
 /** Shape used when we only need the stored file path (object key) and unit for auth. */
 type VideoWithPath = {
   file: { path: string };
-  session: { patient: { id: string }; unit: { id: string } };
+  session: { patient: { uuid: string }; unit: { id: string } };
 };
 
 @Injectable()
@@ -55,7 +55,7 @@ export class VideosService {
    * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
    *
    * @param userId - ID of the user creating the video metadata.
-   * @param dto - `patientId` is internal `Patient.id` from session create; plus `sessionId` and `fileName`.
+   * @param dto - `patientId` is internal `Patient.uuid` from session create; plus `sessionId` and `fileName`.
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
    * @throws {HttpException} Throws an HttpException with status INTERNAL_SERVER_ERROR if persisting
@@ -93,7 +93,7 @@ export class VideosService {
       session.unit.id,
     );
 
-    if (session.patient.id !== dto.patientId) {
+    if (session.patient.uuid !== dto.patientId) {
       this.logger.warn(
         `patientId ${dto.patientId} does not match session ${dto.sessionId} patient`,
       );
@@ -235,7 +235,7 @@ export class VideosService {
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
           file: { id: true, path: true },
-          session: { id: true, patient: { id: true }, unit: { id: true } },
+          session: { id: true, patient: { uuid: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -344,7 +344,7 @@ export class VideosService {
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
           file: { id: true, path: true },
-          session: { id: true, patient: { id: true }, unit: { id: true } },
+          session: { id: true, patient: { uuid: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {
@@ -392,7 +392,7 @@ export class VideosService {
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
           file: { id: true, path: true },
-          session: { id: true, patient: { id: true }, unit: { id: true } },
+          session: { id: true, patient: { uuid: true }, unit: { id: true } },
         },
       })) as VideoWithPath | null;
     } catch (error) {

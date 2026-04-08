@@ -45,7 +45,7 @@ export class SessionsService {
   ): Promise<{ sessionId: string; patientId: string }> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
-    const patientRef = dto.patientInputId.trim();
+    const patientRef = dto.patientId.trim();
     let patient: Patient | null;
     try {
       patient = await findPatientByRef(
@@ -65,7 +65,7 @@ export class SessionsService {
       try {
         patient = await this.patientRepository.save(
           this.patientRepository.create({
-            patientInputId: patientRef,
+            patientId: patientRef,
             unit: { id: unitId } as Unit,
           }),
         );
@@ -91,7 +91,7 @@ export class SessionsService {
     const sessionTime = this.normalizeSessionTime(dto.sessionTime);
 
     const session = this.patientSessionRepository.create({
-      patient: { id: patient.id } as Patient,
+      patient: { uuid: patient.uuid } as Patient,
       unit: { id: unitId } as Unit,
       sessionDate: dto.sessionDate,
       sessionTime,
@@ -108,7 +108,7 @@ export class SessionsService {
       );
     }
 
-    return { sessionId: saved.id, patientId: patient.id };
+    return { sessionId: saved.id, patientId: patient.uuid };
   }
 
   /**
@@ -142,7 +142,7 @@ export class SessionsService {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { id: true },
+          patient: { uuid: true },
         },
       });
     } catch (error) {
@@ -155,7 +155,7 @@ export class SessionsService {
 
     return sessions.map((session) => ({
       sessionId: session.id,
-      patientId: session.patient.id,
+      patientId: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     }));
@@ -190,7 +190,7 @@ export class SessionsService {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { id: true },
+          patient: { uuid: true },
         },
       });
     } catch (error) {
@@ -208,7 +208,7 @@ export class SessionsService {
 
     return {
       sessionId: session.id,
-      patientId: session.patient.id,
+      patientId: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     };
@@ -311,7 +311,7 @@ export class SessionsService {
       throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
     }
 
-    const patientRef = dto.patientInputId.trim();
+    const patientRef = dto.patientId.trim();
     let patient: Patient | null;
     try {
       patient = await findPatientByRef(

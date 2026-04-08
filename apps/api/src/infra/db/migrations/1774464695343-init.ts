@@ -23,10 +23,10 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE TABLE "units"."unit" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "orgId" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "PK_4252c4be609041e559f0c80f58a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "units"."patient" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "age" integer NOT NULL DEFAULT 0, "gender" character varying(10) NOT NULL DEFAULT 'unknown', "notes" jsonb NOT NULL DEFAULT '{}'::jsonb, "patientInputId" character varying(64) NOT NULL, "unitId" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "PK_8dfa510bb29ad31ab2139fbfb99" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "units"."patient" ("uuid" uuid NOT NULL DEFAULT uuid_generate_v4(), "age" integer NOT NULL DEFAULT 0, "gender" character varying(10) NOT NULL DEFAULT 'unknown', "notes" jsonb NOT NULL DEFAULT '{}'::jsonb, "patientId" character varying(64) NOT NULL, "unitId" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "PK_8dfa510bb29ad31ab2139fbfb99" PRIMARY KEY ("uuid"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "videos"."patient_session" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "sessionDate" date NOT NULL, "sessionTime" TIME NOT NULL, "patientId" uuid NOT NULL, "unitId" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "PK_86bcf7cf616a03bd3d4902d159e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "videos"."patient_session" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "sessionDate" date NOT NULL, "sessionTime" TIME NOT NULL, "patientUuid" uuid NOT NULL, "unitId" uuid NOT NULL, "cudCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cudUpdatedat" TIMESTAMP, "cudDeletedat" TIMESTAMP, CONSTRAINT "PK_86bcf7cf616a03bd3d4902d159e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "users"."user_role_enum" AS ENUM('lead', 'researcher', 'trainee', 'admin')`,
@@ -65,7 +65,7 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE TABLE "videos"."keypoint" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "frameIndex" integer NOT NULL, "timestamp" double precision NOT NULL, "angle" double precision NOT NULL, "keypoints" jsonb NOT NULL, "videoId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "UQ_0289c016796a069275fed1f4d35" UNIQUE ("videoId", "frameIndex"), CONSTRAINT "PK_35365f3c046cd711d71f76753fd" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "videos"."video_annotation" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "description" text NOT NULL, "startTime" double precision NOT NULL, "endTime" double precision, "videoId" uuid NOT NULL, "userId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_46cbd98f17d72fe078e882fa617" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "videos"."video_annotation" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(255) NOT NULL, "description" text NOT NULL, "startTime" double precision NOT NULL, "endTime" double precision, "videoId" uuid NOT NULL, "userId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_46cbd98f17d72fe078e882fa617" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "videos"."task_point_edit" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "targetType" text NOT NULL, "targetRef" jsonb NOT NULL, "changes" jsonb NOT NULL, "assignmentId" uuid NOT NULL, "videoId" uuid NOT NULL, "userId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_fd7d8f9b30ef87df08ddb4ebf68" PRIMARY KEY ("id"))`,
@@ -113,10 +113,10 @@ export class Init1774464695343 implements MigrationInterface {
       `ALTER TABLE "units"."patient" ADD CONSTRAINT "FK_26a9398fcdf4caf7bc9cfa7331f" FOREIGN KEY ("unitId") REFERENCES "units"."unit"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "UQ_patient_unit_patient_input" ON "units"."patient" ("unitId", "patientInputId")`,
+      `CREATE UNIQUE INDEX "UQ_patient_unit_patient_id" ON "units"."patient" ("unitId", "patientId")`,
     );
     await queryRunner.query(
-      `ALTER TABLE "videos"."patient_session" ADD CONSTRAINT "FK_65356c73d71558fdb89bbfedd53" FOREIGN KEY ("patientId") REFERENCES "units"."patient"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "videos"."patient_session" ADD CONSTRAINT "FK_65356c73d71558fdb89bbfedd53" FOREIGN KEY ("patientUuid") REFERENCES "units"."patient"("uuid") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "videos"."patient_session" ADD CONSTRAINT "FK_733317a993491ab0fc01d067720" FOREIGN KEY ("unitId") REFERENCES "units"."unit"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
