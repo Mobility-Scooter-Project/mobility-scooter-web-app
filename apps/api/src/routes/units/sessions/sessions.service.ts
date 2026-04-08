@@ -1,4 +1,5 @@
 import { Patient } from '@infra/db/entity/unit/patient';
+import { Video } from '@infra/db/entity/video/video';
 import { PatientSession } from '@infra/db/entity/video/session';
 import { Unit } from '@infra/db/entity/unit/unit';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
@@ -7,6 +8,11 @@ import { Repository } from 'typeorm';
 import { SessionDto } from './sessions.dto';
 import { findPatientByRef } from '@src/shared/patient-ref';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
+
+type SessionVideoListItem = {
+  videoId: string;
+  name: string;
+};
 
 @Injectable()
 export class SessionsService {
@@ -17,6 +23,8 @@ export class SessionsService {
     private readonly patientSessionRepository: Repository<PatientSession>,
     @InjectRepository(Patient)
     private readonly patientRepository: Repository<Patient>,
+    @InjectRepository(Video)
+    private readonly videoRepository: Repository<Video>,
     private readonly unitAuthorizationService: UnitAuthorizationService,
   ) {}
 
@@ -204,6 +212,65 @@ export class SessionsService {
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     };
+  }
+
+  /**
+   * Gets all videos for a given session.
+   * 
+   * @param userId - ID of the user getting the session videos
+   * @param unitId - ID of the unit
+   * @param sessionId - ID of the session
+   * @returns Array of videos with videoId, sessionId, patientId, unitId, sessionDate, sessionTime, fileId, fileName, fileType, and createdAt
+   * @throws HttpException with appropriate status code and message on failure
+   */
+  public async getSessionVideos(
+    userId: string,
+    unitId: string,
+    sessionId: string,
+  ): Promise<SessionVideoListItem[]> {
+    await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
+
+    let sessionRow: { id: string } | null;
+    try {
+      sessionRow = await this.patientSessionRepository.findOne({
+        where: { id: sessionId, unit: { id: unitId } },
+        select: { id: true },
+      });
+    } catch (error) {
+      this.logger.error('Failed to verify session for video list', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (!sessionRow) {
+      this.logger.warn(
+        `Session ${sessionId} not found for unit ${unitId} (videos list)`,
+      );
+      throw new HttpException('Session not found', HttpStatus.NOT_FOUND);
+    }
+
+    let videos: Video[];
+    try {
+      videos = await this.videoRepository.find({
+        where: { session: { id: sessionId } },
+        relations: { file: true },
+        order: { cud: { createdAt: 'ASC' } },
+        select: { id: true, file: { name: true } },
+      });
+    } catch (error) {
+      this.logger.error('Failed to list session videos', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return videos.map((video) => ({
+      videoId: video.id,
+      name: video.file.name,
+    }));
   }
 
   /**

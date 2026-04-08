@@ -12,6 +12,7 @@ import { User } from '@src/infra/db/entity/user/user';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 import { KeypointsModule } from './keypoints/keypoints.module';
 import { VideoTasksModule } from './tasks/video-tasks.module';
+import { VideoAnnotationsModule } from './annotations/video-annotations.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { VideoTasksModule } from './tasks/video-tasks.module';
     TypeOrmModule.forFeature([Video, File, PatientSession, User]),
     KeypointsModule,
     VideoTasksModule,
+    VideoAnnotationsModule,
   ],
   providers: [VideosService, UnitAuthorizationService],
   controllers: [VideosController],

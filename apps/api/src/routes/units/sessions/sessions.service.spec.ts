@@ -5,6 +5,7 @@ import { HttpStatus } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Patient } from '@infra/db/entity/unit/patient';
 import { PatientSession } from '@infra/db/entity/video/session';
+import { Video } from '@infra/db/entity/video/video';
 import { User } from '@infra/db/entity/user/user';
 import { SessionsService } from './sessions.service';
 import { SessionDto } from './sessions.dto';
@@ -15,6 +16,7 @@ describe('SessionsService', () => {
   let patientSessionRepository: Repository<PatientSession>;
   let patientRepository: Repository<Patient>;
   let userRepository: Repository<User>;
+  let videoRepository: Repository<Video>;
 
   const userId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
   const unitId = '11111111-2222-3333-4444-555555555555';
@@ -38,7 +40,9 @@ describe('SessionsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TypeOrmModule.forFeature([PatientSession, Patient, User])],
+      imports: [
+        TypeOrmModule.forFeature([PatientSession, Patient, User, Video]),
+      ],
       providers: [SessionsService, UnitAuthorizationService],
     })
       .useMocker(createMock)
@@ -52,6 +56,7 @@ describe('SessionsService', () => {
       getRepositoryToken(Patient),
     );
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    videoRepository = module.get<Repository<Video>>(getRepositoryToken(Video));
   });
 
   it('should be defined', () => {
@@ -319,6 +324,64 @@ describe('SessionsService', () => {
         response: 'Internal Server Error',
         status: HttpStatus.INTERNAL_SERVER_ERROR,
       });
+    });
+  });
+
+  describe('getSessionVideos', () => {
+    beforeEach(() => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(userInUnit);
+    });
+
+    it('returns minimal session video list', async () => {
+      const videoId = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+      jest
+        .spyOn(patientSessionRepository, 'findOne')
+        .mockResolvedValue({ id: sessionId } as PatientSession);
+      jest.spyOn(videoRepository, 'find').mockResolvedValue([
+        {
+          id: videoId,
+          file: {
+            name: 'clip.mp4',
+          },
+        } as Video,
+      ]);
+
+      const result = await service.getSessionVideos(userId, unitId, sessionId);
+
+      expect(patientSessionRepository.findOne).toHaveBeenCalledWith({
+        where: { id: sessionId, unit: { id: unitId } },
+        select: { id: true },
+      });
+      expect(videoRepository.find).toHaveBeenCalledWith({
+        where: { session: { id: sessionId } },
+        relations: { file: true },
+        order: { cud: { createdAt: 'ASC' } },
+        select: { id: true, file: { name: true } },
+      });
+      expect(result).toEqual([{ videoId, name: 'clip.mp4' }]);
+    });
+
+    it('returns empty array when session has no videos', async () => {
+      jest
+        .spyOn(patientSessionRepository, 'findOne')
+        .mockResolvedValue({ id: sessionId } as PatientSession);
+      jest.spyOn(videoRepository, 'find').mockResolvedValue([]);
+
+      const result = await service.getSessionVideos(userId, unitId, sessionId);
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws NOT_FOUND when session is not in unit', async () => {
+      jest.spyOn(patientSessionRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.getSessionVideos(userId, unitId, sessionId),
+      ).rejects.toMatchObject({
+        response: 'Session not found',
+        status: HttpStatus.NOT_FOUND,
+      });
+      expect(videoRepository.find).not.toHaveBeenCalled();
     });
   });
 

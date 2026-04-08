@@ -15,6 +15,11 @@ type VideoMetadataOutput = {
   id: string;
 };
 
+export type GetVideoOutput = {
+  videoId: string;
+  name: string;
+};
+
 /** Shape used when we only need the stored file path (object key) and unit for auth. */
 type VideoWithPath = {
   file: { path: string };
@@ -97,11 +102,15 @@ export class VideosService {
         HttpStatus.FORBIDDEN,
       );
     }
+    // remove whitespace
+    const fileName = dto.fileName.trim();
 
-    const path = `patients/${dto.patientId}/sessions/${dto.sessionId}/${dto.fileName}`;
+    // add .mp4 extension
+    const videoName = `${fileName}.mp4`;
+    const path = `patients/${dto.patientId}/sessions/${dto.sessionId}/${videoName}`;
 
     const newFile = this.fileRepository.create({
-      name: dto.fileName,
+      name: fileName,
       type: 'video/mp4',
       path,
       uploadedBy: { id: userId },
@@ -136,6 +145,50 @@ export class VideosService {
     }
 
     return { id: savedVideo.id };
+  }
+
+  /**
+   * Returns persisted metadata for a video.
+   * 
+   * @param userId - ID of the user getting the video
+   * @param videoId - ID of the video
+   * @returns Video with videoId and fileName
+   * @throws HttpException with appropriate status code and message on failure
+   */
+  public async getVideo(
+    userId: string,
+    videoId: string,
+  ): Promise<GetVideoOutput> {
+    let video: Video | null;
+    try {
+      video = await this.videoRepository.findOne({
+        where: { id: videoId },
+        relations: { file: true, session: { unit: true } },
+        select: {
+          id: true,
+          file: { name: true },
+          session: { id: true, unit: { id: true } },
+        },
+      });
+    } catch (error) {
+      this.logger.error('Error fetching video metadata', error);
+      throw new HttpException(`Invalid input`, HttpStatus.BAD_REQUEST);
+    }
+
+    if (!video) {
+      this.logger.warn(`Video ${videoId} not found`);
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      video.session.unit.id,
+    );
+
+    return {
+      videoId: video.id,
+      name: video.file.name,
+    };
   }
 
   /**

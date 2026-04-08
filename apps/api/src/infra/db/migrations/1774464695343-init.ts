@@ -65,7 +65,10 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE TABLE "videos"."keypoint" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "frameIndex" integer NOT NULL, "timestamp" double precision NOT NULL, "angle" double precision NOT NULL, "keypoints" jsonb NOT NULL, "videoId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "UQ_0289c016796a069275fed1f4d35" UNIQUE ("videoId", "frameIndex"), CONSTRAINT "PK_35365f3c046cd711d71f76753fd" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "videos"."video_annotation" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "targetType" text NOT NULL, "targetId" uuid, "changes" jsonb NOT NULL, "assignmentId" uuid NOT NULL, "videoId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_46cbd98f17d72fe078e882fa617" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "videos"."video_annotation" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "description" text NOT NULL, "startTime" double precision NOT NULL, "endTime" double precision, "videoId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_46cbd98f17d72fe078e882fa617" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "videos"."task_point_edit" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "targetType" text NOT NULL, "targetRef" jsonb NOT NULL, "changes" jsonb NOT NULL, "assignmentId" uuid NOT NULL, "videoId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_fd7d8f9b30ef87df08ddb4ebf68" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "users"."user_identity_provider_enum" AS ENUM('email', 'idp')`,
@@ -167,10 +170,13 @@ export class Init1774464695343 implements MigrationInterface {
       `ALTER TABLE "videos"."keypoint" ADD CONSTRAINT "FK_3a1c5d8f26d26a1498748d0e6e6" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "videos"."video_annotation" ADD CONSTRAINT "FK_2e5be85cce08488d28d2eea7665" FOREIGN KEY ("assignmentId") REFERENCES "units"."assignment"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "videos"."video_annotation" ADD CONSTRAINT "FK_b9ead20ef056821891896bb4d21" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "videos"."video_annotation" ADD CONSTRAINT "FK_b9ead20ef056821891896bb4d21" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "videos"."task_point_edit" ADD CONSTRAINT "FK_0ff962fa49331a9d768d85e4684" FOREIGN KEY ("assignmentId") REFERENCES "units"."assignment"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "videos"."task_point_edit" ADD CONSTRAINT "FK_f8a9a4fc6365e2dd1d7f6d70ad8" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "users"."user_identity" ADD CONSTRAINT "FK_6d46a525c55104a04b24cb66391" FOREIGN KEY ("userId") REFERENCES "users"."user"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -212,10 +218,13 @@ export class Init1774464695343 implements MigrationInterface {
       `ALTER TABLE "users"."user_identity" DROP CONSTRAINT "FK_6d46a525c55104a04b24cb66391"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "videos"."video_annotation" DROP CONSTRAINT "FK_b9ead20ef056821891896bb4d21"`,
+      `ALTER TABLE "videos"."task_point_edit" DROP CONSTRAINT "FK_f8a9a4fc6365e2dd1d7f6d70ad8"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "videos"."video_annotation" DROP CONSTRAINT "FK_2e5be85cce08488d28d2eea7665"`,
+      `ALTER TABLE "videos"."task_point_edit" DROP CONSTRAINT "FK_0ff962fa49331a9d768d85e4684"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "videos"."video_annotation" DROP CONSTRAINT "FK_b9ead20ef056821891896bb4d21"`,
     );
     await queryRunner.query(
       `ALTER TABLE "videos"."keypoint" DROP CONSTRAINT "FK_3a1c5d8f26d26a1498748d0e6e6"`,
@@ -295,6 +304,7 @@ export class Init1774464695343 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "users"."user_session"`);
     await queryRunner.query(`DROP TABLE "users"."user_identity"`);
     await queryRunner.query(`DROP TYPE "users"."user_identity_provider_enum"`);
+    await queryRunner.query(`DROP TABLE "videos"."task_point_edit"`);
     await queryRunner.query(`DROP TABLE "videos"."video_annotation"`);
     await queryRunner.query(`DROP TABLE "videos"."keypoint"`);
     await queryRunner.query(`DROP TABLE "videos"."video_label"`);
