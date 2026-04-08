@@ -3,6 +3,7 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateUpdateFields } from '../shared';
 import { Video } from './video';
 import { Assignment } from '../unit/assignment';
+import { User } from '../user/user';
 
 @Entity({ schema: SCHEMAS.VIDEOS })
 export class TaskPointEdit {
@@ -17,6 +18,9 @@ export class TaskPointEdit {
 
   @ManyToOne(() => Video, { nullable: false })
   video: Video;
+
+  @ManyToOne(() => User, { nullable: false })
+  user: User;
 
   @Column({ type: 'text' })
   targetType: 'keypoint' | 'task';

@@ -74,6 +74,13 @@ describe('VideoAnnotationsService', () => {
       userId,
       videoId,
     );
+    expect(annotationRepository.create).toHaveBeenCalledWith({
+      video: { id: videoId },
+      user: { id: userId },
+      description: 'note',
+      startTime: 10,
+      endTime: 15,
+    });
     expect(out).toEqual({
       annotationId,
       description: 'note',
@@ -93,6 +100,10 @@ describe('VideoAnnotationsService', () => {
     ]);
 
     const out = await service.getAnnotations(userId, videoId);
+    expect(annotationRepository.find).toHaveBeenCalledWith({
+      where: { video: { id: videoId }, user: { id: userId } },
+      order: { startTime: 'ASC', cu: { createdAt: 'ASC' } },
+    });
     expect(out).toEqual([
       {
         annotationId,
@@ -120,6 +131,11 @@ describe('VideoAnnotationsService', () => {
     await expect(
       service.deleteAnnotation(userId, videoId, annotationId),
     ).resolves.toEqual({ deleted: true });
+    expect(annotationRepository.delete).toHaveBeenCalledWith({
+      id: annotationId,
+      video: { id: videoId },
+      user: { id: userId },
+    });
   });
 
   it('rejects when authorization fails', async () => {

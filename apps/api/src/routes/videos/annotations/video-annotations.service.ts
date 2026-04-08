@@ -55,6 +55,7 @@ export class VideoAnnotationsService {
     try {
       const entity = this.annotationRepository.create({
         video: { id: videoId },
+        user: { id: userId },
         description: dto.description,
         startTime: dto.startTime,
         endTime: dto.endTime ?? null,
@@ -83,7 +84,7 @@ export class VideoAnnotationsService {
     let rows: VideoAnnotation[];
     try {
       rows = await this.annotationRepository.find({
-        where: { video: { id: videoId } },
+        where: { video: { id: videoId }, user: { id: userId } },
         order: { startTime: 'ASC', cu: { createdAt: 'ASC' } },
       });
     } catch (error) {
@@ -111,7 +112,7 @@ export class VideoAnnotationsService {
     let row: VideoAnnotation | null;
     try {
       row = await this.annotationRepository.findOne({
-        where: { id: annotationId, video: { id: videoId } },
+        where: { id: annotationId, video: { id: videoId }, user: { id: userId } },
       });
     } catch (error) {
       this.logger.error('Failed to fetch video annotation', error);
@@ -144,7 +145,7 @@ export class VideoAnnotationsService {
     let existing: VideoAnnotation | null;
     try {
       existing = await this.annotationRepository.findOne({
-        where: { id: annotationId, video: { id: videoId } },
+        where: { id: annotationId, video: { id: videoId }, user: { id: userId } },
       });
     } catch (error) {
       this.logger.error('Failed to fetch video annotation for update', error);
@@ -189,6 +190,7 @@ export class VideoAnnotationsService {
       result = await this.annotationRepository.delete({
         id: annotationId,
         video: { id: videoId },
+        user: { id: userId },
       });
     } catch (error) {
       this.logger.error('Failed to delete video annotation', error);
