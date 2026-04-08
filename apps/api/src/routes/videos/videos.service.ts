@@ -47,7 +47,7 @@ export class VideosService {
    * Create metadata records for a video file and associate it with a session and patient.
    *
    * This method:
-   * 1. Constructs a storage path of the form `patients/{patientId}/sessions/{sessionId}/{fileName}`.
+   * 1. Constructs a storage path of the form `patients/{patientUuid}/sessions/{sessionId}/{fileName}`.
    * 2. Creates and persists a File entity (with name, MIME type "video/mp4", and the constructed path).
    * 3. Creates and persists a Video entity that references the saved File and the provided session id.
    * 4. Returns the id of the created Video metadata.
@@ -55,7 +55,7 @@ export class VideosService {
    * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
    *
    * @param userId - ID of the user creating the video metadata.
-   * @param dto - `patientId` is internal `Patient.uuid` from session create; plus `sessionId` and `fileName`.
+   * @param dto - `patientUuid` is internal `Patient.uuid` from session create; plus `sessionId` and `fileName`.
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
    * @throws {HttpException} Throws an HttpException with status INTERNAL_SERVER_ERROR if persisting
@@ -93,9 +93,9 @@ export class VideosService {
       session.unit.id,
     );
 
-    if (session.patient.uuid !== dto.patientId) {
+    if (session.patient.uuid !== dto.patientUuid) {
       this.logger.warn(
-        `patientId ${dto.patientId} does not match session ${dto.sessionId} patient`,
+        `patientUuid ${dto.patientUuid} does not match session ${dto.sessionId} patient`,
       );
       throw new HttpException(
         'Patient does not match session',
@@ -107,7 +107,7 @@ export class VideosService {
 
     // add .mp4 extension
     const videoName = `${fileName}.mp4`;
-    const path = `patients/${dto.patientId}/sessions/${dto.sessionId}/${videoName}`;
+    const path = `patients/${dto.patientUuid}/sessions/${dto.sessionId}/${videoName}`;
 
     const newFile = this.fileRepository.create({
       name: fileName,

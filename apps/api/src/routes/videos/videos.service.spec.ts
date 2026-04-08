@@ -156,7 +156,7 @@ describe('VideosService', () => {
       );
 
       const result = await service.createVideoMetadata('user-1', {
-        patientId: patientUuid,
+        patientUuid: patientUuid,
         sessionId,
         fileName,
       });

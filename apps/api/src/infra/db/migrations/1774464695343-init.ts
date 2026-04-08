@@ -116,6 +116,9 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE UNIQUE INDEX "UQ_patient_unit_patient_id" ON "units"."patient" ("unitId", "patientId")`,
     );
     await queryRunner.query(
+      `CREATE UNIQUE INDEX "UQ_patient_session_unique_time" ON "videos"."patient_session" ("unitId", "patientUuid", "sessionDate", "sessionTime")`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "videos"."patient_session" ADD CONSTRAINT "FK_65356c73d71558fdb89bbfedd53" FOREIGN KEY ("patientUuid") REFERENCES "units"."patient"("uuid") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -292,6 +295,7 @@ export class Init1774464695343 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "videos"."patient_session" DROP CONSTRAINT "FK_65356c73d71558fdb89bbfedd53"`,
     );
+    await queryRunner.query(`DROP INDEX "videos"."UQ_patient_session_unique_time"`);
     await queryRunner.query(
       `ALTER TABLE "units"."patient" DROP CONSTRAINT "FK_26a9398fcdf4caf7bc9cfa7331f"`,
     );

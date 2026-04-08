@@ -14,6 +14,13 @@ type SessionVideoListItem = {
   name: string;
 };
 
+type SessionItem = {
+  sessionId: string;
+  patientUuid: string;
+  sessionDate: string;
+  sessionTime: string;
+};
+
 @Injectable()
 export class SessionsService {
   private logger = new Logger(SessionsService.name);
@@ -42,7 +49,7 @@ export class SessionsService {
     userId: string,
     unitId: string,
     dto: SessionDto,
-  ): Promise<{ sessionId: string; patientId: string }> {
+  ): Promise<{ sessionId: string; patientUuid: string }> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     const patientRef = dto.patientId.trim();
@@ -101,6 +108,13 @@ export class SessionsService {
     try {
       saved = await this.patientSessionRepository.save(session);
     } catch (error) {
+      // duplicate session for same patient.
+      if ((error as { code?: string }).code === '23505') {
+        throw new HttpException(
+          'Session already exists for this patient at that date/time',
+          HttpStatus.CONFLICT,
+        );
+      }
       this.logger.error('Failed to create session', error);
       throw new HttpException(
         'Internal Server Error',
@@ -108,7 +122,7 @@ export class SessionsService {
       );
     }
 
-    return { sessionId: saved.id, patientId: patient.uuid };
+    return { sessionId: saved.id, patientUuid: patient.uuid };
   }
 
   /**
@@ -122,14 +136,7 @@ export class SessionsService {
   public async getSessions(
     userId: string,
     unitId: string,
-  ): Promise<
-    Array<{
-      sessionId: string;
-      patientId: string;
-      sessionDate: string;
-      sessionTime: string;
-    }>
-  > {
+  ): Promise<SessionItem[]> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let sessions: PatientSession[];
@@ -155,7 +162,7 @@ export class SessionsService {
 
     return sessions.map((session) => ({
       sessionId: session.id,
-      patientId: session.patient.uuid,
+      patientUuid: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     }));
@@ -173,12 +180,7 @@ export class SessionsService {
     userId: string,
     unitId: string,
     sessionId: string,
-  ): Promise<{
-    sessionId: string;
-    patientId: string;
-    sessionDate: string;
-    sessionTime: string;
-  }> {
+  ): Promise<SessionItem> {
     await this.unitAuthorizationService.assertUserInUnit(userId, unitId);
 
     let session: PatientSession | null;
@@ -208,7 +210,7 @@ export class SessionsService {
 
     return {
       sessionId: session.id,
-      patientId: session.patient.uuid,
+      patientUuid: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
     };
@@ -350,6 +352,12 @@ export class SessionsService {
     try {
       saved = await this.patientSessionRepository.save(session);
     } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new HttpException(
+          'Session already exists for this patient at that date/time',
+          HttpStatus.CONFLICT,
+        );
+      }
       this.logger.error('Failed to update session', error);
       throw new HttpException(
         'Internal Server Error',

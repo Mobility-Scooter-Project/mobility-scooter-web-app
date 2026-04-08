@@ -21,7 +21,7 @@ describe('SessionsService', () => {
   const userId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
   const unitId = '11111111-2222-3333-4444-555555555555';
   const otherUnitId = '99999999-8888-7777-6666-555555555555';
-  /** Internal patient PK (UUID) returned by API as `patientId`. */
+  /** Internal patient PK (UUID) returned by API as `patientUuid`. */
   const patientId = '66666666-7777-8888-9999-aaaaaaaaaaaa';
   /** Unit-scoped client id (SessionDto.patientId), e.g. "10". */
   const patientCode = '10';
@@ -85,7 +85,7 @@ describe('SessionsService', () => {
 
       const result = await service.createSession(userId, unitId, dto);
 
-      expect(result).toEqual({ sessionId, patientId });
+      expect(result).toEqual({ sessionId, patientUuid: patientId });
       expect(patientSessionRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionDate: dto.sessionDate,
@@ -152,7 +152,7 @@ describe('SessionsService', () => {
       expect(patientRepository.save).toHaveBeenCalled();
       expect(result).toEqual({
         sessionId,
-        patientId,
+        patientUuid: patientId,
       });
     });
 
@@ -204,6 +204,27 @@ describe('SessionsService', () => {
         status: HttpStatus.INTERNAL_SERVER_ERROR,
       });
     });
+
+    it('throws CONFLICT when duplicate session for same patient+time is created', async () => {
+      jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
+        uuid: patientId,
+        patientId: patientCode,
+        unit: { id: unitId },
+      } as Patient);
+      jest
+        .spyOn(patientSessionRepository, 'create')
+        .mockImplementation((e) => e as PatientSession);
+      jest.spyOn(patientSessionRepository, 'save').mockRejectedValue({
+        code: '23505',
+      });
+
+      await expect(
+        service.createSession(userId, unitId, dto),
+      ).rejects.toMatchObject({
+        response: 'Session already exists for this patient at that date/time',
+        status: HttpStatus.CONFLICT,
+      });
+    });
   });
 
   describe('getSessions', () => {
@@ -239,7 +260,7 @@ describe('SessionsService', () => {
       expect(result).toEqual([
         {
           sessionId,
-          patientId,
+          patientUuid: patientId,
           sessionDate: '2025-01-15',
           sessionTime: '09:00:00',
         },
@@ -296,7 +317,7 @@ describe('SessionsService', () => {
       });
       expect(result).toEqual({
         sessionId,
-        patientId,
+        patientUuid: patientId,
         sessionDate: '2025-02-01',
         sessionTime: '12:00:00',
       });

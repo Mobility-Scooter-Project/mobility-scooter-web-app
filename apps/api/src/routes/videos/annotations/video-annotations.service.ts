@@ -39,6 +39,16 @@ export class VideoAnnotationsService {
     };
   }
 
+  private assertValidTimeRange(dto: Pick<VideoAnnotationDto, 'startTime' | 'endTime'>) {
+    if (dto.endTime == null) return;
+    if (dto.endTime < dto.startTime) {
+      throw new HttpException(
+        'endTime must be null or greater than or equal to startTime',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   /**
    * Creates a new video annotation.
    * @param userId - The ID of the user creating the annotation.
@@ -52,6 +62,7 @@ export class VideoAnnotationsService {
     dto: VideoAnnotationDto,
   ): Promise<VideoAnnotationOutput> {
     await this.videoAuthorizationService.assertUserCanAccessVideo(userId, videoId);
+    this.assertValidTimeRange(dto);
 
     let saved: VideoAnnotation;
     try {
@@ -144,6 +155,7 @@ export class VideoAnnotationsService {
     dto: VideoAnnotationDto,
   ): Promise<VideoAnnotationOutput> {
     await this.videoAuthorizationService.assertUserCanAccessVideo(userId, videoId);
+    this.assertValidTimeRange(dto);
 
     let existing: VideoAnnotation | null;
     try {

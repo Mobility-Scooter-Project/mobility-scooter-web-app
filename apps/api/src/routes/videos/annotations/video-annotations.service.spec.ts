@@ -94,6 +94,21 @@ describe('VideoAnnotationsService', () => {
     });
   });
 
+  it('throws BAD_REQUEST when endTime is before startTime (create)', async () => {
+    await expect(
+      service.createAnnotation(userId, videoId, {
+        title: 'Bad',
+        description: 'note',
+        startTime: 10,
+        endTime: 5,
+      }),
+    ).rejects.toMatchObject({
+      response: 'endTime must be null or greater than or equal to startTime',
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(annotationRepository.create).not.toHaveBeenCalled();
+  });
+
   it('lists annotations for a video', async () => {
     annotationRepository.find.mockResolvedValue([
       {
