@@ -25,15 +25,15 @@ export function useSessionMRUSort(sessions: Session[], activeId: string) {
       }
 
       // MRU Stack
-      const aId = a.id.toString();
-      const bId = b.id.toString();
+      const aId = a.id;
+      const bId = b.id;
       const aIdx = historyMap.has(aId) ? historyMap.get(aId)! : Infinity;
       const bIdx = historyMap.has(bId) ? historyMap.get(bId)! : Infinity;
       
       if (aIdx !== bIdx) return aIdx - bIdx;
 
       // Fallback (sort by ID desc)
-      return b.id - a.id;
+      return b.id < a.id ? -1 : b.id > a.id ? 1 : 0;
     };
 
     // Regular sort (on load)
@@ -41,8 +41,8 @@ export function useSessionMRUSort(sessions: Session[], activeId: string) {
       return [...sessions].sort(sortInactive);
     }
 
-    const activeSession = sessions.find((s) => s.id.toString() === activeId);
-    const restSessions = sessions.filter((s) => s.id.toString() !== activeId);
+    const activeSession = sessions.find((s) => s.id === activeId);
+    const restSessions = sessions.filter((s) => s.id !== activeId);
 
     restSessions.sort(sortInactive);
 

@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { type Chapter } from "~/data/mock-session-data";
-import { chapterService } from "~/services/chapters";
 import Placeholder from "~/assets/placeholder-thumbnail.png";
 import { useSelectionStore } from "./useSelectionStore";
 
@@ -10,15 +9,15 @@ type ChapterStore = {
 
   actions: {
     setChapters: (chapters: Chapter[]) => void;
-    loadChapters: (sessionId: number, viewId: string) => Promise<void>;
-    handleNewChapter: () => Promise<void>;
+    loadChapters: (viewId: string, chapters: Chapter[]) => void;
+    handleNewChapter: () => void;
     handleDeleteChapter: (id: number) => void;
-    updateChapter: (id: number, updates: Partial<Chapter>) => Promise<void>;
+    updateChapter: (id: number, updates: Partial<Chapter>) => void;
   };
 };
 
 /**
- * Manages video chapters, including CRUD operations, selection state, and backend synchronization.
+ * Manages video chapters, including CRUD operations and selection state.
  */
 export const useChapterStore = create<ChapterStore>((set, get) => ({
   chapters: [],
@@ -30,14 +29,18 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       useSelectionStore.getState().actions.clearSelection();
     },
 
-    loadChapters: async (sessionId, viewId) => {
-      set({ activeViewId: viewId });
-      const data = await chapterService.getByViewId(sessionId, viewId);
-      set({ chapters: data });
+    /**
+     * Replaces the current chapter list with those from the given view.
+     *
+     * @param viewId - The active view ID
+     * @param chapters - Chapters belonging to the view
+     */
+    loadChapters: (viewId, chapters) => {
+      set({ activeViewId: viewId, chapters });
     },
 
-    handleNewChapter: async () => {
-      const { activeViewId, chapters } = get();
+    handleNewChapter: () => {
+      const { chapters } = get();
       const nextId = chapters.length
         ? Math.max(...chapters.map((c) => c.id)) + 1
         : 1;
@@ -61,8 +64,6 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
 
       set({ chapters: [newItem, ...chapters] });
       useSelectionStore.getState().actions.setSelection("chapter", nextId);
-
-      if (activeViewId) await chapterService.create(activeViewId, newItem);
     },
 
     handleDeleteChapter: (id) => {
@@ -76,17 +77,12 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       }
     },
 
-    updateChapter: async (chapterId, updates) => {
-      const { activeViewId, chapters } = get();
-      set({
-        chapters: chapters.map((ch) =>
+    updateChapter: (chapterId, updates) => {
+      set((state) => ({
+        chapters: state.chapters.map((ch) =>
           ch.id === chapterId ? { ...ch, ...updates } : ch,
         ),
-      });
-
-      if (activeViewId) {
-        await chapterService.update(activeViewId, chapterId, updates);
-      }
+      }));
     },
   },
 }));

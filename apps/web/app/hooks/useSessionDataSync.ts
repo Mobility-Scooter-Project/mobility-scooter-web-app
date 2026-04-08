@@ -5,20 +5,28 @@ import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { usePointStore } from "~/stores/usePointsStore";
 
 /**
- * Syncs the active session/view with the derived stores.
+ * Fetches sessions from the API on mount and syncs the active
+ * session/view with the derived chapter, annotation, and point stores.
  */
 export function useSessionDataSync() {
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const activeViewId = useSessionStore((state) => state.activeViewId);
-  const setActiveViewId = useSessionStore((state) => state.actions.setActiveViewId);
+  const { setActiveViewId, fetchSessions } = useSessionStore(
+    (state) => state.actions,
+  );
 
   const loadChapters = useChapterStore((state) => state.actions.loadChapters);
   const setAnnotations = useAnnotationStore((state) => state.actions.setAnnotations);
   const setPoints = usePointStore((state) => state.actions.setPoints);
 
+  // Fetch sessions from the API once on mount.
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
   const activeSession = useMemo(
-    () => sessions.find((s) => s.id.toString() === activeSessionId.toString()),
+    () => sessions.find((s) => s.id === activeSessionId),
     [sessions, activeSessionId],
   );
 
@@ -44,7 +52,7 @@ export function useSessionDataSync() {
     const view = activeSession.views.find((v) => v.id === activeViewId);
     if (!view) return;
 
-    loadChapters(activeSession.id, activeViewId);
+    loadChapters(activeViewId, view.chapters);
     setAnnotations(view.annotations);
     setPoints(view.points);
   }, [activeSession, activeViewId, loadChapters, setAnnotations, setPoints]);

@@ -8,7 +8,7 @@ import { useSessionStore } from "~/stores/useSessionStore";
 interface AddViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sessionId: number;
+  sessionId: string;
   onViewCreated?: (viewId: string) => void;
 }
 

@@ -11,7 +11,7 @@ interface PlayerViewListProps {
   views: View[];
   activeViewId: string;
   onChangeView: (viewId: string) => void;
-  sessionId: number | null;
+  sessionId: string | null;
 }
 
 export function PlayerViewList({

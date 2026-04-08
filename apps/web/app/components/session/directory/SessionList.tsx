@@ -31,9 +31,8 @@ export function SessionList({
   );
 
   const handleSelection = (session: Session, index: number) => {
-    const idStr = session.id.toString();
-    trackClick(idStr, index);
-    onSelect(idStr, session.notification);
+    trackClick(session.id, index);
+    onSelect(session.id, session.notification);
   };
 
   return (
@@ -42,7 +41,7 @@ export function SessionList({
         <SessionCard
           key={session.id}
           date={session.date}
-          isActive={activeSessionId === session.id.toString()}
+          isActive={activeSessionId === session.id}
           hasNotification={session.notification}
           onClick={() => handleSelection(session, index)}
         />

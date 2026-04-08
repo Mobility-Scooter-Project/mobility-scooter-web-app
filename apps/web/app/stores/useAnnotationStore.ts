@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { MOCK_SESSIONS } from "~/data/mock-session-data";
 import { useSelectionStore } from "./useSelectionStore";
 
 type Annotation = {
@@ -29,7 +28,7 @@ type AnnotationStore = {
  * Manages video annotations, including creation, editing, and selection.
  */
 export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
-  annotations: MOCK_SESSIONS[0]?.views[0]?.annotations ?? [],
+  annotations: [],
 
   actions: {
     setAnnotations: (annotations) => {

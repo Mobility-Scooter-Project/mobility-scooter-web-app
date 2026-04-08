@@ -49,10 +49,15 @@ export function NewSessionDialog({
     }, 200);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!patientId.trim() || !date || !mediaTitle.trim() || !file) return;
 
-    addSession({ patientId, date, mediaTitle, file });
+    try {
+      await addSession({ patientId, date, mediaTitle, file });
+    } catch (error) {
+      console.error("Failed to create session:", error);
+    }
+
     handleClose();
   };
 

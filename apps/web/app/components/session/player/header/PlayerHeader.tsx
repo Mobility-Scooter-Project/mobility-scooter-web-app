@@ -3,7 +3,7 @@ import { useSessionStore } from "~/stores/useSessionStore";
 import type { View } from "~/data/mock-session-data";
 
 interface PlayerHeaderProps {
-  sessionId: number | null;
+  sessionId: string | null;
   activeView: View | null;
 }
 
