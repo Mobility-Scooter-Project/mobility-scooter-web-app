@@ -58,4 +58,12 @@ export class VideosController {
   ) {
     return this.videosService.getVideoPresignedUrl(req.locals.userId, videoId);
   }
+
+  @Get(':videoId')
+  async getVideo(
+    @Req() req: { locals: { userId: string } },
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+  ) {
+    return this.videosService.getVideo(req.locals.userId, videoId);
+  }
 }

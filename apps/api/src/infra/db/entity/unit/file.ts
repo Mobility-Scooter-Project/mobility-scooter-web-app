@@ -2,6 +2,7 @@ import { SCHEMAS } from '@config/schemas';
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -35,8 +36,10 @@ export class File {
   cud: CreateUpdateDeleteFields;
 
   @ManyToOne(() => User, { nullable: false })
+  @JoinColumn()
   uploadedBy: User;
 
   @ManyToOne(() => Unit, { nullable: false })
+  @JoinColumn()
   unit: Unit;
 }
