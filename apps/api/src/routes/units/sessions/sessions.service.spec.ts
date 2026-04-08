@@ -156,6 +156,38 @@ describe('SessionsService', () => {
       });
     });
 
+    it('handles concurrent patient creation via unique violation on save', async () => {
+      // Initial lookup: patient not found
+      jest.spyOn(patientRepository, 'findOne').mockResolvedValueOnce(null);
+      jest
+        .spyOn(patientRepository, 'create')
+        .mockImplementation((e) => e as Patient);
+      // First save hits unique constraint (another request created it)
+      jest
+        .spyOn(patientRepository, 'save')
+        .mockRejectedValueOnce({ code: '23505' } as any);
+      // Second lookup after 23505 returns the patient row
+      (patientRepository.findOne as jest.Mock).mockResolvedValueOnce({
+        uuid: patientId,
+        patientId: patientCode,
+        unit: { id: unitId },
+      } as Patient);
+
+      jest
+        .spyOn(patientSessionRepository, 'create')
+        .mockImplementation((e) => e as PatientSession);
+      jest.spyOn(patientSessionRepository, 'save').mockResolvedValue({
+        id: sessionId,
+      } as PatientSession);
+
+      const result = await service.createSession(userId, unitId, dto);
+
+      expect(result).toEqual({
+        sessionId,
+        patientUuid: patientId,
+      });
+    });
+
     it('throws FORBIDDEN when patient belongs to another unit', async () => {
       jest.spyOn(patientRepository, 'findOne').mockResolvedValue({
         uuid: patientId,

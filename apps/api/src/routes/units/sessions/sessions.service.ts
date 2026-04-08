@@ -77,11 +77,40 @@ export class SessionsService {
           }),
         );
       } catch (error) {
-        this.logger.error('Failed to create patient for session', error);
-        throw new HttpException(
-          'Internal Server Error',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        // Another request created this patient concurrently.
+        if ((error as { code?: string }).code === '23505') {
+          try {
+            patient = await findPatientByRef(
+              this.patientRepository,
+              unitId,
+              patientRef,
+            );
+          } catch (refetchError) {
+            this.logger.error(
+              'Failed to reload patient after concurrent create',
+              refetchError,
+            );
+            throw new HttpException(
+              'Internal Server Error',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+          if (!patient) {
+            this.logger.error(
+              'Patient unique violation without reloadable patient record',
+            );
+            throw new HttpException(
+              'Internal Server Error',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        } else {
+          this.logger.error('Failed to create patient for session', error);
+          throw new HttpException(
+            'Internal Server Error',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
       }
     }
 
