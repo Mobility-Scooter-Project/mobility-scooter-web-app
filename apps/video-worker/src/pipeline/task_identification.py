@@ -5,7 +5,10 @@ import torch
 from datetime import datetime
 
 from utils.logger import logger
+from utils.retry import step_retry_sleep
 from core.db import DBActor
+from core.api_webhook import notify_step_completed
+from config.config import MAX_STEP_RETRIES, TASK_DETECTION_MAX_RETRIES
 from processors.task_detector import TaskDetector
 from processors.video_transcriber import VideoTranscriber
 
@@ -28,7 +31,7 @@ class TaskIdentification:
     return resp.text
 
   def process_video(self, video_url, transcript_put_url, transcript_get_url,
-    filename, video_id, skip_transcription=False):
+    filename, video_id, skip_transcription):
     logger.info(f"Starting task identification for {filename}")
 
     # Video Transcription
@@ -36,62 +39,63 @@ class TaskIdentification:
       if skip_transcription:
         logger.info("Skipping transcription, downloading existing transcript")
         transcript_csv = self._download_transcript(transcript_get_url)
-      else:
+      else:            
+        transcript_csv = None
         ray.get(self.db.update_step_status.remote(video_id, "transcription", "processing"))
         transcription_start = datetime.now()
-        transcript_df = self.video_transcriber.transcribe_video(video_url, filename)
+        for attempt in range(1, MAX_STEP_RETRIES + 1):
+          try:
+            logger.info(f"Transcription attempt {attempt} for {filename}")
+            transcript_df = self.video_transcriber.transcribe_video(video_url, filename)
+            if transcript_df is None:
+              raise RuntimeError(f"Transcription returned nothing for {filename}")
 
-        if transcript_df is None:
-          raise RuntimeError(f"Transcription returned nothing for {filename}")
+            transcript_csv = transcript_df.to_csv(index=False)
+            duration_sec = round((datetime.now() - transcription_start).total_seconds(), 3)
+            logger.info(f"[transcription] Completed {filename} in {duration_sec:.2f} seconds")
+            ray.get(self.db.update_step_status.remote(video_id, "transcription", "completed", None, duration_sec))
+            break
+          except Exception as e:
+            logger.error(f"Transcription failed for {filename}: {e}")
+            if attempt >= MAX_STEP_RETRIES:
+              ray.get(self.db.update_step_status.remote(video_id, "transcription", "failed", str(e)))
+              return "failed"
+            step_retry_sleep(attempt - 1)
 
-        transcript_csv = transcript_df.to_csv(index=False)
-
-        requests.put(
-          transcript_put_url,
-          data=transcript_csv.encode("utf-8"),
-          headers={"Content-Type": "text/csv"},
-        )
-        transcription_end = datetime.now()
-        duration_sec = round(
-          (transcription_end - transcription_start).total_seconds(), 3
-        )
-        logger.info(
-          f"[transcription] Completed {filename} in {duration_sec:.2f} seconds"
-        )
-        ray.get(
-          self.db.update_step_status.remote(
-            video_id, "transcription", "completed", None, duration_sec
-          )
-        )
+      requests.put(
+        transcript_put_url,
+        data=transcript_csv.encode("utf-8"),
+        headers={"Content-Type": "text/csv"},
+      )
     except Exception as e:
-      logger.error(f"Transcription failed for {filename}: {e}")
-      if not skip_transcription:
-        ray.get(self.db.update_step_status.remote(video_id, "transcription", "failed", str(e)))
-      raise
+      logger.error(f"Task identification failed for {filename}: {e}")
+      ray.get(self.db.update_step_status.remote(video_id, "task_identification", "failed", str(e)))
+      return "failed"
 
     # Task Detection
     ray.get(self.db.update_step_status.remote(video_id, "task_detection", "processing"))
     task_detection_start = datetime.now()
+    attempts = None
+
     try:
-      tasks_json = self.task_detector.detect_task(transcript_csv)
+      tasks_json, attempts = self.task_detector.detect_task(transcript_csv)
+      task_detection_duration_sec = round((datetime.now() - task_detection_start).total_seconds(), 3)
+      logger.info(f"[task_detection] Completed {filename} in {task_detection_duration_sec:.2f} seconds")
+      ray.get(self.db.update_step_status.remote(video_id, "task_detection", "completed", None, task_detection_duration_sec, attempts))
+
       for i, task in enumerate(tasks_json):
         task["taskNumber"] = i + 1
         task.setdefault("note", None)
-        task.setdefault("score", None)
+        task.setdefault("score", None)      
+
       ray.get(self.db.upsert_tasks.remote(video_id, json.dumps(tasks_json)))
+      # when tasks are available to display, notify the api backend
+      notify_step_completed(video_id, "task_detection", task_detection_duration_sec)
+      return "completed"
+
     except Exception as e:
       logger.error(f"Task detection failed for {filename}: {e}")
-      ray.get(self.db.update_step_status.remote(video_id, "task_detection", "failed", str(e)))
-      raise
-    task_detection_end = datetime.now()
-    task_detection_duration_sec = round(
-      (task_detection_end - task_detection_start).total_seconds(), 3
-    )
-    logger.info(
-      f"[task_detection] Completed {filename} in {task_detection_duration_sec:.2f} seconds"
-    )
-    ray.get(
-      self.db.update_step_status.remote(
-        video_id, "task_detection", "completed", None, task_detection_duration_sec
-      )
-    )
+      task_detection_duration_sec = round((datetime.now() - task_detection_start).total_seconds(), 3)
+      attempt_count = attempts if attempts is not None else TASK_DETECTION_MAX_RETRIES
+      ray.get(self.db.update_step_status.remote(video_id, "task_detection", "failed", str(e), task_detection_duration_sec, attempt_count))
+      return "failed"
