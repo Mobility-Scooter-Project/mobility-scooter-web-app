@@ -2,9 +2,9 @@ import { API_BASE_URL, UNIT_ID } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
 
 /** Response shape returned by GET /api/v1/units/:unitId/sessions */
-type SessionListItem = {
+export type SessionListItem = {
   sessionId: string;
-  patientId: string;
+  patientUuid: string;
   sessionDate: string;
   sessionTime: string;
 };
@@ -12,14 +12,20 @@ type SessionListItem = {
 /** Response shape returned by POST /api/v1/units/:unitId/sessions */
 type CreateSessionResponse = {
   sessionId: string;
-  patientId: string;
+  patientUuid: string;
 };
 
 /** Request body for POST /api/v1/units/:unitId/sessions */
 type CreateSessionDto = {
-  patientInputId: string;
+  patientId: string;
   sessionDate: string;
   sessionTime: string;
+};
+
+/** Response shape returned by GET /api/v1/units/:unitId/sessions/:sessionId/videos */
+export type SessionVideoItem = {
+  videoId: string;
+  name: string;
 };
 
 /**
@@ -56,7 +62,7 @@ export const sessionService = {
    * Creates a new session in the current unit.
    *
    * @param dto - Session creation payload
-   * @returns The created session's ID and resolved patient ID
+   * @returns The created session's ID and resolved patient UUID
    */
   create: async (dto: CreateSessionDto): Promise<CreateSessionResponse> => {
     const res = await fetch(
@@ -70,6 +76,28 @@ export const sessionService = {
 
     if (!res.ok) {
       throw new Error(`Failed to create session: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  /**
+   * GET /api/v1/units/:unitId/sessions/:sessionId/videos
+   * Fetches all videos belonging to a session.
+   *
+   * @param sessionId - The session to list videos for
+   * @returns Array of video IDs and display names
+   */
+  getSessionVideos: async (
+    sessionId: string,
+  ): Promise<SessionVideoItem[]> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions/${sessionId}/videos`,
+      { headers: authHeaders() },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch session videos: ${res.status}`);
     }
 
     return res.json();

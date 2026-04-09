@@ -9,8 +9,8 @@ type PointStore = {
   actions: {
     setPoints: (points: Point[]) => void;
     toggleAllVisibility: () => void;
-    handleVisibilityToggle: (id: number) => void;
-    enablePoint: (id: number) => void;
+    handleVisibilityToggle: (id: string) => void;
+    enablePoint: (id: string) => void;
   };
 };
 

@@ -23,14 +23,14 @@ export const videoService = {
    * POST /api/v1/videos/upload
    * Creates video metadata linked to a session and patient.
    *
-   * @param sessionId - The session to attach the video to
-   * @param patientId - The internal patient UUID (from session creation)
-   * @param fileName  - Display name / original file name
+   * @param sessionId   - The session to attach the video to
+   * @param patientUuid - The internal patient UUID (from session creation)
+   * @param fileName    - Display name / original file name
    * @returns The created video record's ID
    */
   createMetadata: async (
     sessionId: string,
-    patientId: string,
+    patientUuid: string,
     fileName: string,
   ): Promise<VideoMetadataResponse> => {
     const res = await fetch(`${API_BASE_URL}/api/v1/videos/upload`, {
@@ -39,7 +39,7 @@ export const videoService = {
         "Content-Type": "application/json",
         ...authHeaders(),
       },
-      body: JSON.stringify({ sessionId, patientId, fileName }),
+      body: JSON.stringify({ sessionId, patientUuid, fileName }),
     });
 
     if (!res.ok) {
@@ -91,6 +91,6 @@ export const videoService = {
       throw new Error(`Failed to get video URL: ${res.status}`);
     }
 
-    return res.json();
+    return res.text();
   },
 };

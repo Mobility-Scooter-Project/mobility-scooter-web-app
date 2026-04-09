@@ -13,7 +13,7 @@ export function SessionHeader() {
     [sessions, activeSessionId],
   );
 
-  const patientId = activeSession?.patientId || "Unknown ID";
+  const patientId = activeSession?.patientUuid || "Unknown ID";
   const sessionDate = activeSession?.date || new Date().toLocaleDateString();
 
   return (

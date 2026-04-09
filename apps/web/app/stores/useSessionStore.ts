@@ -12,6 +12,7 @@ type SessionStore = {
     setActiveSessionId: (id: string) => void;
     setActiveViewId: (id: string) => void;
     fetchSessions: () => Promise<void>;
+    fetchSessionVideos: (sessionId: string) => Promise<void>;
     addSession: (data: {
       patientId: string;
       date: Date;
@@ -76,7 +77,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         const prev = existing.find((s) => s.id === item.sessionId);
         return {
           id: item.sessionId,
-          patientId: item.patientId,
+          patientUuid: item.patientUuid,
           date: formatSessionDate(item.sessionDate),
           notification: prev?.notification ?? false,
           views: prev?.views ?? [],
@@ -88,6 +89,62 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         sessions,
         activeSessionId: state.activeSessionId || first?.id || "",
         activeViewId: state.activeViewId || first?.views[0]?.id || "",
+      }));
+    },
+
+    /**
+     * Fetches videos for a session from the API and populates its views.
+     * Skips sessions that already have views (e.g. locally-created ones).
+     * For each video, fetches a presigned playback URL.
+     */
+    fetchSessionVideos: async (sessionId: string) => {
+      const session = get().sessions.find((s) => s.id === sessionId);
+      if (!session || session.views.length > 0) return;
+
+      let videoItems;
+      try {
+        videoItems = await sessionService.getSessionVideos(sessionId);
+      } catch (error) {
+        console.error("Failed to fetch session videos:", error);
+        return;
+      }
+
+      if (videoItems.length === 0) return;
+
+      // Fetch presigned URLs for all videos in parallel.
+      const views: View[] = await Promise.all(
+        videoItems.map(async (item) => {
+          let videoUrl = "";
+          try {
+            videoUrl = await videoService.getPresignedUrl(item.videoId);
+          } catch (error) {
+            console.error(`Failed to get URL for video ${item.videoId}:`, error);
+          }
+
+          return {
+            id: item.videoId,
+            videoId: item.videoId,
+            label: item.name,
+            videoUrl,
+            points: [],
+            chapters: [],
+            annotations: [],
+            risks: [],
+          };
+        }),
+      );
+
+      set((state) => ({
+        sessions: state.sessions.map((s) => {
+          if (s.id !== sessionId) return s;
+          // Don't overwrite if views appeared while we were fetching.
+          if (s.views.length > 0) return s;
+          return { ...s, views };
+        }),
+        // Auto-select the first view if this is the active session.
+        ...(state.activeSessionId === sessionId && !state.activeViewId
+          ? { activeViewId: views[0]?.id ?? "" }
+          : {}),
       }));
     },
 
@@ -108,7 +165,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       ].join(":");
 
       const result = await sessionService.create({
-        patientInputId: data.patientId,
+        patientId: data.patientId,
         sessionDate,
         sessionTime,
       });
@@ -116,21 +173,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       // Upload the video: create metadata then upload the file.
       const videoMeta = await videoService.createMetadata(
         result.sessionId,
-        result.patientId,
+        result.patientUuid,
         data.file.name,
       );
       await videoService.uploadFile(videoMeta.id, data.file);
 
-      const newViewId = `v${Date.now()}`;
-
       const newSession: Session = {
         id: result.sessionId,
-        patientId: result.patientId,
+        patientUuid: result.patientUuid,
         date: formatSessionDate(sessionDate),
         notification: false,
         views: [
           {
-            id: newViewId,
+            id: videoMeta.id,
             videoId: videoMeta.id,
             label: data.mediaTitle,
             videoUrl: URL.createObjectURL(data.file),
@@ -145,7 +200,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       set((state) => ({
         sessions: [newSession, ...state.sessions],
         activeSessionId: result.sessionId,
-        activeViewId: newViewId,
+        activeViewId: videoMeta.id,
       }));
     },
 
@@ -158,9 +213,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const session = get().sessions.find((s) => s.id === sessionId);
 
       // Fire-and-forget: upload video in the background.
-      if (session?.patientId) {
+      if (session?.patientUuid) {
         videoService
-          .createMetadata(sessionId, session.patientId, viewData.file.name)
+          .createMetadata(sessionId, session.patientUuid, viewData.file.name)
           .then((meta) => {
             videoService.uploadFile(meta.id, viewData.file);
 

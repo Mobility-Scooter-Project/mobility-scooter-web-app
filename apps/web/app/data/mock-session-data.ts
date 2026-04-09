@@ -3,13 +3,13 @@
 export type PointStatus = "visible" | "hidden" | "inactive";
 
 export type Point = {
-  id: number;
+  id: string;
   name: string;
   status: PointStatus;
 };
 
 export type Chapter = {
-  id: number;
+  id: string;
   thumbnailUrl: string;
   title: string;
   timestamp: number;
@@ -20,7 +20,7 @@ export type Chapter = {
 };
 
 export type Annotation = {
-  id: number;
+  id: string;
   title: string;
   startTime: number; // in seconds
   endTime: number; // in seconds
@@ -32,7 +32,7 @@ export type Annotation = {
 export type RiskSeverity = "warning" | "danger";
 
 export type Risk = {
-  id: number;
+  id: string;
   title: string;
   startTime: number; // in seconds
   endTime: number; // in seconds
@@ -56,7 +56,7 @@ export type View = {
 
 export type Session = {
   id: string;
-  patientId?: string;
+  patientUuid?: string;
   date: string;
   notification: boolean;
   views: View[];

@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 
 import type { View } from "~/data/mock-session-data";
-import { useAnalysisData } from "~/hooks/useAnalysisData";
+import { useKeypointSync } from "~/hooks/useKeypointSync";
+import { useKeypointStore } from "~/stores/useKeypointStore";
 import { useVideoStore } from "~/stores/useVideoStore";
 import { VideoStageToggles } from "./VideoStageToggles";
 import { StageOverlay } from "./StageOverlay";
@@ -21,7 +22,9 @@ export function VideoStage({ activeView }: VideoStageProps) {
     (s) => s.actions,
   );
 
-  const fetchedFrames = useAnalysisData(activeView?.framesUrl, "csv");
+  // Sync keypoints from the API and read cached frames from the store.
+  useKeypointSync(activeView?.videoId);
+  const frames = useKeypointStore((s) => s.frames);
   
   useEffect(() => {
     const video = videoRef.current;
@@ -93,7 +96,7 @@ export function VideoStage({ activeView }: VideoStageProps) {
           </div>
         )}
 
-        <StageOverlay frames={fetchedFrames} />
+        <StageOverlay frames={frames} />
       </div>
     </section>
   );

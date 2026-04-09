@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { type Chapter } from "~/data/mock-session-data";
 import Placeholder from "~/assets/placeholder-thumbnail.png";
 import { useSelectionStore } from "./useSelectionStore";
+import { taskService, type VideoTaskEntry } from "~/services/tasks";
 
 type ChapterStore = {
   chapters: Chapter[];
@@ -10,14 +11,31 @@ type ChapterStore = {
   actions: {
     setChapters: (chapters: Chapter[]) => void;
     loadChapters: (viewId: string, chapters: Chapter[]) => void;
+    /** Fetches task detection results from the API and maps them to chapters. */
+    loadChaptersFromApi: (viewId: string, videoId: string) => Promise<void>;
     handleNewChapter: () => void;
-    handleDeleteChapter: (id: number) => void;
-    updateChapter: (id: number, updates: Partial<Chapter>) => void;
+    handleDeleteChapter: (id: string) => void;
+    updateChapter: (id: string, updates: Partial<Chapter>) => void;
   };
 };
 
+/** Converts an API task entry to the local Chapter shape. */
+function taskToChapter(entry: VideoTaskEntry): Chapter {
+  return {
+    id: String(entry.taskNumber),
+    thumbnailUrl: Placeholder,
+    title: entry.task,
+    timestamp: entry.timestamp,
+    author: "AI",
+    lastUpdated: "",
+    score: entry.score,
+    description: entry.note ?? "",
+  };
+}
+
 /**
- * Manages video chapters, including CRUD operations and selection state.
+ * Manages video chapters, including CRUD operations, selection state,
+ * and loading from the video tasks API.
  */
 export const useChapterStore = create<ChapterStore>((set, get) => ({
   chapters: [],
@@ -39,11 +57,28 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       set({ activeViewId: viewId, chapters });
     },
 
+    loadChaptersFromApi: async (viewId, videoId) => {
+      set({ activeViewId: viewId, chapters: [] });
+      useSelectionStore.getState().actions.clearSelection();
+
+      try {
+        const tasks = await taskService.getAll(videoId);
+        // Only apply if still on the same view.
+        if (get().activeViewId !== viewId) return;
+        set({ chapters: tasks.map(taskToChapter) });
+      } catch (error) {
+        console.error("Failed to load chapters from tasks:", error);
+      }
+    },
+
     handleNewChapter: () => {
       const { chapters } = get();
-      const nextId = chapters.length
-        ? Math.max(...chapters.map((c) => c.id)) + 1
-        : 1;
+      const nextId =
+        chapters.length > 0
+          ? String(
+              Math.max(...chapters.map((c) => Number(c.id) || 0)) + 1,
+            )
+          : "1";
 
       const dateStr = new Date().toLocaleDateString("en-US", {
         month: "short",
@@ -72,7 +107,10 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       }));
 
       const selectionStore = useSelectionStore.getState();
-      if (selectionStore.selectedType === "chapter" && selectionStore.selectedId === id) {
+      if (
+        selectionStore.selectedType === "chapter" &&
+        selectionStore.selectedId === id
+      ) {
         selectionStore.actions.clearSelection();
       }
     },
