@@ -52,6 +52,10 @@ export type View = {
   annotations: Annotation[];
   risks: Risk[];
   framesUrl?: string;
+  /** True while the video file is still being uploaded to the API. */
+  uploading?: boolean;
+  /** True when the video upload or processing failed. */
+  uploadError?: boolean;
 };
 
 export type Session = {

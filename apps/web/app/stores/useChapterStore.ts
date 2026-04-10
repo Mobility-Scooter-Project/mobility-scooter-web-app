@@ -4,9 +4,19 @@ import Placeholder from "~/assets/placeholder-thumbnail.png";
 import { useSelectionStore } from "./useSelectionStore";
 import { taskService, type VideoTaskEntry } from "~/services/tasks";
 
+/** Task-detection processing status as tracked by the video-worker. */
+export type TaskStatus =
+  | "unknown"
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
+
 type ChapterStore = {
   chapters: Chapter[];
   activeViewId: string | null;
+  /** Current task-detection processing status for the active video. */
+  taskStatus: TaskStatus;
 
   actions: {
     setChapters: (chapters: Chapter[]) => void;
@@ -16,6 +26,8 @@ type ChapterStore = {
     handleNewChapter: () => void;
     handleDeleteChapter: (id: string) => void;
     updateChapter: (id: string, updates: Partial<Chapter>) => void;
+    /** Updates the task-detection processing status. */
+    setTaskStatus: (status: TaskStatus) => void;
   };
 };
 
@@ -40,6 +52,7 @@ function taskToChapter(entry: VideoTaskEntry): Chapter {
 export const useChapterStore = create<ChapterStore>((set, get) => ({
   chapters: [],
   activeViewId: null,
+  taskStatus: "unknown",
 
   actions: {
     setChapters: (chapters) => {
@@ -122,5 +135,7 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
         ),
       }));
     },
+
+    setTaskStatus: (status) => set({ taskStatus: status }),
   },
 }));
