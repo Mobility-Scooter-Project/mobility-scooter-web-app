@@ -89,16 +89,13 @@ function ViewTabIndicator({ view }: { view: View }) {
   });
 
   useEffect(() => {
-    // 1. Trust ephemeral state first (handles standard, un-reloaded uploads natively)
     if (view.uploading || view.uploadError) return;
 
-    // 2. If it is the active view, sync with the global store to prevent redundant API polling
     if (isActive) {
       setStatus({ loading: !workerStarted, error: false });
       return;
     }
 
-    // 3. If it's a background tab on a fresh reload, check the backend status independently
     if (!view.videoId) return;
 
     let mounted = true;

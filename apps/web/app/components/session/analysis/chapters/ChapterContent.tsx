@@ -28,7 +28,7 @@ export function ChapterContent() {
       </PanelSectionHeader>
 
       <PanelSectionBody>
-        <PanelScrollArea className="pb-4.5">
+        <PanelScrollArea>
           <ChapterList />
         </PanelScrollArea>
       </PanelSectionBody>

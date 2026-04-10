@@ -115,10 +115,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
       if (videoItems.length === 0) return;
 
-      // Fetch presigned URLs for all videos in parallel.
-      // Worker processing status is handled by useKeypointSync / useChapterSync,
-      // so we don't call getStatus here — avoids duplicate calls and keeps the
-      // uploading flag accurate (true only during actual file upload, not worker processing).
+      // Fetch presigned URLs for all videos in parallel
       const views: View[] = await Promise.all(
         videoItems.map(async (item) => {
           let videoUrl = "";

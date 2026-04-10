@@ -1,4 +1,3 @@
-import { p } from "node_modules/@react-router/dev/dist/routes-CZR-bKRt";
 import { useMemo } from "react";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
