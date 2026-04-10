@@ -10,9 +10,9 @@ export function useAnnotationSelection() {
 
   return {
     selectedAnnotationId: selectedType === "annotation" ? selectedId : null,
-    selectAnnotation: (id: number) => selectSelection("annotation", id),
+    selectAnnotation: (id: string) => selectSelection("annotation", id),
     clearAnnotationSelection: clearSelection,
-    isAnnotationSelected: (id: number) =>
+    isAnnotationSelected: (id: string) =>
       selectedType === "annotation" && selectedId === id,
   };
 }

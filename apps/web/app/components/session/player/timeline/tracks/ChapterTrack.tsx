@@ -3,10 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useVideoStore } from "~/stores/useVideoStore";
 import { calculateTimelineSegments } from "~/lib/timeline-calculations";
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
+import { clamp } from "./timeline-track";
 
 const TRACK_ACTIVE_CLASS = "bg-foreground";
 const TRACK_INACTIVE_CLASS = "bg-accent";

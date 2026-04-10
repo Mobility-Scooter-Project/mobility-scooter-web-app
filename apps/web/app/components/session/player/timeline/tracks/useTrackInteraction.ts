@@ -11,9 +11,9 @@ const DRAG_THRESHOLD_PX = 4;
 interface UseTrackInteractionParams<T extends TimeRange> {
   containerRef: React.RefObject<HTMLElement | null>;
   totalDuration: number;
-  getItemById: (id: number) => T | undefined;
-  onUpdate: (id: number, updates: Partial<T>) => void;
-  onSelect?: (id: number) => void;
+  getItemById: (id: string) => T | undefined;
+  onUpdate: (id: string, updates: Partial<T>) => void;
+  onSelect?: (id: string) => void;
 }
 
 export function useTrackInteraction<T extends TimeRange>({
@@ -24,7 +24,7 @@ export function useTrackInteraction<T extends TimeRange>({
   onSelect,
 }: UseTrackInteractionParams<T>) {
   return useCallback(
-    (event: React.MouseEvent, id: number, action: TrackInteraction) => {
+    (event: React.MouseEvent, id: string, action: TrackInteraction) => {
       event.preventDefault();
       event.stopPropagation();
 

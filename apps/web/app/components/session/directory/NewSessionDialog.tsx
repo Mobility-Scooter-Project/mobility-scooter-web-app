@@ -49,10 +49,20 @@ export function NewSessionDialog({
     }, 200);
   };
 
-  const handleSubmit = () => {
-    if (!patientId.trim() || !date || !mediaTitle.trim() || !file) return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    addSession({ patientId, date, mediaTitle, file });
+  const handleSubmit = async () => {
+    if (!patientId.trim() || !date || !mediaTitle.trim() || !file) return;
+    setIsSubmitting(true);
+
+    try {
+      await addSession({ patientId, date, mediaTitle, file });
+    } catch (error) {
+      console.error("Failed to create session:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+
     handleClose();
   };
 
@@ -117,10 +127,10 @@ export function NewSessionDialog({
       <div className="flex justify-end w-full">
         <Button
           onClick={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || isSubmitting}
           className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
         >
-          Create Session
+          {isSubmitting ? "Creating..." : "Create Session"}
         </Button>
       </div>
     </OverlayCard>

@@ -13,10 +13,6 @@ interface PlayerTimelineProps {
 
 export function PlayerTimeline({ activeView }: PlayerTimelineProps) {
   const duration = useVideoStore((s) => s.duration);
-  const currentTime = useVideoStore((s) => s.currentTime);
-  
-  const safeDuration = duration > 0 ? duration : 1;
-  const progressPercent = Math.min(Math.max((currentTime / safeDuration) * 100, 0), 100);
 
   return (
     <div className="flex flex-col gap-y-3">

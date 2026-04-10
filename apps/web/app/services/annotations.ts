@@ -1,38 +1,128 @@
-import { db, delay } from "./mock-db";
-import type { Annotation } from "~/data/mock-session-data";
+import { API_BASE_URL } from "~/config/constants";
+import { userAuthStore } from "~/lib/auth";
+
+/** Response shape returned by annotation endpoints. */
+export type AnnotationResponse = {
+  annotationId: string;
+  title: string;
+  description: string;
+  startTime: number;
+  endTime: number | null;
+};
+
+/** Request body for creating or updating an annotation. */
+type AnnotationDto = {
+  title: string;
+  description: string;
+  startTime: number;
+  endTime?: number | null;
+};
+
+function authHeaders(): HeadersInit {
+  const accessToken = userAuthStore.getState().accessToken;
+  return {
+    "Content-Type": "application/json",
+    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+  };
+}
 
 export const annotationService = {
   /**
-   * POST /sessions/:sessionId/annotations
-   * Creates a new annotation attached to the session (or primary view).
+   * GET /api/v1/videos/:videoId/annotations
+   * Lists all annotations for a video.
    */
-  create: async (sessionId: number, annotation: Annotation) => {
-    await delay();
-    const session = db.sessions.find((s) => s.id === sessionId);
-    if (!session || !session.views[0]) throw new Error("Session or View not found");
+  getAll: async (videoId: string): Promise<AnnotationResponse[]> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations`,
+      { headers: authHeaders() },
+    );
 
-    session.views[0].annotations.unshift(annotation);
-    db.commit();
-    return annotation;
+    if (!res.ok) {
+      throw new Error(`Failed to fetch annotations: ${res.status}`);
+    }
+
+    return res.json();
   },
 
   /**
-   * PATCH /sessions/:sessionId/annotations/:annotationId
-   * Updates an existing annotation.
+   * POST /api/v1/videos/:videoId/annotations
+   * Creates a new annotation on a video.
+   *
+   * @param videoId - The video to annotate
+   * @param dto     - Annotation title, description, and time range
+   * @returns The created annotation
    */
-  update: async (sessionId: number, annotationId: number, updates: Partial<Annotation>) => {
-    await delay(100);
-    const session = db.sessions.find((s) => s.id === sessionId);
-    if (!session) throw new Error("Session not found");
+  create: async (
+    videoId: string,
+    dto: AnnotationDto,
+  ): Promise<AnnotationResponse> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(dto),
+      },
+    );
 
-    const annotation = session.views
-      .flatMap((v) => v.annotations)
-      .find((a) => a.id === annotationId);
+    if (!res.ok) {
+      throw new Error(`Failed to create annotation: ${res.status}`);
+    }
 
-    if (!annotation) throw new Error("Annotation not found");
+    return res.json();
+  },
 
-    Object.assign(annotation, updates);
-    db.commit();
-    return annotation;
+  /**
+   * PUT /api/v1/videos/:videoId/annotations/:annotationId
+   * Updates an existing annotation.
+   *
+   * @param videoId      - The parent video ID
+   * @param annotationId - The annotation to update
+   * @param dto          - Updated fields
+   * @returns The updated annotation
+   */
+  update: async (
+    videoId: string,
+    annotationId: string,
+    dto: AnnotationDto,
+  ): Promise<AnnotationResponse> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
+      {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(dto),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to update annotation: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  /**
+   * DELETE /api/v1/videos/:videoId/annotations/:annotationId
+   * Deletes an annotation.
+   *
+   * @param videoId      - The parent video ID
+   * @param annotationId - The annotation to delete
+   */
+  delete: async (
+    videoId: string,
+    annotationId: string,
+  ): Promise<void> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
+      {
+        method: "DELETE",
+        headers: authHeaders(),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to delete annotation: ${res.status}`);
+    }
   },
 };
