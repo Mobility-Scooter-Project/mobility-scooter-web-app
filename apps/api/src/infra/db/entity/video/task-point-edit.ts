@@ -25,7 +25,7 @@ export class TaskPointEdit {
   @Column({ type: 'text' })
   targetType: 'keypoint' | 'task';
 
-  // Selector to locate the edited output (e.g. { frameIndex, keypointName } or { taskNumber }).
+  // Selector to locate the edited output (e.g. { frameIndex, keypointName } or { taskId }).
   @Column({ type: 'jsonb' })
   targetRef: Record<string, unknown>;
 

@@ -1,7 +1,7 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 
 import { VideoTask } from '@infra/db/entity/video/task';
 import { VideoAuthorizationService } from '@src/shared/video-authorization.service';
@@ -11,32 +11,46 @@ import { VideoTasksService } from './video-tasks.service';
 describe('VideoTasksService', () => {
   let service: VideoTasksService;
   let videoTaskRepository: jest.Mocked<
-    Pick<Repository<VideoTask>, 'createQueryBuilder'>
+    Pick<
+      Repository<VideoTask>,
+      | 'find'
+      | 'findOne'
+      | 'findOneOrFail'
+      | 'create'
+      | 'save'
+      | 'delete'
+    >
   >;
   let videoAuthorizationService: jest.Mocked<
     Pick<VideoAuthorizationService, 'assertUserCanAccessVideo'>
   >;
 
-  let queryBuilder: {
-    innerJoin: jest.Mock;
-    where: jest.Mock;
-    getOne: jest.Mock;
-  };
-
   const userId = '11111111-1111-1111-1111-111111111111';
   const videoId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  const taskId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  const row = (over: Partial<VideoTask> = {}): VideoTask =>
+    ({
+      id: taskId,
+      timestamp: 1.5,
+      task: 'Ascends low curb',
+      note: null,
+      score: null,
+      createdByUser: null,
+      updatedByUser: null,
+      ...over,
+    }) as VideoTask;
 
   beforeEach(async () => {
-    queryBuilder = {
-      innerJoin: jest.fn(),
-      where: jest.fn(),
-      getOne: jest.fn().mockResolvedValue(null),
-    };
-    queryBuilder.innerJoin.mockReturnValue(queryBuilder);
-    queryBuilder.where.mockReturnValue(queryBuilder);
-
     videoTaskRepository = {
-      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      find: jest.fn(),
+      findOne: jest.fn(),
+      findOneOrFail: jest.fn(),
+      create: jest.fn((e: DeepPartial<VideoTask>) => e as VideoTask) as unknown as jest.Mocked<
+        Pick<Repository<VideoTask>, 'create'>
+      >['create'],
+      save: jest.fn(),
+      delete: jest.fn(),
     };
 
     videoAuthorizationService = {
@@ -65,72 +79,124 @@ describe('VideoTasksService', () => {
   });
 
   describe('getVideoTasks', () => {
-    it('asserts user can access the video before querying', async () => {
-      await service.getVideoTasks(userId, videoId);
+    it('lists tasks ordered by timestamp then id', async () => {
+      videoTaskRepository.find.mockResolvedValue([
+        row({ id: 'a', timestamp: 1 }),
+        row({
+          id: 'b',
+          timestamp: 2,
+          task: 'Other',
+          createdByUser: { id: userId } as any,
+        }),
+      ]);
 
-      expect(
-        videoAuthorizationService.assertUserCanAccessVideo,
-      ).toHaveBeenCalledWith(userId, videoId);
-    });
+      const out = await service.getVideoTasks(userId, videoId);
 
-    it('loads tasks via video join query', async () => {
-      await service.getVideoTasks(userId, videoId);
-
-      expect(videoTaskRepository.createQueryBuilder).toHaveBeenCalledWith('t');
-      expect(queryBuilder.innerJoin).toHaveBeenCalledWith('t.video', 'v');
-      expect(queryBuilder.where).toHaveBeenCalledWith('v.id = :videoId', {
-        videoId,
+      expect(videoTaskRepository.find).toHaveBeenCalledWith({
+        where: { video: { id: videoId } },
+        order: { timestamp: 'ASC', id: 'ASC' },
+        relations: { createdByUser: true, updatedByUser: true },
       });
-      expect(queryBuilder.getOne).toHaveBeenCalled();
-    });
-
-    it('returns tasks from row.tasks when a row exists', async () => {
-      const tasks = [
+      expect(out).toEqual([
         {
-          taskNumber: 1,
-          timestamp: 1.5,
+          taskId: 'a',
+          timestamp: 1,
           task: 'Ascends low curb',
           note: null,
           score: null,
+          createdByUserId: null,
+          updatedByUserId: null,
         },
-      ];
-      queryBuilder.getOne.mockResolvedValue({ tasks } as VideoTask);
-
-      const result = await service.getVideoTasks(userId, videoId);
-
-      expect(result).toEqual(tasks);
+        {
+          taskId: 'b',
+          timestamp: 2,
+          task: 'Other',
+          note: null,
+          score: null,
+          createdByUserId: userId,
+          updatedByUserId: null,
+        },
+      ]);
     });
 
-    it('returns empty array when no video_task row exists', async () => {
-      queryBuilder.getOne.mockResolvedValue(null);
-
-      const result = await service.getVideoTasks(userId, videoId);
-
-      expect(result).toEqual([]);
+    it('returns empty array when none', async () => {
+      videoTaskRepository.find.mockResolvedValue([]);
+      const out = await service.getVideoTasks(userId, videoId);
+      expect(out).toEqual([]);
     });
+  });
 
-    it('returns empty array when row exists but tasks is missing', async () => {
-      queryBuilder.getOne.mockResolvedValue({
-        tasks: undefined,
-      } as unknown as VideoTask);
-
-      const result = await service.getVideoTasks(userId, videoId);
-
-      expect(result).toEqual([]);
-    });
-
-    it('rejects when authorization fails', async () => {
-      videoAuthorizationService.assertUserCanAccessVideo.mockRejectedValue(
-        new HttpException('Video not found', HttpStatus.NOT_FOUND),
-      );
-
-      await expect(
-        service.getVideoTasks(userId, videoId),
-      ).rejects.toMatchObject({
-        response: 'Video not found',
-        status: HttpStatus.NOT_FOUND,
+  describe('createVideoTask', () => {
+    it('creates row with createdByUserId set', async () => {
+      const saved = row({
+        timestamp: 9,
+        task: 'Manual',
+        createdByUser: { id: userId } as any,
       });
-      expect(queryBuilder.getOne).not.toHaveBeenCalled();
+      videoTaskRepository.save.mockResolvedValue(saved);
+      videoTaskRepository.findOneOrFail.mockResolvedValue(saved);
+
+      const out = await service.createVideoTask(userId, videoId, {
+        timestamp: 9,
+        task: 'Manual',
+      });
+
+      expect(videoTaskRepository.create).toHaveBeenCalledWith({
+        video: { id: videoId },
+        timestamp: 9,
+        task: 'Manual',
+        note: null,
+        score: null,
+        createdByUser: { id: userId },
+        updatedByUser: null,
+      });
+      expect(videoTaskRepository.findOneOrFail).toHaveBeenCalled();
+      expect(out.taskId).toBe(taskId);
+      expect(out.createdByUserId).toBe(userId);
+    });
+  });
+
+  describe('updateVideoTask', () => {
+    it('updates fields and sets updatedByUser', async () => {
+      const existing = row({ createdByUser: null });
+      videoTaskRepository.findOne.mockResolvedValue(existing);
+      videoTaskRepository.save.mockImplementation(async (r) => r as VideoTask);
+      videoTaskRepository.findOneOrFail.mockResolvedValue({
+        ...existing,
+        note: 'edited',
+        updatedByUser: { id: userId } as any,
+      } as VideoTask);
+
+      const out = await service.updateVideoTask(userId, videoId, taskId, {
+        note: 'edited',
+      });
+
+      expect(existing.note).toBe('edited');
+      expect(out.note).toBe('edited');
+      expect(out.updatedByUserId).toBe(userId);
+    });
+
+    it('throws NOT_FOUND when missing', async () => {
+      videoTaskRepository.findOne.mockResolvedValue(null);
+      await expect(
+        service.updateVideoTask(userId, videoId, taskId, { note: 'x' }),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+    });
+  });
+
+  describe('deleteVideoTask', () => {
+    it('deletes one row', async () => {
+      videoTaskRepository.delete.mockResolvedValue({ affected: 1 } as any);
+      await expect(
+        service.deleteVideoTask(userId, videoId, taskId),
+      ).resolves.toEqual({ deleted: true });
+    });
+
+    it('throws NOT_FOUND when missing', async () => {
+      videoTaskRepository.delete.mockResolvedValue({ affected: 0 } as any);
+      await expect(
+        service.deleteVideoTask(userId, videoId, taskId),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
     });
   });
 });

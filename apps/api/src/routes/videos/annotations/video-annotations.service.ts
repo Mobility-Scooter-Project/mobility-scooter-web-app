@@ -3,11 +3,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { VideoAnnotation } from '@infra/db/entity/video/annotation';
+import { User } from '@infra/db/entity/user/user';
 import { VideoAuthorizationService } from '@src/shared/video-authorization.service';
 import { VideoAnnotationDto } from './video-annotations.dto';
 
+const annotationRelations = { createdByUser: true, updatedByUser: true } as const;
+
 type VideoAnnotationOutput = {
   annotationId: string;
+  createdByUserId: string;
+  updatedByUserId: string | null;
   title: string;
   description: string;
   startTime: number;
@@ -32,6 +37,8 @@ export class VideoAnnotationsService {
   private toOutput(row: VideoAnnotation): VideoAnnotationOutput {
     return {
       annotationId: row.id,
+      createdByUserId: row.createdByUser.id,
+      updatedByUserId: row.updatedByUser?.id ?? null,
       title: row.title,
       description: row.description,
       startTime: row.startTime,
@@ -68,7 +75,8 @@ export class VideoAnnotationsService {
     try {
       const entity = this.annotationRepository.create({
         video: { id: videoId },
-        user: { id: userId },
+        createdByUser: { id: userId },
+        updatedByUser: null,
         title: dto.title,
         description: dto.description,
         startTime: dto.startTime,
@@ -80,11 +88,24 @@ export class VideoAnnotationsService {
       throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    return this.toOutput(saved);
+    let withUser: VideoAnnotation | null;
+    try {
+      withUser = await this.annotationRepository.findOne({
+        where: { id: saved.id },
+        relations: annotationRelations,
+      });
+    } catch (error) {
+      this.logger.error('Failed to load annotation after create', error);
+      throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    if (!withUser) {
+      throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return this.toOutput(withUser);
   }
 
   /**
-   * Gets all video annotations for a video.
+   * Gets all video annotations for a video (all creators; unit collaborators who can access the video).
    * @param userId - The ID of the user getting the annotations.
    * @param videoId - The ID of the video to get the annotations for.
    * @returns The VideoAnnotationOutput objects.
@@ -98,7 +119,8 @@ export class VideoAnnotationsService {
     let rows: VideoAnnotation[];
     try {
       rows = await this.annotationRepository.find({
-        where: { video: { id: videoId }, user: { id: userId } },
+        where: { video: { id: videoId } },
+        relations: annotationRelations,
         order: { startTime: 'ASC', cu: { createdAt: 'ASC' } },
       });
     } catch (error) {
@@ -126,7 +148,8 @@ export class VideoAnnotationsService {
     let row: VideoAnnotation | null;
     try {
       row = await this.annotationRepository.findOne({
-        where: { id: annotationId, video: { id: videoId }, user: { id: userId } },
+        where: { id: annotationId, video: { id: videoId } },
+        relations: annotationRelations,
       });
     } catch (error) {
       this.logger.error('Failed to fetch video annotation', error);
@@ -141,7 +164,8 @@ export class VideoAnnotationsService {
   }
 
   /**
-   * Updates a video annotation.
+   * Updates a video annotation. Policy: any user in the unit who can access the video (same as other video routes).
+   * TODO: may restrict to creator + lead once role rules are defined.
    * @param userId - The ID of the user updating the annotation.
    * @param videoId - The ID of the video to update the annotation for.
    * @param annotationId - The ID of the annotation to update.
@@ -160,7 +184,8 @@ export class VideoAnnotationsService {
     let existing: VideoAnnotation | null;
     try {
       existing = await this.annotationRepository.findOne({
-        where: { id: annotationId, video: { id: videoId }, user: { id: userId } },
+        where: { id: annotationId, video: { id: videoId } },
+        relations: annotationRelations,
       });
     } catch (error) {
       this.logger.error('Failed to fetch video annotation for update', error);
@@ -175,20 +200,25 @@ export class VideoAnnotationsService {
     existing.title = dto.title;
     existing.startTime = dto.startTime;
     existing.endTime = dto.endTime ?? null;
+    existing.updatedByUser = { id: userId } as User;
 
-    let saved: VideoAnnotation;
     try {
-      saved = await this.annotationRepository.save(existing);
+      await this.annotationRepository.save(existing);
     } catch (error) {
       this.logger.error('Failed to update video annotation', error);
       throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    return this.toOutput(saved);
+    const refreshed = await this.annotationRepository.findOneOrFail({
+      where: { id: annotationId, video: { id: videoId } },
+      relations: annotationRelations,
+    });
+    return this.toOutput(refreshed);
   }
 
   /**
-   * Deletes a video annotation.
+   * Deletes a video annotation. Policy: any user in the unit who can access the video.
+   * TODO: may align with update policy (e.g. creator + lead) when roles are defined.
    * @param userId - The ID of the user deleting the annotation.
    * @param videoId - The ID of the video to delete the annotation for.
    * @param annotationId - The ID of the annotation to delete.
@@ -206,7 +236,6 @@ export class VideoAnnotationsService {
       result = await this.annotationRepository.delete({
         id: annotationId,
         video: { id: videoId },
-        user: { id: userId },
       });
     } catch (error) {
       this.logger.error('Failed to delete video annotation', error);

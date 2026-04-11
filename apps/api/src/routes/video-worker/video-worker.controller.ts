@@ -13,10 +13,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/constants';
-import { VIDEO_WORKER_COMPLETED_STEPS } from '@config/enums';
+import { VIDEO_WORKER_STEPS } from '@config/enums';
 import {
-  VideoWorkerCompletedDto,
-  VideoWorkerStepCompletedDto,
+  VideoWorkerStatusDto,
+  VideoWorkerStepStatusDto,
 } from './video-worker-status.dto';
 import { VideoWorkerService } from './video-worker.service';
 import { VideoAuthorizationService } from '@src/shared/video-authorization.service';
@@ -47,8 +47,8 @@ export class VideoWorkerController {
   async getStepStatus(
     @Req() req: { locals: { userId: string } },
     @Param('videoId', ParseUUIDPipe) videoId: string,
-    @Param('step', new ParseEnumPipe(VIDEO_WORKER_COMPLETED_STEPS))
-    step: VIDEO_WORKER_COMPLETED_STEPS,
+    @Param('step', new ParseEnumPipe(VIDEO_WORKER_STEPS))
+    step: VIDEO_WORKER_STEPS,
   ) {
     await this.videoAuthorizationService.assertUserCanAccessVideo(
       req.locals.userId,
@@ -61,7 +61,7 @@ export class VideoWorkerController {
   @Post('completed')
   @HttpCode(200)
   async markCompleted(
-    @Body() body: VideoWorkerCompletedDto,
+    @Body() body: VideoWorkerStatusDto,
     @Headers('X-Video-Worker-Secret') secretHeader?: string,
   ) {
     const expectedSecret = this.configService.get('videoWorkerSecret');
@@ -76,11 +76,11 @@ export class VideoWorkerController {
     return this.videoWorkerService.markVideoCompleted(body);
   }
 
-  // Internal webhook when `pose_estimation` or `task_detection` reaches completion.
+  // Internal webhook when a step reaches a terminal state (completed or failed after retries).
   @Post('step-completed')
   @HttpCode(200)
   async markStepCompleted(
-    @Body() body: VideoWorkerStepCompletedDto,
+    @Body() body: VideoWorkerStepStatusDto,
     @Headers('X-Video-Worker-Secret') secretHeader?: string,
   ) {
     const expectedSecret = this.configService.get('videoWorkerSecret');

@@ -36,21 +36,36 @@ class DBActor():
     else:
       self.connection.commit()
           
-  def upsert_tasks(self, video_id, tasks):
-    self._lazyInit()
-    query = """
-      INSERT INTO videos.video_task ("videoId", tasks)
-      VALUES (%s, %s)
-      ON CONFLICT ("videoId")
-      DO UPDATE SET
-        tasks = EXCLUDED.tasks,
-        "cuUpdatedat" = NOW();
+  def upsert_worker_tasks(self, video_id, tasks):
     """
+    Upsert all worker (AI) tasks for a video
+    """
+    self._lazyInit()
+    delete_sql = 'DELETE FROM videos.video_task WHERE "videoId" = %s AND "createdByUserId" IS NULL'
+    insert_sql = """
+      INSERT INTO videos.video_task ("videoId", "timestamp", "task", "note", "score", "createdByUserId", "updatedByUserId")
+      VALUES (%s, %s, %s, %s, %s, NULL, NULL)
+    """
+    rows = []
+    for t in tasks:
+      if not isinstance(t, dict):
+        continue
+      task_text = str(t.get("task") or "").strip()
+      if not task_text:
+        continue
+      try:
+        ts = float(t.get("timestamp") or 0)
+      except (TypeError, ValueError):
+        continue
+      rows.append((video_id, ts, task_text, t.get("note"), t.get("score")))
+
     try:
-      self.cursor.execute(query, (video_id, tasks))
+      self.cursor.execute(delete_sql, (video_id,))
+      if rows:
+        self.cursor.executemany(insert_sql, rows)
     except Exception as e:
       self.connection.rollback()
-      logger.error(f"Failed to upsert tasks for video {video_id}: {e}")
+      logger.error(f"Failed to upsert worker tasks for video {video_id}: {e}")
     else:
       self.connection.commit()
   
@@ -59,12 +74,12 @@ class DBActor():
     video_id,
     step,
     status,
-    error=None,
+    attempts,
     duration_sec=None,
-    attempts=1,
+    error=None,
   ):
     """
-    Upsert per-step row for a terminal outcome (processing, completed or failed) with explicit attempt count.
+    Upsert per-step row for processing, completed, or failed.
     """
     self._lazyInit()
     query = """

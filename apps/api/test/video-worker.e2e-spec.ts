@@ -7,7 +7,10 @@ import { App } from 'supertest/types';
 import { VideoWorkerController } from '@src/routes/video-worker/video-worker.controller';
 import { VideoWorkerService } from '@src/routes/video-worker/video-worker.service';
 
-import { VIDEO_WORKER_COMPLETED_STEPS } from '@config/enums';
+import {
+  VIDEO_WORKER_OVERALL_STATUS,
+  VIDEO_WORKER_STEPS,
+} from '@config/enums';
 
 describe('VideoWorkerController (e2e)', () => {
   let app: INestApplication<App>;
@@ -24,7 +27,7 @@ describe('VideoWorkerController (e2e)', () => {
     }),
     getWorkerStepStatus: jest.fn().mockResolvedValue({
       videoId,
-      step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+      step: VIDEO_WORKER_STEPS.POSE_ESTIMATION,
       status: 'processed',
       attempts: 1,
       lastError: null,
@@ -34,7 +37,6 @@ describe('VideoWorkerController (e2e)', () => {
       videoId,
       overallStatus: 'processed',
       durationSec,
-      steps: [],
       acknowledged: true,
     }),
   };
@@ -83,14 +85,14 @@ describe('VideoWorkerController (e2e)', () => {
   it('GET /video-worker/:videoId/:step/status returns 200', async () => {
     const res = await request(app.getHttpServer())
       .get(
-        `/video-worker/${videoId}/${VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION}/status`,
+        `/video-worker/${videoId}/${VIDEO_WORKER_STEPS.POSE_ESTIMATION}/status`,
       )
       .expect(200);
 
-    expect(res.body).toHaveProperty('step', VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION);
+    expect(res.body).toHaveProperty('step', VIDEO_WORKER_STEPS.POSE_ESTIMATION);
     expect(mockVideoWorkerService.getWorkerStepStatus).toHaveBeenCalledWith(
       videoId,
-      VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+      VIDEO_WORKER_STEPS.POSE_ESTIMATION,
     );
   });
 
@@ -98,7 +100,11 @@ describe('VideoWorkerController (e2e)', () => {
     await request(app.getHttpServer())
       .post('/video-worker/completed')
       .set('X-Video-Worker-Secret', 'wrong-secret')
-      .send({ videoId, durationSec })
+      .send({
+        videoId,
+        durationSec,
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
+      })
       .expect(401)
       .expect((res) => {
         expect(res.body).toHaveProperty('message', 'Invalid webhook secret');
@@ -109,7 +115,11 @@ describe('VideoWorkerController (e2e)', () => {
     await request(app.getHttpServer())
       .post('/video-worker/completed')
       .set('X-Video-Worker-Secret', 'test-secret')
-      .send({ videoId, durationSec })
+      .send({
+        videoId,
+        durationSec,
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
+      })
       .expect(200)
       .expect((res) => {
         expect(res.body).toHaveProperty('acknowledged', true);

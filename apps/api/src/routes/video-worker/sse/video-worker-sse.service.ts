@@ -13,13 +13,13 @@ type VideoWorkerSsePayload =
       status: string | null;
       durationSec: number | null;
       attempts: number;
+      lastError: string | null;
     }
   | {
       type: 'overall';
       videoId: string;
       overallStatus: string | null;
       durationSec: number | null;
-      steps: { step: string; status: string }[];
     };
 
 // Redis pub/sub: fan-out worker processing status to all API instances (distinct from DB `video_worker.event`).

@@ -1,8 +1,8 @@
 import { SCHEMAS } from '@config/schemas';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateUpdateFields } from '../shared';
-import { Video } from './video';
 import { User } from '../user/user';
+import { Video } from './video';
 
 @Entity({ schema: SCHEMAS.VIDEOS })
 export class VideoAnnotation {
@@ -16,7 +16,10 @@ export class VideoAnnotation {
   video: Video;
 
   @ManyToOne(() => User, { nullable: false })
-  user: User;
+  createdByUser: User;
+
+  @ManyToOne(() => User, { nullable: true })
+  updatedByUser: User | null;
 
   @Column({ type: 'varchar', length: 255 })
   title: string;

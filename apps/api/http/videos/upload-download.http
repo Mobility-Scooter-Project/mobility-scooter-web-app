@@ -15,9 +15,10 @@ Authorization: Bearer {{login.response.body.token}}
 Content-Type: application/json
 
 {
-  "patientId": "123e4567-e89b-12d3-a456-426614174000",
+  "patientUuid": "123e4567-e89b-12d3-a456-426614174000",
   "sessionId": "123e4567-e89b-12d3-a456-426614174001",
-  "fileName": "sample.txt"
+  "fileName": "sample.mp4",
+  "title": "Sample recording"
 }
 
 ### Upload Video

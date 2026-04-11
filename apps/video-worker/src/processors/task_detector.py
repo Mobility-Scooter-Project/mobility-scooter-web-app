@@ -66,21 +66,21 @@ class TaskDetector:
     """
     prompt = self._load_transcript(transcript_csv)
 
-    for attempt in range(TASK_DETECTION_MAX_RETRIES):
+    for attempt in range(1, TASK_DETECTION_MAX_RETRIES + 1):
       try:
         logger.info(
-          f"Detecting task (attempt {attempt + 1}/{TASK_DETECTION_MAX_RETRIES})"
+          f"Detecting task (attempt {attempt}/{TASK_DETECTION_MAX_RETRIES})"
         )
         response = self.client.models.generate_content(
           model=TASK_DETECTION_MODEL,
           contents=f"{prompt}",
           config={"temperature": 0.0},
         )
-        return self._parse_tasks_text(response.text), attempt + 1
+        return self._parse_tasks_text(response.text), attempt
 
       except Exception as e:
-        logger.error(f"Task detection attempt {attempt + 1} failed: {e}")
-        if attempt < TASK_DETECTION_MAX_RETRIES - 1:
+        logger.error(f"Task detection attempt {attempt} failed: {e}")
+        if attempt < TASK_DETECTION_MAX_RETRIES:
           time.sleep(TASK_DETECTION_RETRY_DELAY)
 
     raise RuntimeError(

@@ -8,7 +8,11 @@ async function bootstrap() {
 
   // api config
   app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
   app.enableShutdownHooks();
 
   // swagger config

@@ -1,16 +1,22 @@
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
+  IsString,
   IsUUID,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import {
   VIDEO_WORKER_OVERALL_STATUS,
-  VIDEO_WORKER_COMPLETED_STEPS,
+  VIDEO_WORKER_STEP_STATUS,
+  VIDEO_WORKER_STEPS,
 } from '@config/enums';
 
-export class VideoWorkerCompletedDto {
+/** Webhook body when overall video processing reaches a terminal DB state. */
+export class VideoWorkerStatusDto {
   @IsNotEmpty()
   @IsUUID()
   videoId: string;
@@ -24,16 +30,29 @@ export class VideoWorkerCompletedDto {
   overallStatus: VIDEO_WORKER_OVERALL_STATUS;
 }
 
-// Webhook payload when `pose_estimation` or `task_detection` completes successfully (no `failed` path).
-export class VideoWorkerStepCompletedDto {
+/** Webhook body when a pipeline step reaches a terminal DB state (completed or failed after retries). */
+export class VideoWorkerStepStatusDto {
   @IsNotEmpty()
   @IsUUID()
   videoId: string;
 
-  @IsEnum(VIDEO_WORKER_COMPLETED_STEPS)
-  step: VIDEO_WORKER_COMPLETED_STEPS;
+  @IsEnum(VIDEO_WORKER_STEPS)
+  step: VIDEO_WORKER_STEPS;
 
+  @IsEnum(VIDEO_WORKER_STEP_STATUS)
+  status: VIDEO_WORKER_STEP_STATUS;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  durationSec: number;
+  durationSec?: number;
+
+  @IsInt()
+  @Min(1)
+  attempts: number;
+
+  @ValidateIf((o) => o.status === VIDEO_WORKER_STEP_STATUS.FAILED)
+  @IsString()
+  @IsNotEmpty()
+  lastError?: string;
 }

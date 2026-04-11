@@ -5,10 +5,11 @@ import { VideoWorkerStatus } from '@infra/db/entity/video-worker/status';
 import { VideoWorkerStepStatus } from '@infra/db/entity/video-worker/step-status';
 import { Video } from '@infra/db/entity/video/video';
 import {
-  VideoWorkerCompletedDto,
-  VideoWorkerStepCompletedDto,
+  VideoWorkerStatusDto,
+  VideoWorkerStepStatusDto,
 } from './video-worker-status.dto';
 import { VideoWorkerSseService } from './sse/video-worker-sse.service';
+import { VIDEO_WORKER_STEP_STATUS } from '@config/enums';
 
 type StepStatusInfo = {
   videoId: string;
@@ -16,6 +17,7 @@ type StepStatusInfo = {
   status: string | null;
   durationSec: number | null;
   attempts: number;
+  lastError: string | null;
 };
 
 type StatusInfo = {
@@ -29,7 +31,11 @@ type StepCompletionResponse = StepStatusInfo & {
   acknowledged: boolean;
 };
 
-type CompletionResponse = StatusInfo & {
+/** Webhook ack + echo of body; step breakdown is only on GET .../status. */
+type OverallCompletionResponse = {
+  videoId: string;
+  overallStatus: string;
+  durationSec: number;
   acknowledged: boolean;
 };
 
@@ -49,17 +55,12 @@ export class VideoWorkerService {
 
   /**
    * Completion webhook: worker has already persisted status via `db.py`.
-   * This handler only validates, logs, and returns canonical state so the API
-   * can later hook side effects (e.g. notify clients, unlock tasks) without
-   * duplicating `video_worker` writes.
-   *
-   * @param dto - VideoWorkerCompletedDto (videoId, durationSec, overallStatus)
-   * @returns CompletionResponse containing the videoId, overallStatus, durationSec, and steps
-   * @throws HttpException with appropriate status code and message on failure
+   * Validates video exists, logs, emits a minimal SSE notification from the DTO,
+   * and returns an ack echo (no DB read of `video_worker`; use GET .../status for detail).
    */
   public async markVideoCompleted(
-    dto: VideoWorkerCompletedDto,
-  ): Promise<CompletionResponse> {
+    dto: VideoWorkerStatusDto,
+  ): Promise<OverallCompletionResponse> {
     let video: Video | null;
     try {
       video = await this.videoRepository.findOne({
@@ -81,28 +82,27 @@ export class VideoWorkerService {
       `Completion webhook: videoId=${dto.videoId} status=${dto.overallStatus} durationSec=${dto.durationSec}`,
     );
 
-    const status = await this.getWorkerStatus(dto.videoId);
-
-    // emit event / enqueue work so client knows the video is completed
     this.videoWorkerSseService.emit({
       type: 'overall',
       videoId: dto.videoId,
-      overallStatus: status.overallStatus,
-      durationSec: status.durationSec,
-      steps: status.steps,
+      overallStatus: dto.overallStatus,
+      durationSec: dto.durationSec,
     });
 
-    return { ...status, acknowledged: true };
+    return {
+      videoId: dto.videoId,
+      overallStatus: dto.overallStatus,
+      durationSec: dto.durationSec,
+      acknowledged: true,
+    };
   }
 
   /**
-   * Mark a step as completed.
-   * @param dto - VideoWorkerStepCompletedDto (videoId, step, durationSec)
-   * @returns StepCompletionResponse containing the videoId, step, status, attempts, durationSec, and acknowledged
-   * @throws HttpException with appropriate status code and message on failure
+   * Step terminal webhook: validated body matches what the worker committed to `step_status`.
+   * SSE and the HTTP response use the DTO (no extra read of `step_status`).
    */
   public async markStepCompleted(
-    dto: VideoWorkerStepCompletedDto,
+    dto: VideoWorkerStepStatusDto,
   ): Promise<StepCompletionResponse> {
     let video: Video | null;
     try {
@@ -122,23 +122,33 @@ export class VideoWorkerService {
     }
 
     this.logger.log(
-      `Step webhook: videoId=${dto.videoId} step=${dto.step} durationSec=${dto.durationSec}`,
+      `Step webhook: videoId=${dto.videoId} step=${dto.step} status=${dto.status} durationSec=${dto.durationSec ?? 'n/a'}`,
     );
 
-    const step_status = await this.getWorkerStepStatus(dto.videoId, dto.step);
+    const snapshot: StepStatusInfo = {
+      videoId: dto.videoId,
+      step: dto.step,
+      status: dto.status,
+      durationSec: dto.durationSec ?? null,
+      attempts: dto.attempts,
+      lastError:
+        dto.status === VIDEO_WORKER_STEP_STATUS.COMPLETED
+          ? null
+          : (dto.lastError ?? null),
+    };
 
-    // emit event / enqueue work so client knows the step is completed and UI can show tasks
     this.videoWorkerSseService.emit({
       type: 'step',
-      videoId: dto.videoId,
-      step: step_status.step,
-      status: step_status.status,
-      durationSec: step_status.durationSec,
-      attempts: step_status.attempts,
+      videoId: snapshot.videoId,
+      step: snapshot.step,
+      status: snapshot.status,
+      durationSec: snapshot.durationSec,
+      attempts: snapshot.attempts,
+      lastError: snapshot.lastError,
     });
 
     return {
-      ...step_status,
+      ...snapshot,
       acknowledged: true,
     };
   }
@@ -194,13 +204,13 @@ export class VideoWorkerService {
       );
     }
 
-    // If the step row doesn't exist yet, surface a null status instead of 404
     return {
       videoId,
       step,
       status: stepRow?.status ?? null,
       durationSec: stepRow?.durationSec ?? null,
       attempts: stepRow?.attempts ?? 0,
+      lastError: stepRow?.lastError ?? null,
     };
   }
 }

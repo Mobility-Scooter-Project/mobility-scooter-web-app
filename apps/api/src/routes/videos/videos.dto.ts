@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class VideoMetadataDto {
   @IsUUID()
@@ -7,8 +7,21 @@ export class VideoMetadataDto {
   @IsUUID()
   sessionId: string;
 
+  @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   fileName: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  title?: string;
+}
+
+export class UpdateVideoTitleDto {
+  @IsString()
+  @MaxLength(255)
+  title: string;
 }
 
 export class ReprocessVideoDto {
