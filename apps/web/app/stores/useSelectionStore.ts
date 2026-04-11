@@ -3,11 +3,11 @@ import { create } from "zustand";
 export type SelectionType = "chapter" | "annotation" | "point" | null;
 
 export type SelectionStore = {
-  selectedId: number | null;
+  selectedId: string | null;
   selectedType: SelectionType;
   actions: {
-    setSelection: (type: SelectionType, id: number) => void;
-    selectSelection: (type: SelectionType, id: number) => void;
+    setSelection: (type: SelectionType, id: string) => void;
+    selectSelection: (type: SelectionType, id: string) => void;
     clearSelection: () => void;
   };
 };

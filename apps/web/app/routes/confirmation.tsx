@@ -13,7 +13,7 @@ export default function ConfirmationPage() {
         </p>
       </div>
 
-      <Button className="w-full" size={"fill"} asChild>
+      <Button size={"fill"} asChild>
         <Link to={"/login"}>Sign In</Link>
       </Button>
     </main>

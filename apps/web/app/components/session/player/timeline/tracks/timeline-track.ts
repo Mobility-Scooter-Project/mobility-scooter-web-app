@@ -7,7 +7,10 @@ export interface TimeRange {
   endTime: number;
 }
 
+/** Minimum allowed duration (in seconds) for a track segment after resizing. */
 export const MIN_TRACK_DURATION = 0.5;
+
+/** Minimum rendered width (in pixels) for a track segment, preventing it from becoming unclickable. */
 export const MIN_VISIBLE_WIDTH_PX = 30;
 
 export function getSafeDuration(duration: number) {

@@ -31,11 +31,16 @@ export class JwtMiddleware implements NestMiddleware {
    * @returns void
    */
   async use(req: TypedRequest, res: any, next: () => void): Promise<void> {
+    let token: string | undefined;
+
     const authHeader = req.headers['authorization'];
-    if (!authHeader) {
-      return res.status(401).json({ message: 'Authorization header missing' });
+    
+    if (authHeader) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token as string;
     }
-    const token = authHeader.split(' ')[1];
+
     if (!token) {
       return res.status(401).json({ message: 'Token missing' });
     }

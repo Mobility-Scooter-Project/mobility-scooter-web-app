@@ -5,7 +5,7 @@ import type { Annotation } from "~/data/mock-session-data";
 type InteractionType = "move" | "resize-start" | "resize-end";
 
 interface InteractionState {
-  id: number;
+  id: string;
   action: InteractionType;
   startX: number;
   initStart: number;
@@ -27,7 +27,7 @@ export function useAnnotationInteraction(
   // Helper to start interaction
   const startInteraction = (
     e: React.MouseEvent,
-    id: number,
+    id: string,
     action: InteractionType,
     currentStart: number,
     currentEnd: number

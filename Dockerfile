@@ -19,6 +19,11 @@ WORKDIR /usr/src/mswa
 # Install dependencies using a cache mount to speed up subsequent pnpm installs.
 # --frozen-lockfile ensures the build fails if the lockfile is out of sync.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+# expose env var to build process
+ARG VITE_API_BASE_URL
+ARG VITE_API_KEY
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_API_KEY=$VITE_API_KEY
 # Run the build script (likely using Turborepo) to compile all apps.
 RUN pnpm build
 

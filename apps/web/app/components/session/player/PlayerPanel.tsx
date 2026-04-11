@@ -9,7 +9,6 @@ import {
 import { PlayerTimeline } from "./timeline/PlayerTimeline";
 import { PlayerHeader } from "./header/PlayerHeader";
 import { PlayerViewList } from "./header/PlayerViewList";
-// import { PlayerToolbar } from "./toolbar/PlayerToolbar";
 import { VideoStage } from "./video/VideoStage";
 import { useSessionDataSync } from "~/hooks/useSessionDataSync";
 
@@ -38,8 +37,7 @@ export function PlayerPanel() {
       <PanelSectionBody>
         <PanelScrollArea className="flex flex-col justify-between gap-y-4.5">
           <div className="flex flex-col gap-y-4.5">
-            <VideoStage />
-            {/* <PlayerToolbar /> */}
+            <VideoStage activeView={activeView} />
           </div>
 
           <PlayerTimeline activeView={activeView} />

@@ -3,23 +3,11 @@ import { useMemo } from "react";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import { PlayerVolume } from "./PlayerVolume";
+import { formatDuration } from "~/lib/formatters";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { usePanelStore } from "~/stores/usePanelStore";
 import { useSelectionStore } from "~/stores/useSelectionStore";
 import { useVideoStore } from "~/stores/useVideoStore";
-
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds < 0) return "00:00:00";
-
-  const total = Math.floor(seconds);
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const secs = total % 60;
-
-  return [hours, minutes, secs]
-    .map((value) => String(value).padStart(2, "0"))
-    .join(":");
-}
 
 export function PlayerControls() {
   const isPlaying = useVideoStore((state) => state.isPlaying);
@@ -67,7 +55,7 @@ export function PlayerControls() {
         <PlayerVolume />
 
         <span className="tabular-nums">
-          {formatTime(currentTime)} / {formatTime(duration)}
+          {formatDuration(currentTime)} / {formatDuration(duration)}
         </span>
 
         {currentChapter && (

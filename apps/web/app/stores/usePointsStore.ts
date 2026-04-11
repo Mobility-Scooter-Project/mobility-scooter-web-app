@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type { Point, PointStatus } from "~/data/mock-session-data";
-import { MOCK_SESSIONS } from "~/data/mock-session-data";
 import { useSelectionStore } from "./useSelectionStore";
 
 type PointStore = {
@@ -10,8 +9,8 @@ type PointStore = {
   actions: {
     setPoints: (points: Point[]) => void;
     toggleAllVisibility: () => void;
-    handleVisibilityToggle: (id: number) => void;
-    enablePoint: (id: number) => void;
+    handleVisibilityToggle: (id: string) => void;
+    enablePoint: (id: string) => void;
   };
 };
 
@@ -31,7 +30,7 @@ function getAllPointsVisible(points: Point[]): boolean {
  * Manages interactive video points, including visibility and selection state.
  */
 export const usePointStore = create<PointStore>((set, get) => ({
-  points: MOCK_SESSIONS[0]?.views[0]?.points || [],
+  points: [],
   allVisible: true,
 
   actions: {

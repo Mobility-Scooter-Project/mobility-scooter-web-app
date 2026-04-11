@@ -53,7 +53,7 @@ export function DirectoryPanel() {
             activeSessionId={activeSessionId}
             onSelect={(id, hadNotification) => {
               setActiveSessionId(id);
-              if (hadNotification) markAsRead(Number(id));
+              if (hadNotification) markAsRead(id);
             }}
           />
         </PanelScrollArea>

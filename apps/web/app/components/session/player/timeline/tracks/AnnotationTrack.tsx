@@ -5,7 +5,6 @@ import { getSafeDuration, getTrackPosition } from "./timeline-track";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { useVideoStore } from "~/stores/useVideoStore";
 import { useAnnotationSelection } from "./useAnnotationSelection";
-import { useAutoDeselect } from "~/hooks/useAutoDeselect";
 
 export function AnnotationTrack() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -17,17 +16,9 @@ export function AnnotationTrack() {
   );
 
   const {
-    selectedAnnotationId,
     isAnnotationSelected,
     selectAnnotation,
-    clearAnnotationSelection,
   } = useAnnotationSelection();
-
-  useAutoDeselect(
-    containerRef,
-    selectedAnnotationId !== null,
-    clearAnnotationSelection,
-  );
 
   const safeDuration = getSafeDuration(duration);
 
