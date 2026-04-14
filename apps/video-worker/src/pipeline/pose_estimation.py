@@ -23,8 +23,7 @@ from config.config import (
   MAX_STEP_RETRIES,
 )
  
-device = "cuda" if torch.cuda.is_available() else "cpu"
-num_gpus = 0.5 if device == "cuda" else 0
+num_gpus = 0.5 if torch.cuda.is_available() else 0
 logger.debug(f"Pose estimation using {num_gpus} GPUs")
  
 @ray.remote(num_gpus=num_gpus)
@@ -33,13 +32,13 @@ class PoseEstimation:
     """
     Initializes the PoseEstimator with a given YOLO pose estimation model.
     """
+    self.device = "cuda" if torch.cuda.is_available() else "cpu"
     # 0: nose, 5/6: shoulders, 7/8: elbows, 9/10: wrists, 11/12: hips
     self.upper_body_keypoints = [0, 5, 6, 7, 8, 9, 10, 11, 12]
     self.db = DBActor.remote()
-    self.model = YOLO(POSE_MODEL).to(device)
+    self.model = YOLO(POSE_MODEL).to(self.device)
  
-  @staticmethod
-  def calculate_angle(p1, p2):
+  def calculate_angle(self, p1, p2):
     """
     Calculates the angle between two points.
  
@@ -53,7 +52,7 @@ class PoseEstimation:
     if p1 is None or p2 is None:
       raise ValueError("Angle points must be non-null")
 
-    if device == "cuda":
+    if self.device == "cuda":
       vector = cp.array([p2[0] - p1[0], p2[1] - p1[1]], dtype=cp.float32)
       vertical = cp.array([0, 1], dtype=cp.float32)
 
