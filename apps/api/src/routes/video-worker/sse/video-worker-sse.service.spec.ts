@@ -61,6 +61,7 @@ describe('VideoWorkerSseService', () => {
       status: 'completed',
       durationSec: 1,
       attempts: 0,
+      lastError: null,
     };
 
     const evtPromise = firstValueFrom(
@@ -86,6 +87,7 @@ describe('VideoWorkerSseService', () => {
         status: 'completed',
         durationSec: 1,
         attempts: 0,
+        lastError: null,
       }),
     );
 
@@ -105,7 +107,6 @@ describe('VideoWorkerSseService', () => {
       videoId: 'v1',
       overallStatus: 'processed',
       durationSec: 9,
-      steps: [],
     });
 
     expect(publish).toHaveBeenCalledWith(
@@ -120,7 +121,6 @@ describe('VideoWorkerSseService', () => {
       videoId: 'vid-a',
       overallStatus: 'processed',
       durationSec: 9,
-      steps: [],
     };
 
     const received: string[] = [];

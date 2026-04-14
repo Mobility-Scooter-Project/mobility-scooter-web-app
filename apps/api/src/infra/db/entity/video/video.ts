@@ -22,6 +22,9 @@ export class Video {
   @ManyToOne(() => PatientSession, { nullable: false })
   session: PatientSession;
 
+  @Column({ type: 'varchar', length: 255 })
+  title: string;
+
   @OneToOne(() => File, { nullable: false })
   @JoinColumn()
   file: File;

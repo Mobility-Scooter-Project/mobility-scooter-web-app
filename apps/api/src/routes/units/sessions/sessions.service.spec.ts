@@ -393,6 +393,7 @@ describe('SessionsService', () => {
       jest.spyOn(videoRepository, 'find').mockResolvedValue([
         {
           id: videoId,
+          title: 'Front walk',
           file: {
             name: 'clip.mp4',
           },
@@ -409,9 +410,11 @@ describe('SessionsService', () => {
         where: { session: { id: sessionId } },
         relations: { file: true },
         order: { cud: { createdAt: 'ASC' } },
-        select: { id: true, file: { name: true } },
+        select: { id: true, title: true, file: { name: true } },
       });
-      expect(result).toEqual([{ videoId, name: 'clip.mp4' }]);
+      expect(result).toEqual([
+        { videoId, title: 'Front walk', fileName: 'clip.mp4' },
+      ]);
     });
 
     it('returns empty array when session has no videos', async () => {

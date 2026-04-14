@@ -5,13 +5,18 @@ import {
   Logger,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { VideosService } from './videos.service';
-import { VideoMetadataDto, ReprocessVideoDto } from './videos.dto';
+import {
+  ReprocessVideoDto,
+  UpdateVideoTitleDto,
+  VideoMetadataDto,
+} from './videos.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('videos')
@@ -65,5 +70,18 @@ export class VideosController {
     @Param('videoId', ParseUUIDPipe) videoId: string,
   ) {
     return this.videosService.getVideo(req.locals.userId, videoId);
+  }
+
+  @Patch(':videoId')
+  async updateVideoTitle(
+    @Req() req: { locals: { userId: string } },
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @Body() body: UpdateVideoTitleDto,
+  ) {
+    return this.videosService.updateVideoTitle(
+      req.locals.userId,
+      videoId,
+      body,
+    );
   }
 }

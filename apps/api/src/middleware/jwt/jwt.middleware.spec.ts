@@ -38,7 +38,7 @@ describe('JwtMiddleware', () => {
   });
 
   describe('use', () => {
-    it('should return 400 if the auth header is missing', async () => {
+    it('should return 401 if no bearer header and no query token', async () => {
       const req: any = { headers: {} };
       const res: any = {
         status: jest.fn().mockReturnThis(),
@@ -50,12 +50,12 @@ describe('JwtMiddleware', () => {
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Authorization header missing',
+        message: 'Token missing',
       });
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return 400 if the token is missing', async () => {
+    it('should return 401 if the bearer header has no token', async () => {
       const req: any = { headers: { authorization: 'Bearer' } };
       const res: any = {
         status: jest.fn().mockReturnThis(),
@@ -64,9 +64,13 @@ describe('JwtMiddleware', () => {
       const next = jest.fn();
 
       await jwtMiddleware.use(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Token missing' });
+      expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return 400 if the token is invalid', async () => {
+    it('should return 401 if the token is invalid', async () => {
       const req: any = { headers: { authorization: 'Bearer invalidtoken' } };
       const res: any = {
         status: jest.fn().mockReturnThis(),

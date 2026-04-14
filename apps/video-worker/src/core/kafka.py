@@ -8,7 +8,7 @@ from utils.logger import logger
 from pipeline.task_identification import TaskIdentification
 from pipeline.pose_estimation import PoseEstimation
 from core.db import DBActor
-from core.api_webhook import notify_video_completed
+from core.api_webhook import notify_overall_terminal
 from config.config import ALL_STEPS
 
 
@@ -107,11 +107,11 @@ class KafkaActor:
         
           logger.error(f"Video {video_id} processing had failures, took {overall_duration_sec} seconds, status: {status}")
           ray.get(self.db.update_processing_status.remote(video_id, status, overall_duration_sec))
-          notify_video_completed(video_id, overall_duration_sec, status)
+          notify_overall_terminal(video_id, status, overall_duration_sec)
         else:
           logger.info(f"Video {video_id} processing complete after {overall_duration_sec} seconds, status: {status}")
           ray.get(self.db.update_processing_status.remote(video_id, status, overall_duration_sec))
-          notify_video_completed(video_id, overall_duration_sec, status)
+          notify_overall_terminal(video_id, status, overall_duration_sec)
 
         self.consumer.commit()
     except Exception as e:

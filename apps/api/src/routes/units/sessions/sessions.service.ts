@@ -11,7 +11,8 @@ import { UnitAuthorizationService } from '@src/shared/unit-authorization.service
 
 type SessionVideoListItem = {
   videoId: string;
-  name: string;
+  title: string;
+  fileName: string;
 };
 
 type SessionItem = {
@@ -251,7 +252,7 @@ export class SessionsService {
    * @param userId - ID of the user getting the session videos
    * @param unitId - ID of the unit
    * @param sessionId - ID of the session
-   * @returns Array of videos with videoId, sessionId, patientId, unitId, sessionDate, sessionTime, fileId, fileName, fileType, and createdAt
+   * @returns Array of `{ videoId, title, fileName }` for each video in the session
    * @throws HttpException with appropriate status code and message on failure
    */
   public async getSessionVideos(
@@ -288,7 +289,7 @@ export class SessionsService {
         where: { session: { id: sessionId } },
         relations: { file: true },
         order: { cud: { createdAt: 'ASC' } },
-        select: { id: true, file: { name: true } },
+        select: { id: true, title: true, file: { name: true } },
       });
     } catch (error) {
       this.logger.error('Failed to list session videos', error);
@@ -300,7 +301,8 @@ export class SessionsService {
 
     return videos.map((video) => ({
       videoId: video.id,
-      name: video.file.name,
+      title: video.title,
+      fileName: video.file.name,
     }));
   }
 

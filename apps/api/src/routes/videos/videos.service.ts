@@ -8,7 +8,11 @@ import { File } from '@infra/db/entity/unit/file';
 import { PatientSession } from '@infra/db/entity/video/session';
 import { Video } from '@infra/db/entity/video/video';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ReprocessVideoDto, VideoMetadataDto } from './videos.dto';
+import {
+  ReprocessVideoDto,
+  UpdateVideoTitleDto,
+  VideoMetadataDto,
+} from './videos.dto';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
 
 type VideoMetadataOutput = {
@@ -17,7 +21,8 @@ type VideoMetadataOutput = {
 
 export type GetVideoOutput = {
   videoId: string;
-  name: string;
+  title: string;
+  fileName: string;
 };
 
 /** Shape used when we only need the stored file path (object key) and unit for auth. */
@@ -48,14 +53,14 @@ export class VideosService {
    *
    * This method:
    * 1. Constructs a storage path of the form `patients/{patientUuid}/sessions/{sessionId}/{fileName}`.
-   * 2. Creates and persists a File entity (with name, MIME type "video/mp4", and the constructed path).
-   * 3. Creates and persists a Video entity that references the saved File and the provided session id.
+   * 2. Creates and persists a File entity (with name = `fileName`, type `video/mp4`, and the path).
+   * 3. Creates and persists a Video entity (with display `title`) referencing the saved File and session.
    * 4. Returns the id of the created Video metadata.
    *
    * The sessionId must reference an existing row in videos.patient_session (e.g. from seed or POST /units/:unitId/sessions).
    *
    * @param userId - ID of the user creating the video metadata.
-   * @param dto - `patientUuid` is internal `Patient.uuid` from session create; plus `sessionId` and `fileName`.
+   * @param dto - `patientUuid` is internal `Patient.uuid` from session create; plus `sessionId`, storage `fileName`, and display `title`.
    * @returns A promise that resolves to a VideoMetadataOutput containing the id of the created video record.
    *
    * @throws {HttpException} Throws an HttpException with status INTERNAL_SERVER_ERROR if persisting
@@ -102,15 +107,11 @@ export class VideosService {
         HttpStatus.FORBIDDEN,
       );
     }
-    // remove whitespace
-    const fileName = dto.fileName.trim();
 
-    // add .mp4 extension
-    const videoName = `${fileName}.mp4`;
-    const path = `patients/${dto.patientUuid}/sessions/${dto.sessionId}/${videoName}`;
+    const path = `patients/${dto.patientUuid}/sessions/${dto.sessionId}/${dto.fileName}`;
 
     const newFile = this.fileRepository.create({
-      name: fileName,
+      name: dto.fileName,
       type: 'video/mp4',
       path,
       uploadedBy: { id: userId },
@@ -131,6 +132,7 @@ export class VideosService {
     const newVideo = this.videoRepository.create({
       session: { id: dto.sessionId },
       file: videoFile,
+      title: dto.title ?? '',
     });
 
     let savedVideo: Video;
@@ -152,7 +154,7 @@ export class VideosService {
    * 
    * @param userId - ID of the user getting the video
    * @param videoId - ID of the video
-   * @returns Video with videoId and fileName
+   * @returns Video with videoId, title, and fileName (storage basename)
    * @throws HttpException with appropriate status code and message on failure
    */
   public async getVideo(
@@ -166,6 +168,7 @@ export class VideosService {
         relations: { file: true, session: { unit: true } },
         select: {
           id: true,
+          title: true,
           file: { name: true },
           session: { id: true, unit: { id: true } },
         },
@@ -187,7 +190,57 @@ export class VideosService {
 
     return {
       videoId: video.id,
-      name: video.file.name,
+      title: video.title,
+      fileName: video.file.name,
+    };
+  }
+
+  public async updateVideoTitle(
+    userId: string,
+    videoId: string,
+    dto: UpdateVideoTitleDto,
+  ): Promise<GetVideoOutput> {
+    let video: Video | null;
+    try {
+      video = await this.videoRepository.findOne({
+        where: { id: videoId },
+        relations: { file: true, session: { unit: true } },
+        select: {
+          id: true,
+          title: true,
+          file: { name: true },
+          session: { id: true, unit: { id: true } },
+        },
+      });
+    } catch (error) {
+      this.logger.error('Error fetching video for title update', error);
+      throw new HttpException(`Invalid input`, HttpStatus.BAD_REQUEST);
+    }
+
+    if (!video) {
+      this.logger.warn(`Video ${videoId} not found for title update`);
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
+    }
+
+    await this.unitAuthorizationService.assertUserInUnit(
+      userId,
+      video.session.unit.id,
+    );
+
+    try {
+      await this.videoRepository.update({ id: videoId }, { title: dto.title });
+    } catch (error) {
+      this.logger.error('Failed to save video title', error);
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return {
+      videoId: video.id,
+      title: dto.title,
+      fileName: video.file.name,
     };
   }
 
@@ -202,7 +255,7 @@ export class VideosService {
    * - Validates that the incoming Multer file contains a Buffer; if missing, throws HttpException(400).
    * - Converts the Multer buffer into a readable stream and uploads it to the configured object storage
    *   using putObjectStream().
-   * - Derives a transcript path by replacing the ".mp4" extension with ".csv".
+   * - Derives a transcript path by replacing a trailing `.mp4` with `.csv`.
    * - Requests two presigned URLs from the S3 abstraction:
    *   - a GET presigned URL for the uploaded video (24-hour expiry).
    *   - a PUT presigned URL for uploading the transcript (configurable expiry, here set to 24 hours).
@@ -315,8 +368,7 @@ export class VideosService {
    * Generate a presigned GET URL for a stored video file.
    *
    * This method fetches video metadata from the repository (including the associated
-   * file path and the patient id from the session), constructs the S3 object key as
-   * "<patientId>/<filePath>", and returns a presigned GET URL valid for 24 hours.
+   * file path from the stored `File` row), and returns a presigned GET URL valid for 24 hours.
    *
    * The function handles repository lookup errors and missing video records:
    * - If an error occurs while querying the repository, an HttpException with status 400 is thrown.

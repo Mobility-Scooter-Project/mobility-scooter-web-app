@@ -1,24 +1,10 @@
 import { SCHEMAS } from '@config/schemas';
-import {
-  Column,
-  Entity,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  Unique,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateUpdateFields } from '../shared';
+import { User } from '../user/user';
 import { Video } from './video';
 
-export type VideoTaskEntry = {
-  taskNumber: number;
-  timestamp: number;
-  task: string;
-  note: string | null;
-  score: number | null;
-};
-
 @Entity({ schema: SCHEMAS.VIDEOS })
-@Unique(['video'])
 export class VideoTask {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -29,6 +15,23 @@ export class VideoTask {
   @ManyToOne(() => Video, { nullable: false })
   video: Video;
 
-  @Column({ type: 'jsonb' })
-  tasks: VideoTaskEntry[];
+  @Column({ type: 'double precision' })
+  timestamp: number;
+
+  @Column({ type: 'text' })
+  task: string;
+
+  @Column({ type: 'text', nullable: true })
+  note: string | null;
+
+  @Column({ type: 'double precision', nullable: true })
+  score: number | null;
+
+  // Null when the row was created by the video worker (model output)
+  @ManyToOne(() => User, { nullable: true })
+  createdByUser: User | null;
+
+  // Set when a user last edited the row via the API (including edits to worker-created tasks).
+  @ManyToOne(() => User, { nullable: true })
+  updatedByUser: User | null;
 }

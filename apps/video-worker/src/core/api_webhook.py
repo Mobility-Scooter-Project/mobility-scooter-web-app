@@ -27,31 +27,49 @@ def _post_webhook(url, payload, ok_log, err_ctx):
     logger.error(f"Webhook failed {err_ctx}: {e}")
 
 
-def notify_step_completed(video_id: str, step: str, duration_sec=None):
-  """POST after a step completes successfully (pose_estimation / task_detection only)."""
-  payload = {"videoId": video_id, "step": step}
+def notify_step_terminal(
+  video_id: str,
+  step: str,
+  status: str,
+  attempts: int,
+  duration_sec=None,
+  last_error=None,
+):
+  """
+  POST after a step is committed to DB in a terminal state (`completed` or `failed`).
+
+  `attempts` is always sent (required by API DTO). Omit duration_sec / last_error when None.
+  """
+  payload = {
+    "videoId": video_id,
+    "step": step,
+    "status": status,
+    "attempts": attempts,
+  }
   if duration_sec is not None:
     payload["durationSec"] = duration_sec
+  if last_error is not None:
+    payload["lastError"] = last_error
 
   _post_webhook(
     VIDEO_WORKER_STEP_COMPLETED_URL,
     payload,
-    ok_log=f"Step webhook sent for {video_id} ({step})",
-    err_ctx=f"for {video_id} {step}",
+    ok_log=f"Step terminal webhook sent for {video_id} ({step}={status})",
+    err_ctx=f"for {video_id} {step}={status}",
   )
 
 
-def notify_video_completed(video_id, duration_sec, overall_status="processed"):
+def notify_overall_terminal(video_id, status, duration_sec):
   """POST after DB commit when overall video processing reaches a terminal state."""
   payload = {
     "videoId": video_id,
+    "overallStatus": status,
     "durationSec": duration_sec,
-    "overallStatus": overall_status,
   }
 
   _post_webhook(
     VIDEO_WORKER_COMPLETED_URL,
     payload,
-    ok_log=f"Completion webhook sent for {video_id}",
-    err_ctx=f"for {video_id}",
+    ok_log=f"Overall terminal webhook sent for {video_id} (overallStatus={status})",
+    err_ctx=f"for {video_id} overallStatus={status}",
   )

@@ -80,6 +80,7 @@ describe('VideosService', () => {
       const unitId = '33333333-4444-5555-6666-777777777777';
       jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
         id: videoId,
+        title: 'Morning session',
         file: {
           name: 'clip.mp4',
         },
@@ -98,7 +99,8 @@ describe('VideosService', () => {
       expect(assertSpy).toHaveBeenCalledWith(userId, unitId);
       expect(out).toEqual({
         videoId,
-        name: 'clip.mp4',
+        title: 'Morning session',
+        fileName: 'clip.mp4',
       });
     });
 
@@ -120,7 +122,8 @@ describe('VideosService', () => {
     it('should create video metadata', async () => {
       const patientUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
       const sessionId = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
-      const fileName = 'test-video';
+      const fileName = 'test-video.mp4';
+      const title = 'Test clip';
       const unitId = '33333333-4444-5555-6666-777777777777';
 
       jest.spyOn(patientSessionRepository, 'findOne').mockResolvedValue({
@@ -156,21 +159,23 @@ describe('VideosService', () => {
       );
 
       const result = await service.createVideoMetadata('user-1', {
-        patientUuid: patientUuid,
+        patientUuid,
         sessionId,
         fileName,
+        title,
       });
       expect(result).toHaveProperty('id');
       expect(fileRepository.create).toHaveBeenCalledWith({
         name: fileName,
         type: 'video/mp4',
-        path: `patients/${patientUuid}/sessions/${sessionId}/${fileName}.mp4`,
+        path: `patients/${patientUuid}/sessions/${sessionId}/${fileName}`,
         uploadedBy: { id: 'user-1' },
         unit: { id: unitId },
       });
       expect(videoRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           session: { id: sessionId },
+          title,
           file: expect.objectContaining({
             id: 'file-id',
           }),
@@ -283,7 +288,6 @@ describe('VideosService', () => {
         60 * 60 * 24,
       );
 
-      // transcriptPath is derived from the mp4 -> csv replacement
       const transcriptPath = filePath.replace(/\.mp4$/, '.csv');
       expect(s3.presignedUrl).toHaveBeenCalledWith(
         'PUT',

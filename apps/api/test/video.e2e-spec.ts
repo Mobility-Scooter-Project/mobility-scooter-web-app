@@ -30,7 +30,7 @@ describe('VideoController (e2e)', () => {
       /* const response = await request(app.getHttpServer())
                  .post('/videos/upload')
                  .set('Authorization', `Bearer ${token}`)
-                 .send({ patientId: 'patient123', sessionId: 'session456', fileName: 'video.mp4' })
+                 .send({ patientUuid: 'patient123', sessionId: 'session456', fileName: 'video.mp4', title: 'Test' })
                  .expect(201);
              expect(response.body).toHaveProperty('videoId');
              expect(response.body).toHaveProperty('patientId', 'patient123');

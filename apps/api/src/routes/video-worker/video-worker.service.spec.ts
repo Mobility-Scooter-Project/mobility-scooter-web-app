@@ -10,8 +10,9 @@ import { VideoWorkerStatus } from '@infra/db/entity/video-worker/status';
 import { VideoWorkerStepStatus } from '@infra/db/entity/video-worker/step-status';
 import { Video } from '@infra/db/entity/video/video';
 import {
-  VIDEO_WORKER_COMPLETED_STEPS,
   VIDEO_WORKER_OVERALL_STATUS,
+  VIDEO_WORKER_STEP_STATUS,
+  VIDEO_WORKER_STEPS,
 } from '@config/enums';
 
 describe('VideoWorkerService', () => {
@@ -91,35 +92,31 @@ describe('VideoWorkerService', () => {
       });
     });
 
-    it('returns canonical state and acknowledged=true', async () => {
+    it('emits SSE from webhook DTO and returns ack echo (no getWorkerStatus)', async () => {
       jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
         id: videoId,
       } as Video);
 
-      const workerStatus = {
-        videoId,
-        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
-        durationSec: 99,
-        steps: [{ step: 'transcription', status: 'processed' }],
-      };
-
-      jest
-        .spyOn(service, 'getWorkerStatus')
-        .mockResolvedValue(workerStatus as any);
+      const getStatusSpy = jest.spyOn(service, 'getWorkerStatus');
 
       const result = await service.markVideoCompleted({
         videoId,
         durationSec: 99,
         overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
       });
-      expect(service.getWorkerStatus).toHaveBeenCalledWith(videoId);
-      expect(result).toEqual({ ...workerStatus, acknowledged: true });
+
+      expect(getStatusSpy).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        videoId,
+        overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
+        durationSec: 99,
+        acknowledged: true,
+      });
       expect(videoWorkerSseService.emit).toHaveBeenCalledWith({
         type: 'overall',
         videoId,
         overallStatus: VIDEO_WORKER_OVERALL_STATUS.PROCESSED,
         durationSec: 99,
-        steps: workerStatus.steps,
       });
     });
   });
@@ -131,8 +128,10 @@ describe('VideoWorkerService', () => {
       await expect(
         service.markStepCompleted({
           videoId,
-          step: VIDEO_WORKER_COMPLETED_STEPS.TASK_DETECTION,
+          step: VIDEO_WORKER_STEPS.TASK_DETECTION,
+          status: VIDEO_WORKER_STEP_STATUS.COMPLETED,
           durationSec: 10,
+          attempts: 1,
         }),
       ).rejects.toMatchObject({
         response: 'Video not found',
@@ -140,41 +139,88 @@ describe('VideoWorkerService', () => {
       });
     });
 
-    it('returns canonical step state and acknowledged=true', async () => {
+    it('emits SSE from webhook DTO (completed)', async () => {
       jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
         id: videoId,
       } as Video);
 
-      const stepSnapshot = {
+      const getStepSpy = jest.spyOn(service, 'getWorkerStepStatus');
+
+      const expected = {
         videoId,
-        step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+        step: VIDEO_WORKER_STEPS.POSE_ESTIMATION,
         status: 'completed',
         attempts: 1,
         durationSec: 12,
+        lastError: null,
       };
-
-      jest
-        .spyOn(service, 'getWorkerStepStatus')
-        .mockResolvedValue(stepSnapshot);
 
       const result = await service.markStepCompleted({
         videoId,
-        step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+        step: VIDEO_WORKER_STEPS.POSE_ESTIMATION,
+        status: VIDEO_WORKER_STEP_STATUS.COMPLETED,
         durationSec: 12,
+        attempts: 1,
       });
 
-      expect(service.getWorkerStepStatus).toHaveBeenCalledWith(
+      expect(getStepSpy).not.toHaveBeenCalled();
+      expect(result).toEqual({ ...expected, acknowledged: true });
+      expect(videoWorkerSseService.emit).toHaveBeenCalledWith({
+        type: 'step',
+        ...expected,
+      });
+    });
+
+    it('emits SSE from webhook DTO when durationSec omitted (null in snapshot)', async () => {
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
+        id: videoId,
+      } as Video);
+
+      const result = await service.markStepCompleted({
         videoId,
-        VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
-      );
-      expect(result).toEqual({ ...stepSnapshot, acknowledged: true });
+        step: VIDEO_WORKER_STEPS.POSE_ESTIMATION,
+        status: VIDEO_WORKER_STEP_STATUS.COMPLETED,
+        attempts: 2,
+      });
+
+      expect(result).toMatchObject({
+        durationSec: null,
+        attempts: 2,
+        lastError: null,
+        acknowledged: true,
+      });
       expect(videoWorkerSseService.emit).toHaveBeenCalledWith({
         type: 'step',
         videoId,
-        step: VIDEO_WORKER_COMPLETED_STEPS.POSE_ESTIMATION,
+        step: VIDEO_WORKER_STEPS.POSE_ESTIMATION,
         status: 'completed',
-        durationSec: 12,
+        durationSec: null,
+        attempts: 2,
+        lastError: null,
+      });
+    });
+
+    it('emits SSE from webhook DTO (failed, null durationSec)', async () => {
+      jest.spyOn(videoRepository, 'findOne').mockResolvedValue({
+        id: videoId,
+      } as Video);
+
+      await service.markStepCompleted({
+        videoId,
+        step: VIDEO_WORKER_STEPS.TASK_DETECTION,
+        status: VIDEO_WORKER_STEP_STATUS.FAILED,
         attempts: 1,
+        lastError: 'Downloaded transcript is empty',
+      });
+
+      expect(videoWorkerSseService.emit).toHaveBeenCalledWith({
+        type: 'step',
+        videoId,
+        step: VIDEO_WORKER_STEPS.TASK_DETECTION,
+        status: 'failed',
+        durationSec: null,
+        attempts: 1,
+        lastError: 'Downloaded transcript is empty',
       });
     });
   });
@@ -264,6 +310,7 @@ describe('VideoWorkerService', () => {
         status: 'done',
         attempts: 3,
         durationSec: 7,
+        lastError: 'err',
       });
     });
 
@@ -278,6 +325,7 @@ describe('VideoWorkerService', () => {
         status: null,
         attempts: 0,
         durationSec: null,
+        lastError: null,
       });
     });
 

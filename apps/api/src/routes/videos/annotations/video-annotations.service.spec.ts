@@ -10,7 +10,10 @@ import { VideoAnnotationsService } from './video-annotations.service';
 describe('VideoAnnotationsService', () => {
   let service: VideoAnnotationsService;
   let annotationRepository: jest.Mocked<
-    Pick<Repository<VideoAnnotation>, 'create' | 'save' | 'find' | 'findOne' | 'delete'>
+    Pick<
+      Repository<VideoAnnotation>,
+      'create' | 'save' | 'find' | 'findOne' | 'findOneOrFail' | 'delete'
+    >
   >;
   let videoAuthorizationService: jest.Mocked<
     Pick<VideoAuthorizationService, 'assertUserCanAccessVideo'>
@@ -26,6 +29,7 @@ describe('VideoAnnotationsService', () => {
       save: jest.fn(),
       find: jest.fn(),
       findOne: jest.fn(),
+      findOneOrFail: jest.fn(),
       delete: jest.fn(),
     };
 
@@ -65,6 +69,15 @@ describe('VideoAnnotationsService', () => {
       startTime: 10,
       endTime: 15,
     } as VideoAnnotation);
+    annotationRepository.findOne.mockResolvedValue({
+      id: annotationId,
+      createdByUser: { id: userId } as any,
+      updatedByUser: null,
+      title: 'Important',
+      description: 'note',
+      startTime: 10,
+      endTime: 15,
+    } as VideoAnnotation);
 
     const out = await service.createAnnotation(userId, videoId, {
       title: 'Important',
@@ -79,7 +92,8 @@ describe('VideoAnnotationsService', () => {
     );
     expect(annotationRepository.create).toHaveBeenCalledWith({
       video: { id: videoId },
-      user: { id: userId },
+      createdByUser: { id: userId },
+      updatedByUser: null,
       title: 'Important',
       description: 'note',
       startTime: 10,
@@ -87,6 +101,8 @@ describe('VideoAnnotationsService', () => {
     });
     expect(out).toEqual({
       annotationId,
+      createdByUserId: userId,
+      updatedByUserId: null,
       title: 'Important',
       description: 'note',
       startTime: 10,
@@ -110,9 +126,11 @@ describe('VideoAnnotationsService', () => {
   });
 
   it('lists annotations for a video', async () => {
+    const otherUserId = '22222222-2222-2222-2222-222222222222';
     annotationRepository.find.mockResolvedValue([
       {
         id: annotationId,
+        createdByUser: { id: otherUserId } as any,
         title: 'A',
         description: 'a',
         startTime: 1,
@@ -122,18 +140,56 @@ describe('VideoAnnotationsService', () => {
 
     const out = await service.getAnnotations(userId, videoId);
     expect(annotationRepository.find).toHaveBeenCalledWith({
-      where: { video: { id: videoId }, user: { id: userId } },
+      where: { video: { id: videoId } },
+      relations: { createdByUser: true, updatedByUser: true },
       order: { startTime: 'ASC', cu: { createdAt: 'ASC' } },
     });
     expect(out).toEqual([
       {
         annotationId,
+        createdByUserId: otherUserId,
+        updatedByUserId: null,
         title: 'A',
         description: 'a',
         startTime: 1,
         endTime: null,
       },
     ]);
+  });
+
+  it('updates annotation and sets updatedByUserId', async () => {
+    const otherUserId = '22222222-2222-2222-2222-222222222222';
+    annotationRepository.findOne.mockResolvedValue({
+      id: annotationId,
+      createdByUser: { id: otherUserId } as any,
+      updatedByUser: null,
+      title: 'Old',
+      description: 'old',
+      startTime: 1,
+      endTime: null,
+    } as VideoAnnotation);
+    annotationRepository.save.mockResolvedValue({} as VideoAnnotation);
+    annotationRepository.findOneOrFail.mockResolvedValue({
+      id: annotationId,
+      createdByUser: { id: otherUserId } as any,
+      updatedByUser: { id: userId } as any,
+      title: 'New',
+      description: 'new',
+      startTime: 2,
+      endTime: null,
+    } as VideoAnnotation);
+
+    const out = await service.updateAnnotation(userId, videoId, annotationId, {
+      title: 'New',
+      description: 'new',
+      startTime: 2,
+      endTime: null,
+    });
+
+    expect(annotationRepository.save).toHaveBeenCalled();
+    expect(annotationRepository.findOneOrFail).toHaveBeenCalled();
+    expect(out.updatedByUserId).toBe(userId);
+    expect(out.title).toBe('New');
   });
 
   it('throws NOT_FOUND when single annotation does not exist', async () => {
@@ -156,7 +212,6 @@ describe('VideoAnnotationsService', () => {
     expect(annotationRepository.delete).toHaveBeenCalledWith({
       id: annotationId,
       video: { id: videoId },
-      user: { id: userId },
     });
   });
 

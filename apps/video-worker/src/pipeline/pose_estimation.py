@@ -14,7 +14,7 @@ from ray.experimental.tqdm_ray import tqdm
 from utils.logger import logger
 from utils.retry import step_retry_sleep
 from core.db import DBActor
-from core.api_webhook import notify_step_completed
+from core.api_webhook import notify_step_terminal
 from config.config import (
   POSE_MODEL,
   POSE_BATCH_SIZE,
@@ -360,7 +360,7 @@ class PoseEstimation:
     Returns:
       str: The name of the step that was completed or failed.
     """
-    ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "processing"))
+    ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "processing", 1))
     start_time = datetime.now()
     for attempt in range(1, MAX_STEP_RETRIES + 1):
       try:
@@ -369,8 +369,24 @@ class PoseEstimation:
         logger.info(f"[pose_estimation] completed for {video_id} in {duration_sec} seconds")
 
         # update step status as completed and notify backend
-        ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "completed", None, duration_sec, attempt))
-        notify_step_completed(video_id, "pose_estimation", duration_sec)
+        ray.get(
+          self.db.update_step_status.remote(
+            video_id,
+            "pose_estimation",
+            "completed",
+            attempt,
+            duration_sec,
+            None,
+          ),
+        )
+        notify_step_terminal(
+          video_id,
+          "pose_estimation",
+          "completed",
+          attempt,
+          duration_sec,
+          None,
+        )
         return "completed"
       except Exception as e:
         logger.error(f"[pose_estimation] failed for {video_id} (attempt {attempt}/{MAX_STEP_RETRIES}): {e}")
@@ -378,7 +394,24 @@ class PoseEstimation:
         # if max retries reached, update step status as failed and notify backend
         if attempt >= MAX_STEP_RETRIES:
           duration_sec = round((datetime.now() - start_time).total_seconds(), 3)
-          ray.get(self.db.update_step_status.remote(video_id, "pose_estimation", "failed", str(e), duration_sec, attempt))
+          ray.get(
+            self.db.update_step_status.remote(
+              video_id,
+              "pose_estimation",
+              "failed",
+              attempt,
+              duration_sec,
+              str(e),
+            ),
+          )
+          notify_step_terminal(
+            video_id,
+            "pose_estimation",
+            "failed",
+            attempt,
+            duration_sec,
+            str(e),
+          )
           return "failed"
 
         step_retry_sleep(attempt - 1)

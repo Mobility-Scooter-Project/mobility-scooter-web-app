@@ -44,7 +44,12 @@ export enum VIDEO_WORKER_OVERALL_STATUS {
   PARTIALLY_PROCESSED = 'partially_processed',
 }
 
-export enum VIDEO_WORKER_COMPLETED_STEPS {
+export enum VIDEO_WORKER_STEPS {
   POSE_ESTIMATION = 'pose_estimation',
   TASK_DETECTION = 'task_detection',
+}
+
+export enum VIDEO_WORKER_STEP_STATUS {
+  COMPLETED = 'completed',
+  FAILED = 'failed',
 }
