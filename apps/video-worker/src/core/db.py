@@ -142,3 +142,67 @@ class DBActor():
       logger.error(f"Failed to update video processing status: {e}")
     else:
       self.connection.commit()      
+
+  def get_video_keypoints(self, video_id):
+    """
+    Return keypoints rows for a video ordered by frame index.
+    """
+    self._lazyInit()
+    query = """
+      SELECT "frameIndex", timestamp, keypoints
+      FROM videos.keypoint
+      WHERE "videoId" = %s
+      ORDER BY "frameIndex" ASC;
+    """
+    try:
+      self.cursor.execute(query, (video_id,))
+      return self.cursor.fetchall()
+    except Exception as e:
+      self.connection.rollback()
+      logger.error(f"Failed to fetch keypoints for video {video_id}: {e}")
+      return []
+
+  def upsert_stability_inferences(self, video_id, predictions):
+    """
+    Replace all stability predictions for a video with new rows.
+    """
+    self._lazyInit()
+    delete_sql = """
+      DELETE FROM videos.stability
+      WHERE "videoId" = %s;
+    """
+    insert_sql = """
+      INSERT INTO videos.stability
+      (
+        "videoId",
+        "startFrame",
+        "endFrame",
+        "startTime",
+        "endTime",
+        "predictedClass",
+        "confidence"
+      )
+      VALUES (%s, %s, %s, %s, %s, %s, %s);
+    """
+    rows = []
+    for p in predictions:
+      rows.append(
+        (
+          video_id,
+          int(p["startFrame"]),
+          int(p["endFrame"]),
+          float(p["startTime"]),
+          float(p["endTime"]),
+          int(p["predictedClass"]),
+          float(p["confidence"]),
+        ),
+      )
+    try:
+      self.cursor.execute(delete_sql, (video_id,))
+      if rows:
+        self.cursor.executemany(insert_sql, rows)
+    except Exception as e:
+      self.connection.rollback()
+      logger.error(f"Failed to replace stability predictions for video {video_id}: {e}")
+    else:
+      self.connection.commit()

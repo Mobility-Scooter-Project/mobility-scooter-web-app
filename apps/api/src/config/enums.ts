@@ -47,6 +47,7 @@ export enum VIDEO_WORKER_OVERALL_STATUS {
 export enum VIDEO_WORKER_STEPS {
   POSE_ESTIMATION = 'pose_estimation',
   TASK_DETECTION = 'task_detection',
+  STABILITY_CLASSIFICATION = 'stability_classification',
 }
 
 export enum VIDEO_WORKER_STEP_STATUS {

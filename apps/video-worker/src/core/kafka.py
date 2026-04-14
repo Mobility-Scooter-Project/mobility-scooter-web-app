@@ -7,6 +7,7 @@ from datetime import datetime
 from utils.logger import logger
 from pipeline.task_identification import TaskIdentification
 from pipeline.pose_estimation import PoseEstimation
+from pipeline.stability_classification import StabilityClassification
 from core.db import DBActor
 from core.api_webhook import notify_overall_terminal
 from config.config import ALL_STEPS
@@ -48,7 +49,24 @@ class KafkaActor:
 
     self.pose_actor = PoseEstimation.remote()
     self.audio_actor = TaskIdentification.remote()
+    self.stability_actor = StabilityClassification.remote()
     self.db = DBActor.remote()
+
+  def _wait_step(self, video_id, name, ref, completed_steps, failed_steps):
+    """
+    Wait for a Ray step result and update completed/failed sets consistently.
+    """
+    try:
+      result = ray.get(ref)
+    except Exception as e:
+      logger.error(f"{name} failed for {video_id}: {e}")
+      failed_steps.add(name)
+      return None
+    if result == "completed":
+      completed_steps.add(name)
+    elif result == "failed":
+      failed_steps.add(name)
+    return result
 
   def consume(self):
     try:
@@ -65,6 +83,8 @@ class KafkaActor:
         # skip pose for side-view videos (filename contains "side")
         if "side" in filename.lower():
           steps.discard("pose_estimation")
+          # Stability depends on pose keypoints; skip it when pose is intentionally skipped.
+          steps.discard("stability_classification")
 
         start = datetime.now()
         ray.get(self.db.update_processing_status.remote(video_id, "processing"))
@@ -82,16 +102,32 @@ class KafkaActor:
             video_url, transcript_put_url, transcript_get_url, filename, video_id, skip_transcription
           )
 
+        pose_ref = refs.pop("pose_estimation", None)
+        pose_completed = False
+        if pose_ref is not None:
+          pose_completed = self._wait_step(
+            video_id, "pose_estimation", pose_ref, completed_steps, failed_steps
+          ) == "completed"
+
+        if "stability_classification" in steps:
+          # Stability depends on pose keypoints, so run immediately after pose completes.
+          if not pose_completed:
+            logger.warning(
+              f"Skipping stability_classification for {video_id}: pose_estimation was not run or not completed"
+            )
+            failed_steps.add("stability_classification")
+          else:
+            self._wait_step(
+              video_id,
+              "stability_classification",
+              self.stability_actor.process_video.remote(video_id),
+              completed_steps,
+              failed_steps,
+            )
+
+        # Wait for remaining independent steps after pose/stability handling.
         for name, ref in refs.items():
-          try:
-            result = ray.get(ref) 
-            if result == "completed":
-              completed_steps.add(name)
-            elif result == "failed":
-              failed_steps.add(name)
-          except Exception as e:
-            logger.error(f"{name} failed for {video_id}: {e}")
-            failed_steps.add(name)
+          self._wait_step(video_id, name, ref, completed_steps, failed_steps)
 
         has_failure = bool(failed_steps)
 
