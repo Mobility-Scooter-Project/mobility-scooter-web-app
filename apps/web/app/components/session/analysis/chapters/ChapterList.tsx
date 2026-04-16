@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useSelectionStore } from "~/stores/useSelectionStore";
+import { sortChaptersByStartTime } from "~/lib/analysis-panel-sorting";
 import { ChapterCard } from "./ChapterCard";
 
 /**
@@ -7,7 +9,11 @@ import { ChapterCard } from "./ChapterCard";
  */
 export function ChapterList() {
   const chapters = useChapterStore((state) => state.chapters);
-  
+  const sortedChapters = useMemo(
+    () => sortChaptersByStartTime(chapters),
+    [chapters],
+  );
+
   const selectedId = useSelectionStore((state) => state.selectedId);
   const selectedType = useSelectionStore((state) => state.selectedType);
   const { setSelection, clearSelection } = useSelectionStore((state) => state.actions);
@@ -19,7 +25,7 @@ export function ChapterList() {
 
   return (
     <div className="flex flex-col gap-3">
-      {chapters.map((chapter) => (
+      {sortedChapters.map((chapter) => (
         <ChapterCard
           key={chapter.id}
           data={chapter}

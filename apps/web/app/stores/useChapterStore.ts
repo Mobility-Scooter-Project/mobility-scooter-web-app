@@ -4,6 +4,7 @@ import Placeholder from "~/assets/placeholder-thumbnail.png";
 import { useSelectionStore } from "./useSelectionStore";
 import { taskService, type VideoTaskEntry } from "~/services/tasks";
 import { userAuthStore } from "~/lib/auth";
+import { sortChaptersByStartTime } from "~/lib/analysis-panel-sorting";
 
 const CHAPTER_SAVE_DELAY_MS = 700;
 const pendingChapterSaves = new Map<string, ReturnType<typeof setTimeout>>();
@@ -27,13 +28,6 @@ function clearPendingChapterSave(videoId: string, chapterId: string) {
     clearTimeout(timer);
     pendingChapterSaves.delete(key);
   }
-}
-
-function sortChapters(items: Chapter[]): Chapter[] {
-  return [...items].sort((a, b) => {
-    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
-    return a.id.localeCompare(b.id);
-  });
 }
 
 function getChapterAuthor(entry: VideoTaskEntry): string {
@@ -118,7 +112,7 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
 
   actions: {
     setChapters: (chapters) => {
-      set({ chapters: sortChapters(chapters) });
+      set({ chapters: sortChaptersByStartTime(chapters) });
       useSelectionStore.getState().actions.clearSelection();
     },
 
@@ -126,7 +120,11 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
      * Replaces the current chapter list with those from the given view.
      */
     loadChapters: (viewId, chapters) => {
-      set({ activeViewId: viewId, videoId: null, chapters: sortChapters(chapters) });
+      set({
+        activeViewId: viewId,
+        videoId: null,
+        chapters: sortChaptersByStartTime(chapters),
+      });
     },
 
     loadChaptersFromApi: async (viewId, videoId) => {
@@ -136,7 +134,7 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       try {
         const tasks = await taskService.getAll(videoId);
         if (get().activeViewId !== viewId || get().videoId !== videoId) return;
-        set({ chapters: sortChapters(tasks.map(taskToChapter)) });
+        set({ chapters: sortChaptersByStartTime(tasks.map(taskToChapter)) });
       } catch (error) {
         console.error("Failed to load chapters from tasks:", error);
       }
@@ -158,7 +156,7 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
 
           const chapter = taskToChapter(entry);
           set((state) => ({
-            chapters: sortChapters([chapter, ...state.chapters]),
+            chapters: sortChaptersByStartTime([chapter, ...state.chapters]),
           }));
           useSelectionStore
             .getState()
@@ -196,7 +194,7 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
       const currentVideoId = get().videoId;
 
       set((state) => ({
-        chapters: sortChapters(
+        chapters: sortChaptersByStartTime(
           state.chapters.map((chapter) =>
             chapter.id === chapterId ? { ...chapter, ...updates } : chapter,
           ),

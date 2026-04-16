@@ -6,6 +6,7 @@ import {
 } from "~/services/annotations";
 import { userAuthStore } from "~/lib/auth";
 import type { Annotation } from "~/data/mock-session-data";
+import { sortAnnotationsByStartTime } from "~/lib/analysis-panel-sorting";
 
 const ANNOTATION_SAVE_DELAY_MS = 700;
 const pendingAnnotationSaves = new Map<string, ReturnType<typeof setTimeout>>();
@@ -21,14 +22,6 @@ function clearPendingAnnotationSave(videoId: string, annotationId: string) {
     clearTimeout(timer);
     pendingAnnotationSaves.delete(key);
   }
-}
-
-function sortAnnotations(items: Annotation[]): Annotation[] {
-  return [...items].sort((a, b) => {
-    if (a.startTime !== b.startTime) return a.startTime - b.startTime;
-    if (a.endTime !== b.endTime) return a.endTime - b.endTime;
-    return a.id.localeCompare(b.id);
-  });
 }
 
 function getAnnotationAuthor(createdByUserId: string): string {
@@ -112,14 +105,14 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       try {
         const data = await annotationService.getAll(videoId);
         if (get().videoId !== videoId) return;
-        set({ annotations: sortAnnotations(data.map(fromApi)) });
+        set({ annotations: sortAnnotationsByStartTime(data.map(fromApi)) });
       } catch (error) {
         console.error("Failed to load annotations:", error);
       }
     },
 
     setAnnotations: (annotations) => {
-      set({ videoId: null, annotations: sortAnnotations(annotations) });
+      set({ videoId: null, annotations: sortAnnotationsByStartTime(annotations) });
       useSelectionStore.getState().actions.clearSelection();
     },
 
@@ -149,7 +142,10 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
           const newAnnotation = fromApi(response);
           set((state) => ({
-            annotations: sortAnnotations([newAnnotation, ...state.annotations]),
+            annotations: sortAnnotationsByStartTime([
+              newAnnotation,
+              ...state.annotations,
+            ]),
           }));
           useSelectionStore
             .getState()

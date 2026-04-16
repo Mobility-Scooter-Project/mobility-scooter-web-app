@@ -32,8 +32,13 @@ export const ChapterCard = memo(
   }: ChapterCardProps) => {
     const cardRef = useRef<HTMLDivElement>(null);
     const videoDuration = useVideoStore((state) => state.duration);
+    const seekTo = useVideoStore((state) => state.actions.seekTo);
 
     useAutoDeselect(cardRef, isSelected, onDeselect);
+
+    const stopCardClick = (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+    };
 
     const handleTimeChange = (newSeconds: number) => {
       const validTime = validateTimeBoundary(
@@ -51,11 +56,18 @@ export const ChapterCard = memo(
     const showTextarea =
       isSelected || (data.description && data.description.trim().length > 0);
 
+    const handleCardClick = () => {
+      seekTo(data.timestamp);
+      if (!isSelected) {
+        onSelect();
+      }
+    };
+
     return (
       <AnalysisCard
         ref={cardRef}
         isActive={isSelected}
-        onClick={!isSelected ? onSelect : undefined}
+        onClick={handleCardClick}
         className="gap-y-4.5"
       >
         {/* Thumbnail (and settings) */}
@@ -76,6 +88,7 @@ export const ChapterCard = memo(
           <TextArea
             value={data.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
+            onClick={stopCardClick}
             placeholder="Enter Chapter Title"
             className="text-headline"
           />
@@ -119,6 +132,7 @@ export const ChapterCard = memo(
           <TextArea
             value={data.description}
             onChange={(e) => onUpdate({ description: e.target.value })}
+            onClick={stopCardClick}
             placeholder="Write here..."
           />
         )}
