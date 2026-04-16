@@ -1,21 +1,18 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
+import type { StepStatus } from "~/components/session/common/PipelineProgress";
 import type { View } from "~/data/mock-session-data";
 import { useChapterSync } from "~/hooks/useChapterSync";
 import { useKeypointSync } from "~/hooks/useKeypointSync";
 import { useWorkerSync, useWorkerSyncStore } from "~/hooks/useWorkerSync";
-import { useKeypointStore } from "~/stores/useKeypointStore";
 import { useChapterStore } from "~/stores/useChapterStore";
-import type { StepStatus } from "~/components/session/common/PipelineProgress";
+import { useKeypointStore } from "~/stores/useKeypointStore";
 
-function formatStepLabel(
-  baseLabel: string,
-  status: "unknown" | "pending" | "processing" | "completed" | "failed",
-): string {
-  if (status === "pending" || status === "unknown") {
+function formatStepLabel(baseLabel: string, status: StepStatus): string {
+  if (status === "pending") {
     return `${baseLabel} queued`;
   }
 
-  if (status === "processing") {
+  if (status === "active") {
     return `${baseLabel} in progress`;
   }
 
@@ -37,7 +34,11 @@ export function useVideoPipeline(activeView: View | null) {
   const hasLocalPreview = Boolean(activeView?.videoUrl?.startsWith("blob:"));
   const statusResolved = poseStatus !== "unknown" || taskStatus !== "unknown";
   const shouldTrackPipeline =
-    isUploading || uploadFailed || workerStarted || statusResolved || hasLocalPreview;
+    isUploading ||
+    uploadFailed ||
+    workerStarted ||
+    statusResolved ||
+    hasLocalPreview;
 
   const pipelineSteps = useMemo(() => {
     let uploadStep: StepStatus = "pending";
@@ -51,14 +52,18 @@ export function useVideoPipeline(activeView: View | null) {
     else if (poseStatus === "processing") poseStep = "active";
     else if (poseStatus === "completed") poseStep = "completed";
     else if (poseStatus === "failed") poseStep = "failed";
-    else if (poseStatus === "pending" || poseStatus === "unknown") poseStep = "active";
+    else if (poseStatus === "pending" || poseStatus === "unknown") {
+      poseStep = "pending";
+    }
 
     let chapterStep: StepStatus = "pending";
     if (uploadStep !== "completed") chapterStep = "pending";
     else if (taskStatus === "processing") chapterStep = "active";
     else if (taskStatus === "completed") chapterStep = "completed";
     else if (taskStatus === "failed") chapterStep = "failed";
-    else if (taskStatus === "pending" || taskStatus === "unknown") chapterStep = "active";
+    else if (taskStatus === "pending" || taskStatus === "unknown") {
+      chapterStep = "pending";
+    }
 
     return [
       {
@@ -69,19 +74,29 @@ export function useVideoPipeline(activeView: View | null) {
         status: uploadStep,
       },
       {
-        label: formatStepLabel("Pose Estimation", poseStatus),
+        label: formatStepLabel("Pose Estimation", poseStep),
         status: poseStep,
       },
       {
-        label: formatStepLabel("Chapter Detection", taskStatus),
+        label: formatStepLabel("Chapter Detection", chapterStep),
         status: chapterStep,
       },
     ];
-  }, [hasLocalPreview, isUploading, poseStatus, statusResolved, taskStatus, uploadFailed, workerStarted]);
+  }, [
+    hasLocalPreview,
+    isUploading,
+    poseStatus,
+    statusResolved,
+    taskStatus,
+    uploadFailed,
+    workerStarted,
+  ]);
 
   const pipelineVisible =
     shouldTrackPipeline &&
-    pipelineSteps.some((step) => step.status === "pending" || step.status === "active");
+    pipelineSteps.some(
+      (step) => step.status === "pending" || step.status === "active",
+    );
 
   return { pipelineSteps, pipelineVisible, frames };
 }
