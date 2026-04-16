@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { keypointService } from "~/services/keypoints";
 import type { WorkerStatusInfo } from "~/services/video-worker";
 import { getWorkerStepStatus } from "~/lib/video-worker-status";
@@ -6,17 +6,23 @@ import { useKeypointStore, type PoseStatus } from "~/stores/useKeypointStore";
 import { useVideoStore } from "~/stores/useVideoStore";
 import { useWorkerStatus } from "./useWorkerSync";
 
-/** How often to poll `since` while pose estimation is still processing (ms). */
-const POLL_INTERVAL_MS = 5_000;
+/** How often to background-poll `since` while pose estimation is still processing (ms). */
+const BACKGROUND_POLL_MS = 3_000;
 
-/** Delay between pagination pages to avoid request bursts (ms). */
-const PAGE_DELAY_MS = 200;
+/** Delay between paginated `since` requests to avoid bursty loops (ms). */
+const PAGE_DELAY_MS = 100;
 
-/** Time-jump threshold to detect a user seek vs. normal playback tick (seconds). */
-const SEEK_THRESHOLD_SEC = 1.0;
+/** Max rows requested per `since` call. The API may still apply a lower server cap. */
+const SINCE_LIMIT = 5_000;
 
-/** Max rows to fetch per `since` call. */
-const SINCE_LIMIT = 2000;
+/** Fetch a new `since` batch before playback hits the contiguous buffered edge. */
+const PLAYHEAD_PREFETCH_WINDOW_SEC = 2.5;
+
+/** Minimum spacing between incremental `since` refreshes (ms). */
+const MIN_FETCH_GAP_MS = 750;
+
+/** Back off briefly after an empty `since` response while still processing (ms). */
+const EMPTY_RESULT_COOLDOWN_MS = 1_500;
 
 function normalizePoseStatus(raw: ReturnType<typeof getWorkerStepStatus>): PoseStatus {
   switch (raw) {
@@ -37,23 +43,42 @@ function resolvePoseStatus(status: WorkerStatusInfo): PoseStatus {
   return normalizePoseStatus(getWorkerStepStatus(status, "pose_estimation"));
 }
 
+function isPoseStreaming(status: PoseStatus): boolean {
+  return status === "processing" || status === "pending" || status === "unknown";
+}
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Orchestrates keypoint data fetching for the active video.
- */
+type SinceRequestOptions = {
+  /** Keep paging until the API returns no more rows. */
+  drainToEmpty?: boolean;
+  /** Keep paging until contiguous coverage reaches this timestamp. */
+  targetTimestamp?: number;
+  /** Bypass short request-spacing throttles. */
+  force?: boolean;
+};
+
 export function useKeypointSync(videoId: string | undefined) {
   const mergeRows = useKeypointStore((state) => state.actions.mergeRows);
   const setPoseStatus = useKeypointStore((state) => state.actions.setPoseStatus);
   const reset = useKeypointStore((state) => state.actions.reset);
 
-  const prevTimeRef = useRef<number | null>(null);
+  const isPlaying = useVideoStore((state) => state.isPlaying);
+  const currentTime = useVideoStore((state) => state.currentTime);
+  const seekRequestId = useVideoStore((state) => state.seekRequestId);
+  const lastSeekTime = useVideoStore((state) => state.lastSeekTime);
+
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const bootstrappedRef = useRef(false);
+  const bootstrapCompleteRef = useRef(false);
   const lastPoseStatusRef = useRef<PoseStatus>("unknown");
+  const activeSyncPromiseRef = useRef<Promise<boolean> | null>(null);
+  const pendingDrainToEmptyRef = useRef(false);
+  const pendingTargetTimestampRef = useRef<number | null>(null);
+  const pendingForceRef = useRef(false);
+  const lastSinceRequestAtRef = useRef(0);
+  const emptyCooldownUntilRef = useRef(0);
 
-  /** Clears the polling interval. */
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
@@ -61,164 +86,232 @@ export function useKeypointSync(videoId: string | undefined) {
     }
   }, []);
 
-  /** Starts interval-based `since` polling for new keypoints. */
-  const startPolling = useCallback(
-    (vid: string, signal: AbortSignal) => {
-      stopPolling();
+  const syncSince = useCallback(
+    async (vid: string, options?: SinceRequestOptions): Promise<boolean> => {
+      const signal = abortRef.current?.signal;
+      if (!signal || signal.aborted) return false;
 
-      pollTimerRef.current = setInterval(async () => {
-        if (signal.aborted) {
+      if (options?.drainToEmpty) {
+        pendingDrainToEmptyRef.current = true;
+      }
+
+      if (typeof options?.targetTimestamp === "number") {
+        pendingTargetTimestampRef.current =
+          pendingTargetTimestampRef.current === null
+            ? options.targetTimestamp
+            : Math.max(pendingTargetTimestampRef.current, options.targetTimestamp);
+      }
+
+      if (options?.force) {
+        pendingForceRef.current = true;
+      }
+
+      if (activeSyncPromiseRef.current) {
+        return activeSyncPromiseRef.current;
+      }
+
+      const now = Date.now();
+      if (!pendingForceRef.current) {
+        if (now - lastSinceRequestAtRef.current < MIN_FETCH_GAP_MS) {
+          return false;
+        }
+
+        if (now < emptyCooldownUntilRef.current) {
+          return false;
+        }
+      }
+
+      const request = (async () => {
+        let receivedAny = false;
+
+        while (!signal.aborted) {
+          const shouldDrainToEmpty = pendingDrainToEmptyRef.current;
+          const targetTimestamp = pendingTargetTimestampRef.current;
+          const { cursor, cursorTimestamp } = useKeypointStore.getState();
+
+          if (!shouldDrainToEmpty && targetTimestamp !== null && cursorTimestamp >= targetTimestamp) {
+            pendingTargetTimestampRef.current = null;
+            pendingForceRef.current = false;
+            break;
+          }
+
+          const rows = await keypointService.getSince(vid, cursor, SINCE_LIMIT);
+          lastSinceRequestAtRef.current = Date.now();
+          if (signal.aborted) return receivedAny;
+
+          if (rows.length === 0) {
+            if (!receivedAny) {
+              emptyCooldownUntilRef.current = Date.now() + EMPTY_RESULT_COOLDOWN_MS;
+            }
+            pendingDrainToEmptyRef.current = false;
+            pendingTargetTimestampRef.current = null;
+            pendingForceRef.current = false;
+            break;
+          }
+
+          const lastRow = rows[rows.length - 1];
+          if (lastRow.frameIndex <= cursor) {
+            console.warn("[useKeypointSync] since response did not advance cursor; stopping pagination to avoid a loop.");
+            pendingDrainToEmptyRef.current = false;
+            pendingTargetTimestampRef.current = null;
+            pendingForceRef.current = false;
+            break;
+          }
+
+          mergeRows(rows, { advanceCursor: true });
+          receivedAny = true;
+          emptyCooldownUntilRef.current = 0;
+
+          await delay(PAGE_DELAY_MS);
+        }
+
+        return receivedAny;
+      })()
+        .catch((error) => {
+          if (!signal.aborted) {
+            console.error("[useKeypointSync] since sync failed:", error);
+          }
+          return false;
+        })
+        .finally(() => {
+          if (activeSyncPromiseRef.current === request) {
+            activeSyncPromiseRef.current = null;
+          }
+        });
+
+      activeSyncPromiseRef.current = request;
+      return request;
+    },
+    [mergeRows],
+  );
+
+  const startPolling = useCallback(
+    (vid: string) => {
+      if (pollTimerRef.current) {
+        return;
+      }
+
+      pollTimerRef.current = setInterval(() => {
+        if (abortRef.current?.signal.aborted) {
           stopPolling();
           return;
         }
 
-        const cursor = useKeypointStore.getState().cursor;
-
-        try {
-          const rows = await keypointService.getSince(vid, cursor, SINCE_LIMIT);
-          if (rows.length > 0) mergeRows(rows);
-        } catch (error) {
-          console.error("[useKeypointSync] poll failed:", error);
-        }
-      }, POLL_INTERVAL_MS);
+        void syncSince(vid, { drainToEmpty: true });
+      }, BACKGROUND_POLL_MS);
     },
-    [mergeRows, stopPolling],
-  );
-
-  /** Loads all existing keypoints by paginating through `since`. */
-  const paginateAllKeypoints = useCallback(
-    async (vid: string, signal: AbortSignal) => {
-      let cursor = -1;
-
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        if (signal.aborted) return;
-
-        try {
-          const rows = await keypointService.getSince(vid, cursor, SINCE_LIMIT);
-          if (rows.length === 0) break;
-
-          mergeRows(rows);
-          cursor = rows[rows.length - 1].frameIndex;
-
-          if (rows.length < SINCE_LIMIT) break;
-
-          await delay(PAGE_DELAY_MS);
-        } catch (error) {
-          console.error("[useKeypointSync] bootstrap pagination failed:", error);
-          break;
-        }
-      }
-    },
-    [mergeRows],
-  );
-
-  const fetchLatestRows = useCallback(
-    async (vid: string) => {
-      try {
-        const rows = await keypointService.getSince(
-          vid,
-          useKeypointStore.getState().cursor,
-          SINCE_LIMIT,
-        );
-        if (rows.length > 0) {
-          mergeRows(rows);
-        }
-      } catch (error) {
-        console.error("[useKeypointSync] latest rows fetch failed:", error);
-      }
-    },
-    [mergeRows],
+    [stopPolling, syncSince],
   );
 
   const handleStatus = useCallback(
     (status: WorkerStatusInfo) => {
-      const signal = abortRef.current?.signal;
-      if (!videoId || !signal || signal.aborted) return;
+      if (!videoId || abortRef.current?.signal.aborted) return;
 
       const poseStatus = resolvePoseStatus(status);
+      const previousStatus = lastPoseStatusRef.current;
+
+      lastPoseStatusRef.current = poseStatus;
       setPoseStatus(poseStatus);
 
-      if (!bootstrappedRef.current) {
-        bootstrappedRef.current = true;
-        lastPoseStatusRef.current = poseStatus;
-
-        void paginateAllKeypoints(videoId, signal).then(() => {
-          if (signal.aborted) return;
-          if (
-            poseStatus === "processing" ||
-            poseStatus === "pending" ||
-            poseStatus === "unknown"
-          ) {
-            startPolling(videoId, signal);
-          }
-        });
-        return;
+      if (bootstrapCompleteRef.current) {
+        if (isPoseStreaming(poseStatus)) {
+          startPolling(videoId);
+        } else {
+          stopPolling();
+        }
       }
-
-      if (
-        poseStatus === "processing" ||
-        poseStatus === "pending" ||
-        poseStatus === "unknown"
-      ) {
-        startPolling(videoId, signal);
-      } else {
-        stopPolling();
-      }
-
-      const previousStatus = lastPoseStatusRef.current;
-      lastPoseStatusRef.current = poseStatus;
 
       if (
         previousStatus !== poseStatus &&
         (poseStatus === "completed" || poseStatus === "failed")
       ) {
-        void fetchLatestRows(videoId);
+        void syncSince(videoId, { drainToEmpty: true, force: true });
         stopPolling();
       }
     },
-    [fetchLatestRows, paginateAllKeypoints, setPoseStatus, startPolling, stopPolling, videoId],
+    [setPoseStatus, startPolling, stopPolling, syncSince, videoId],
   );
 
   useEffect(() => {
     if (!videoId) return;
 
     reset(videoId);
-    bootstrappedRef.current = false;
+    bootstrapCompleteRef.current = false;
     lastPoseStatusRef.current = "unknown";
+    pendingDrainToEmptyRef.current = false;
+    pendingTargetTimestampRef.current = null;
+    pendingForceRef.current = false;
+    activeSyncPromiseRef.current = null;
+    lastSinceRequestAtRef.current = 0;
+    emptyCooldownUntilRef.current = 0;
 
     const abort = new AbortController();
     abortRef.current = abort;
+
+    void syncSince(videoId, { drainToEmpty: true, force: true }).finally(() => {
+      if (abort.signal.aborted) return;
+
+      bootstrapCompleteRef.current = true;
+      if (isPoseStreaming(lastPoseStatusRef.current)) {
+        startPolling(videoId);
+      }
+    });
 
     return () => {
       abort.abort();
       stopPolling();
       abortRef.current = null;
-      prevTimeRef.current = null;
-      bootstrappedRef.current = false;
+      bootstrapCompleteRef.current = false;
       lastPoseStatusRef.current = "unknown";
+      pendingDrainToEmptyRef.current = false;
+      pendingTargetTimestampRef.current = null;
+      pendingForceRef.current = false;
+      activeSyncPromiseRef.current = null;
+      lastSinceRequestAtRef.current = 0;
+      emptyCooldownUntilRef.current = 0;
     };
-  }, [reset, stopPolling, videoId]);
+  }, [reset, startPolling, stopPolling, syncSince, videoId]);
 
   useWorkerStatus(videoId, handleStatus);
 
-  const currentTime = useVideoStore((state) => state.currentTime);
+  useEffect(() => {
+    if (!videoId || !isPlaying || !bootstrapCompleteRef.current) return;
+    if (!isPoseStreaming(lastPoseStatusRef.current)) return;
+
+    const coverageEnd = useKeypointStore.getState().cursorTimestamp;
+    if (coverageEnd < 0 || currentTime >= coverageEnd - PLAYHEAD_PREFETCH_WINDOW_SEC) {
+      void syncSince(videoId, {
+        targetTimestamp: currentTime + PLAYHEAD_PREFETCH_WINDOW_SEC,
+      });
+    }
+  }, [currentTime, isPlaying, syncSince, videoId]);
 
   useEffect(() => {
-    if (!videoId) return;
+    if (!videoId || seekRequestId === 0) return;
+    if (abortRef.current?.signal.aborted) return;
 
-    const prev = prevTimeRef.current;
-    prevTimeRef.current = currentTime;
-
-    if (prev === null || Math.abs(currentTime - prev) < SEEK_THRESHOLD_SEC) return;
+    const requestedTime = lastSeekTime;
 
     void keypointService
-      .getNearest(videoId, currentTime, 2)
+      .getNearest(videoId, requestedTime, 2)
       .then((row) => {
-        if (row) mergeRows([row]);
+        if (abortRef.current?.signal.aborted) return;
+
+        if (row) {
+          mergeRows([row], { advanceCursor: false });
+        }
+
+        void syncSince(videoId, {
+          targetTimestamp: requestedTime + PLAYHEAD_PREFETCH_WINDOW_SEC,
+          force: true,
+        });
       })
-      .catch((error) =>
-        console.error("[useKeypointSync] nearest fetch failed:", error),
-      );
-  }, [videoId, currentTime, mergeRows]);
+      .catch((error) => {
+        console.error("[useKeypointSync] nearest fetch failed:", error);
+        void syncSince(videoId, {
+          targetTimestamp: requestedTime + PLAYHEAD_PREFETCH_WINDOW_SEC,
+          force: true,
+        });
+      });
+  }, [lastSeekTime, mergeRows, seekRequestId, syncSince, videoId]);
 }

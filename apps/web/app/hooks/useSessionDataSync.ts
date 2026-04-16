@@ -1,10 +1,16 @@
-﻿import { useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { usePointStore } from "~/stores/usePointsStore";
 import { KEYPOINT_TO_NAME } from "~/components/session/player/video/overlays/overlay-utils";
 import type { Point } from "~/data/mock-session-data";
+
+const DEFAULT_POINTS: Point[] = Object.values(KEYPOINT_TO_NAME).map((name) => ({
+  id: name,
+  name,
+  status: "visible",
+}));
 
 /**
  * Fetches sessions from the API on mount and syncs the active
@@ -17,16 +23,21 @@ export function useSessionDataSync() {
   const { setActiveViewId, fetchSessions, fetchSessionVideos, ensureViewVideoUrl } =
     useSessionStore((state) => state.actions);
 
+  const chapterVideoId = useChapterStore((state) => state.videoId);
+  const chapterViewId = useChapterStore((state) => state.activeViewId);
   const loadChapters = useChapterStore((state) => state.actions.loadChapters);
   const loadChaptersFromApi = useChapterStore(
     (state) => state.actions.loadChaptersFromApi,
   );
+
+  const annotationVideoId = useAnnotationStore((state) => state.videoId);
   const loadAnnotations = useAnnotationStore(
     (state) => state.actions.loadAnnotations,
   );
   const setAnnotations = useAnnotationStore(
     (state) => state.actions.setAnnotations,
   );
+
   const setPoints = usePointStore((state) => state.actions.setPoints);
 
   useEffect(() => {
@@ -34,60 +45,71 @@ export function useSessionDataSync() {
   }, [fetchSessions]);
 
   const activeSession = useMemo(
-    () => sessions.find((session) => session.id === activeSessionId),
+    () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [sessions, activeSessionId],
   );
 
+  const activeView = useMemo(
+    () => activeSession?.views.find((view) => view.id === activeViewId) ?? null,
+    [activeSession, activeViewId],
+  );
+
   useEffect(() => {
-    if (activeSessionId) {
-      void fetchSessionVideos(activeSessionId);
-    }
+    if (!activeSessionId) return;
+    void fetchSessionVideos(activeSessionId);
   }, [activeSessionId, fetchSessionVideos]);
 
   useEffect(() => {
     if (!activeSession) {
-      if (activeViewId) setActiveViewId("");
+      if (activeViewId) {
+        setActiveViewId("");
+      }
       return;
     }
 
     const viewExists = activeSession.views.some((view) => view.id === activeViewId);
-    const nextViewId = viewExists
-      ? activeViewId
-      : (activeSession.views[0]?.id ?? "");
+    const nextViewId = viewExists ? activeViewId : (activeSession.views[0]?.id ?? "");
 
     if (nextViewId !== activeViewId) {
       setActiveViewId(nextViewId);
     }
   }, [activeSession, activeViewId, setActiveViewId]);
 
+  const activeVideoId = activeView?.videoId ?? null;
+  const activePoints = activeView?.points ?? null;
+  const activeAnnotations = activeView?.annotations ?? null;
+  const activeChapters = activeView?.chapters ?? null;
+
   useEffect(() => {
-    if (!activeSession || !activeViewId) return;
+    if (!activeView || !activeViewId) return;
 
-    const view = activeSession.views.find((item) => item.id === activeViewId);
-    if (!view) return;
+    if (activeVideoId) {
+      setPoints(activePoints && activePoints.length > 0 ? activePoints : DEFAULT_POINTS);
+      void ensureViewVideoUrl(activeVideoId);
 
-    if (view.videoId && view.points.length === 0) {
-      const defaultPoints: Point[] = Object.values(KEYPOINT_TO_NAME).map((name) => ({
-        id: name,
-        name,
-        status: "visible" as const,
-      }));
-      setPoints(defaultPoints);
-    } else {
-      setPoints(view.points);
+      if (annotationVideoId !== activeVideoId) {
+        void loadAnnotations(activeVideoId);
+      }
+
+      if (chapterVideoId !== activeVideoId || chapterViewId !== activeViewId) {
+        void loadChaptersFromApi(activeViewId, activeVideoId);
+      }
+
+      return;
     }
 
-    if (view.videoId) {
-      void ensureViewVideoUrl(view.videoId);
-      void loadAnnotations(view.videoId);
-      void loadChaptersFromApi(activeViewId, view.videoId);
-    } else {
-      setAnnotations(view.annotations);
-      loadChapters(activeViewId, view.chapters);
-    }
+    setPoints(activePoints ?? []);
+    setAnnotations(activeAnnotations ?? []);
+    loadChapters(activeViewId, activeChapters ?? []);
   }, [
-    activeSession,
+    activeAnnotations,
+    activeChapters,
+    activePoints,
+    activeVideoId,
     activeViewId,
+    annotationVideoId,
+    chapterVideoId,
+    chapterViewId,
     ensureViewVideoUrl,
     loadAnnotations,
     loadChapters,
@@ -98,6 +120,7 @@ export function useSessionDataSync() {
 
   return {
     activeSession,
+    activeView,
     activeViewId,
     setActiveViewId,
   };

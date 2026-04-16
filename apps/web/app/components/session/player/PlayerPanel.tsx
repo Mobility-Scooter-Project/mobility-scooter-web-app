@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import {
   PanelScrollArea,
   PanelSection,
@@ -13,12 +11,8 @@ import { VideoStage } from "./video/VideoStage";
 import { useSessionDataSync } from "~/hooks/useSessionDataSync";
 
 export function PlayerPanel() {
-  const { activeSession, activeViewId, setActiveViewId } = useSessionDataSync();
-
-  const activeView = useMemo(
-    () => activeSession?.views.find((view) => view.id === activeViewId) ?? null,
-    [activeSession, activeViewId],
-  );
+  const { activeSession, activeView, activeViewId, setActiveViewId } =
+    useSessionDataSync();
 
   return (
     <PanelSection className="px-4.5 pt-4.5 gap-y-4.5">

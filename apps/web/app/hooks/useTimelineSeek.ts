@@ -1,11 +1,12 @@
-import { useState, useEffect, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { useVideoStore } from "~/stores/useVideoStore";
 
 export function useTimelineSeek(
   containerRef: RefObject<HTMLElement | null>,
-  duration: number
+  duration: number,
 ) {
   const setCurrentTime = useVideoStore((state) => state.actions.setCurrentTime);
+  const seekTo = useVideoStore((state) => state.actions.seekTo);
   const [isDragging, setIsDragging] = useState(false);
   const safeDuration = duration > 0 ? duration : 1;
 
@@ -16,19 +17,24 @@ export function useTimelineSeek(
     return ratio * safeDuration;
   };
 
-  const handleSeek = (clientX: number) => {
+  const previewSeek = (clientX: number) => {
     setCurrentTime(calculateTime(clientX));
+  };
+
+  const commitSeek = (clientX: number) => {
+    seekTo(calculateTime(clientX));
   };
 
   useEffect(() => {
     if (!isDragging) return;
 
-    const onMove = (e: MouseEvent) => {
-      e.preventDefault();
-      handleSeek(e.clientX);
+    const onMove = (event: MouseEvent) => {
+      event.preventDefault();
+      previewSeek(event.clientX);
     };
 
-    const onUp = () => {
+    const onUp = (event: MouseEvent) => {
+      commitSeek(event.clientX);
       setIsDragging(false);
       document.body.style.cursor = "";
     };
@@ -42,12 +48,12 @@ export function useTimelineSeek(
       window.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
     };
-  }, [isDragging, safeDuration]);
+  }, [isDragging]);
 
   return {
     isDragging,
-    startSeek: (e: React.MouseEvent) => {
-      handleSeek(e.clientX);
+    startSeek: (event: React.MouseEvent) => {
+      previewSeek(event.clientX);
       setIsDragging(true);
     },
   };

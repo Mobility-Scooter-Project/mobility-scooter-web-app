@@ -1,9 +1,9 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { type Session, type View } from "~/data/mock-session-data";
 import { sessionService } from "~/services/sessions";
 import { videoService } from "~/services/videos";
 
-const VIEW_TITLE_SAVE_DELAY_MS = 700;
+const VIEW_TITLE_SAVE_DELAY_MS = 1_200;
 
 const pendingViewTitleSaves = new Map<string, ReturnType<typeof setTimeout>>();
 const inFlightVideoUrlLoads = new Map<string, Promise<string>>();

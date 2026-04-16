@@ -18,6 +18,7 @@ export function ChapterTrack() {
   const currentTime = useVideoStore((state) => state.currentTime);
   const duration = useVideoStore((state) => state.duration);
   const setCurrentTime = useVideoStore((state) => state.actions.setCurrentTime);
+  const seekTo = useVideoStore((state) => state.actions.seekTo);
 
   const [isDragging, setIsDragging] = useState(false);
 
@@ -30,20 +31,32 @@ export function ChapterTrack() {
 
   const progressPercent = clamp((currentTime / safeDuration) * 100, 0, 100);
 
-  const seekFromClientX = useCallback(
+  const calculateTimeFromClientX = useCallback(
     (clientX: number) => {
       const track = trackRef.current;
-      if (!track) return;
+      if (!track) return 0;
 
       const rect = track.getBoundingClientRect();
-      if (rect.width <= 0) return;
+      if (rect.width <= 0) return 0;
 
       const relativeX = clamp(clientX - rect.left, 0, rect.width);
-      const nextTime = (relativeX / rect.width) * safeDuration;
-
-      setCurrentTime(nextTime);
+      return (relativeX / rect.width) * safeDuration;
     },
-    [safeDuration, setCurrentTime],
+    [safeDuration],
+  );
+
+  const previewSeekFromClientX = useCallback(
+    (clientX: number) => {
+      setCurrentTime(calculateTimeFromClientX(clientX));
+    },
+    [calculateTimeFromClientX, setCurrentTime],
+  );
+
+  const commitSeekFromClientX = useCallback(
+    (clientX: number) => {
+      seekTo(calculateTimeFromClientX(clientX));
+    },
+    [calculateTimeFromClientX, seekTo],
   );
 
   const handlePointerDown = useCallback(
@@ -51,27 +64,31 @@ export function ChapterTrack() {
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
       setIsDragging(true);
-      seekFromClientX(event.clientX);
+      previewSeekFromClientX(event.clientX);
     },
-    [seekFromClientX],
+    [previewSeekFromClientX],
   );
 
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (!isDragging) return;
-      seekFromClientX(event.clientX);
+      previewSeekFromClientX(event.clientX);
     },
-    [isDragging, seekFromClientX],
+    [isDragging, previewSeekFromClientX],
   );
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDragging) return;
+      if (!isDragging) {
+        commitSeekFromClientX(event.clientX);
+        return;
+      }
+
       event.currentTarget.releasePointerCapture(event.pointerId);
       setIsDragging(false);
-      seekFromClientX(event.clientX);
+      commitSeekFromClientX(event.clientX);
     },
-    [isDragging, seekFromClientX],
+    [commitSeekFromClientX, isDragging],
   );
 
   useEffect(() => {
@@ -102,22 +119,22 @@ export function ChapterTrack() {
         onKeyDown={(event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
-            setCurrentTime(clamp(currentTime - 5, 0, safeDuration));
+            seekTo(clamp(currentTime - 5, 0, safeDuration));
           }
 
           if (event.key === "ArrowRight") {
             event.preventDefault();
-            setCurrentTime(clamp(currentTime + 5, 0, safeDuration));
+            seekTo(clamp(currentTime + 5, 0, safeDuration));
           }
 
           if (event.key === "Home") {
             event.preventDefault();
-            setCurrentTime(0);
+            seekTo(0);
           }
 
           if (event.key === "End") {
             event.preventDefault();
-            setCurrentTime(safeDuration);
+            seekTo(safeDuration);
           }
         }}
         className="relative h-4 w-full cursor-pointer touch-none select-none"
@@ -139,7 +156,7 @@ export function ChapterTrack() {
 
           return (
             <div
-              key={segment.id}
+              key={`${segment.id}-${index}`}
               className="absolute top-1/2 h-1 -translate-y-1/2"
               style={{
                 left: `${startPercent}%`,

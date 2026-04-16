@@ -10,6 +10,11 @@ export type PoseStatus =
   | "completed"
   | "failed";
 
+type MergeRowsOptions = {
+  /** When false, merge the row(s) into cache without advancing the `since` cursor. */
+  advanceCursor?: boolean;
+};
+
 type KeypointStore = {
   /** The video these keypoints belong to. */
   videoId: string | null;
@@ -17,45 +22,35 @@ type KeypointStore = {
   cache: Map<number, KeypointRow>;
   /** Sorted frame data derived from the cache, ready for overlay consumption. */
   frames: VideoFrameData[];
-  /** Highest `frameIndex` received so far — used as the `since` cursor. */
+  /** Highest contiguous `frameIndex` fetched through the incremental `since` API. */
   cursor: number;
+  /** Timestamp covered by the contiguous `since` cursor, in seconds. */
+  cursorTimestamp: number;
   /** Current pose-estimation processing status. */
   poseStatus: PoseStatus;
 
   actions: {
-    /**
-     * Resets the store for a new video. Clears all cached data and
-     * sets the cursor back to -1 (fetch from start).
-     */
+    /** Resets the store for a new video. */
     reset: (videoId: string) => void;
-    /**
-     * Merges new keypoint rows into the cache and rebuilds the sorted
-     * frame list. Advances the cursor to the highest `frameIndex` seen.
-     */
-    mergeRows: (rows: KeypointRow[]) => void;
+    /** Merges rows into cache and optionally advances the incremental `since` cursor. */
+    mergeRows: (rows: KeypointRow[], options?: MergeRowsOptions) => void;
     /** Updates the pose-estimation processing status. */
     setPoseStatus: (status: PoseStatus) => void;
   };
 };
 
-/** Rebuilds the sorted `VideoFrameData[]` array from the cache map. */
 function buildSortedFrames(cache: Map<number, KeypointRow>): VideoFrameData[] {
   return Array.from(cache.values())
     .sort((a, b) => a.timestamp - b.timestamp)
     .map((row) => ({ timestamp: row.timestamp, keypoints: row.keypoints }));
 }
 
-/**
- * Manages the in-memory keypoint cache for the active video.
- *
- * Data flows in via `mergeRows` (from `since` polling or `nearest` lookups)
- * and is consumed as sorted `VideoFrameData[]` by overlay components.
- */
 export const useKeypointStore = create<KeypointStore>((set, get) => ({
   videoId: null,
   cache: new Map(),
   frames: [],
   cursor: -1,
+  cursorTimestamp: -1,
   poseStatus: "unknown",
 
   actions: {
@@ -65,28 +60,35 @@ export const useKeypointStore = create<KeypointStore>((set, get) => ({
         cache: new Map(),
         frames: [],
         cursor: -1,
+        cursorTimestamp: -1,
         poseStatus: "unknown",
       }),
 
-    mergeRows: (rows) => {
+    mergeRows: (rows, options) => {
       if (rows.length === 0) return;
 
-      const { cache, cursor } = get();
+      const { cache, cursor, cursorTimestamp } = get();
       const next = new Map(cache);
-      let maxIndex = cursor;
+      let nextCursor = cursor;
+      let nextCursorTimestamp = cursorTimestamp;
+      const shouldAdvanceCursor = options?.advanceCursor !== false;
 
       for (const row of rows) {
         next.set(row.frameIndex, row);
-        if (row.frameIndex > maxIndex) maxIndex = row.frameIndex;
+        if (shouldAdvanceCursor && row.frameIndex > nextCursor) {
+          nextCursor = row.frameIndex;
+          nextCursorTimestamp = row.timestamp;
+        }
       }
 
       set({
         cache: next,
         frames: buildSortedFrames(next),
-        cursor: maxIndex,
+        cursor: nextCursor,
+        cursorTimestamp: nextCursorTimestamp,
       });
     },
 
-    setPoseStatus: (status) => set({ poseStatus: status }),
+    setPoseStatus: (poseStatus) => set({ poseStatus }),
   },
 }));

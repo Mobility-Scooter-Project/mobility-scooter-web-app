@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "~/components/Button";
@@ -10,6 +10,8 @@ import { AddViewDialog } from "./AddViewDialog";
 import { useWorkerSyncStore } from "~/hooks/useWorkerSync";
 import { videoWorkerService } from "~/services/video-worker";
 import { hasWorkerFailure, isWorkerTerminal } from "~/lib/video-worker-status";
+
+const INACTIVE_STATUS_POLL_MS = 15_000;
 
 interface PlayerViewListProps {
   views: View[];
@@ -76,13 +78,14 @@ export function PlayerViewList({
 }
 
 /**
- * Isolates the loading/error state logic per tab so orphaned background
- * tabs can recover their states after a premature page reload.
+ * Isolates the loading/error state logic per tab so background tabs can
+ * recover their statuses after reload without hammering the worker API.
  */
 function ViewTabIndicator({ view }: { view: View }) {
   const syncVideoId = useWorkerSyncStore((state) => state.videoId);
   const latestStatus = useWorkerSyncStore((state) => state.latestStatus);
-  const isActive = view.videoId && view.videoId === syncVideoId;
+  const isActive = Boolean(view.videoId && view.videoId === syncVideoId);
+  const activeStatus = isActive ? latestStatus : null;
 
   const [status, setStatus] = useState<{ loading: boolean; error: boolean }>({
     loading: view.uploading ?? false,
@@ -91,19 +94,22 @@ function ViewTabIndicator({ view }: { view: View }) {
 
   useEffect(() => {
     if (view.uploading || view.uploadError) {
-      setStatus({ loading: view.uploading ?? false, error: view.uploadError ?? false });
+      setStatus({
+        loading: view.uploading ?? false,
+        error: view.uploadError ?? false,
+      });
       return;
     }
 
     if (isActive) {
-      if (!latestStatus) {
-        setStatus({ loading: false, error: false });
+      if (!activeStatus) {
+        setStatus({ loading: !view.videoUrl, error: false });
         return;
       }
 
       setStatus({
-        loading: !hasWorkerFailure(latestStatus) && !isWorkerTerminal(latestStatus),
-        error: hasWorkerFailure(latestStatus),
+        loading: !hasWorkerFailure(activeStatus) && !isWorkerTerminal(activeStatus),
+        error: hasWorkerFailure(activeStatus),
       });
       return;
     }
@@ -123,6 +129,14 @@ function ViewTabIndicator({ view }: { view: View }) {
       }
     };
 
+    const ensurePolling = () => {
+      if (!pollTimer) {
+        pollTimer = setInterval(() => {
+          void syncFromSnapshot();
+        }, INACTIVE_STATUS_POLL_MS);
+      }
+    };
+
     const syncFromSnapshot = async () => {
       try {
         const snapshot = await videoWorkerService.getStatus(view.videoId!);
@@ -130,9 +144,16 @@ function ViewTabIndicator({ view }: { view: View }) {
 
         const isEmptySnapshot =
           snapshot.overallStatus === null && snapshot.steps.length === 0;
+
         if (isEmptySnapshot) {
-          setStatus({ loading: false, error: false });
-          stopPolling();
+          const loading = !view.videoUrl;
+          setStatus({ loading, error: false });
+
+          if (loading) {
+            ensurePolling();
+          } else {
+            stopPolling();
+          }
           return;
         }
 
@@ -142,19 +163,21 @@ function ViewTabIndicator({ view }: { view: View }) {
         setStatus({ loading, error });
 
         if (loading) {
-          if (!pollTimer) {
-            pollTimer = setInterval(() => {
-              void syncFromSnapshot();
-            }, 5_000);
-          }
+          ensurePolling();
         } else {
           stopPolling();
         }
       } catch {
-        if (mounted) {
-          setStatus({ loading: false, error: false });
+        if (!mounted) return;
+
+        const loading = !view.videoUrl;
+        setStatus({ loading, error: false });
+
+        if (loading) {
+          ensurePolling();
+        } else {
+          stopPolling();
         }
-        stopPolling();
       }
     };
 
@@ -164,7 +187,7 @@ function ViewTabIndicator({ view }: { view: View }) {
       mounted = false;
       stopPolling();
     };
-  }, [view.videoId, view.uploading, view.uploadError, isActive, latestStatus]);
+  }, [view.videoId, view.videoUrl, view.uploading, view.uploadError, isActive, activeStatus]);
 
   if (status.error) {
     return <AlertCircle className="size-3 shrink-0 text-destructive" />;

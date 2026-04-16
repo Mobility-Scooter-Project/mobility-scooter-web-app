@@ -9,26 +9,30 @@ import { useVideoStore } from "~/stores/useVideoStore";
  */
 export function useVideoPlayerLogic(videoRef: RefObject<HTMLVideoElement | null>) {
   const { isPlaying, currentTime, volume, isMuted } = useVideoStore();
-  const { setIsPlaying, setCurrentTime, setDuration, setVolume, toggleMute } = useVideoStore((state) => state.actions);
+  const {
+    setIsPlaying,
+    setCurrentTime,
+    seekTo,
+    setDuration,
+    setVolume,
+    toggleMute,
+  } = useVideoStore((state) => state.actions);
 
-  // 1. Sync: Store -> Video
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (isPlaying && video.paused) video.play().catch(() => setIsPlaying(false));
     if (!isPlaying && !video.paused) video.pause();
-    
-    // Threshold check prevents infinite seek loops
+
     if (Math.abs(video.currentTime - currentTime) > 0.5) {
       video.currentTime = currentTime;
     }
-    
+
     video.volume = volume;
     video.muted = isMuted;
   }, [isPlaying, currentTime, volume, isMuted, videoRef, setIsPlaying]);
 
-  // 2. Initial Metadata Check (Fixes 0:00 duration bug)
   useEffect(() => {
     const video = videoRef.current;
     if (video && video.readyState >= 1) {
@@ -36,49 +40,60 @@ export function useVideoPlayerLogic(videoRef: RefObject<HTMLVideoElement | null>
     }
   }, [setDuration, videoRef]);
 
-  // 3. Keyboard Shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (!videoRef.current) return;
-      const target = e.target as HTMLElement;
-      if (["INPUT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable) return;
+      const target = event.target as HTMLElement;
+      if (["INPUT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable) {
+        return;
+      }
 
-      switch (e.key.toLowerCase()) {
+      switch (event.key.toLowerCase()) {
         case " ":
         case "k":
-          e.preventDefault();
+          event.preventDefault();
           setIsPlaying(!useVideoStore.getState().isPlaying);
           break;
         case "arrowleft":
-          e.preventDefault();
-          setCurrentTime(Math.max(0, videoRef.current.currentTime - 5));
+          event.preventDefault();
+          seekTo(Math.max(0, videoRef.current.currentTime - 5));
           break;
         case "arrowright":
-          e.preventDefault();
-          setCurrentTime(Math.min(videoRef.current.duration, videoRef.current.currentTime + 5));
+          event.preventDefault();
+          seekTo(Math.min(videoRef.current.duration, videoRef.current.currentTime + 5));
           break;
         case "j":
-          e.preventDefault();
-          setCurrentTime(Math.max(0, videoRef.current.currentTime - 15));
+          event.preventDefault();
+          seekTo(Math.max(0, videoRef.current.currentTime - 15));
           break;
         case "l":
-          e.preventDefault();
-          setCurrentTime(Math.min(videoRef.current.duration, videoRef.current.currentTime + 15));
+          event.preventDefault();
+          seekTo(Math.min(videoRef.current.duration, videoRef.current.currentTime + 15));
           break;
         case "m":
-          e.preventDefault();
+          event.preventDefault();
           toggleMute();
+          break;
+        case "arrowup":
+          event.preventDefault();
+          setVolume(Math.min(1, useVideoStore.getState().volume + 0.1));
+          break;
+        case "arrowdown":
+          event.preventDefault();
+          setVolume(Math.max(0, useVideoStore.getState().volume - 0.1));
           break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setCurrentTime, setIsPlaying, toggleMute, videoRef]);
+  }, [seekTo, setIsPlaying, setVolume, toggleMute, videoRef]);
 
   return {
-    handleTimeUpdate: (e: React.SyntheticEvent<HTMLVideoElement>) => setCurrentTime(e.currentTarget.currentTime),
-    handleLoadedMetadata: (e: React.SyntheticEvent<HTMLVideoElement>) => setDuration(e.currentTarget.duration),
+    handleTimeUpdate: (event: React.SyntheticEvent<HTMLVideoElement>) =>
+      setCurrentTime(event.currentTarget.currentTime),
+    handleLoadedMetadata: (event: React.SyntheticEvent<HTMLVideoElement>) =>
+      setDuration(event.currentTarget.duration),
     handleEnded: () => setIsPlaying(false),
     togglePlay: () => setIsPlaying(!isPlaying),
   };
