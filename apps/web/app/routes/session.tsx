@@ -1,4 +1,4 @@
-import {
+﻿import {
   ResizablePanelGroup,
   ResizableHandle,
   ResizablePanel,
@@ -6,7 +6,6 @@ import {
 import { AnalysisPanel } from "~/components/session/analysis/AnalysisPanel";
 import { DirectoryPanel } from "~/components/session/directory/DirectoryPanel";
 import { PlayerPanel } from "~/components/session/player/PlayerPanel";
-import { useSessionDataSync } from "~/hooks/useSessionDataSync";
 
 /**
  * The main Session Route.
@@ -15,8 +14,6 @@ import { useSessionDataSync } from "~/hooks/useSessionDataSync";
  * using resizable panels.
  */
 export default function SessionPage() {
-  useSessionDataSync();
-
   return (
     <div className="h-full">
       <ResizablePanelGroup>

@@ -1,13 +1,29 @@
-import { API_BASE_URL } from "~/config/constants";
+﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
 
 /** Response shape returned by GET /api/v1/videos/:videoId/tasks */
 export type VideoTaskEntry = {
-  taskNumber: number;
+  taskId: string;
   timestamp: number;
   task: string;
   note: string | null;
   score: number | null;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+};
+
+type CreateVideoTaskDto = {
+  timestamp: number;
+  task: string;
+  note?: string | null;
+  score?: number | null;
+};
+
+type UpdateVideoTaskDto = {
+  timestamp?: number;
+  task?: string;
+  note?: string | null;
+  score?: number | null;
 };
 
 function authHeaders(): HeadersInit {
@@ -22,21 +38,68 @@ export const taskService = {
   /**
    * GET /api/v1/videos/:videoId/tasks
    * Fetches task detection results for a video.
-   * Returns an empty array if task_detection has not completed yet.
-   *
-   * @param videoId - The video to fetch tasks for
-   * @returns Array of detected tasks with timestamps and scores
    */
   getAll: async (videoId: string): Promise<VideoTaskEntry[]> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/tasks`,
-      { headers: authHeaders() },
-    );
+    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/tasks`, {
+      headers: authHeaders(),
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to fetch video tasks: ${res.status}`);
     }
 
     return res.json();
+  },
+
+  create: async (
+    videoId: string,
+    dto: CreateVideoTaskDto,
+  ): Promise<VideoTaskEntry> => {
+    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/tasks`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(dto),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to create video task: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  update: async (
+    videoId: string,
+    taskId: string,
+    dto: UpdateVideoTaskDto,
+  ): Promise<VideoTaskEntry> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/tasks/${taskId}`,
+      {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify(dto),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to update video task: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  delete: async (videoId: string, taskId: string): Promise<void> => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/tasks/${taskId}`,
+      {
+        method: "DELETE",
+        headers: authHeaders(),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to delete video task: ${res.status}`);
+    }
   },
 };

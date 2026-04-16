@@ -1,4 +1,4 @@
-import { API_BASE_URL, UNIT_ID } from "~/config/constants";
+﻿import { API_BASE_URL, UNIT_ID } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
 
 /** Response shape returned by GET /api/v1/units/:unitId/sessions */
@@ -25,7 +25,8 @@ type CreateSessionDto = {
 /** Response shape returned by GET /api/v1/units/:unitId/sessions/:sessionId/videos */
 export type SessionVideoItem = {
   videoId: string;
-  name: string;
+  title: string;
+  fileName: string;
 };
 
 /**
@@ -45,10 +46,9 @@ export const sessionService = {
    * Fetches all sessions for the current unit.
    */
   getAll: async (): Promise<SessionListItem[]> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions`,
-      { headers: authHeaders() },
-    );
+    const res = await fetch(`${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions`, {
+      headers: authHeaders(),
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to fetch sessions: ${res.status}`);
@@ -65,14 +65,11 @@ export const sessionService = {
    * @returns The created session's ID and resolved patient UUID
    */
   create: async (dto: CreateSessionDto): Promise<CreateSessionResponse> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions`,
-      {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(dto),
-      },
-    );
+    const res = await fetch(`${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(dto),
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to create session: ${res.status}`);
@@ -86,7 +83,7 @@ export const sessionService = {
    * Fetches all videos belonging to a session.
    *
    * @param sessionId - The session to list videos for
-   * @returns Array of video IDs and display names
+   * @returns Array of video metadata for the session
    */
   getSessionVideos: async (
     sessionId: string,

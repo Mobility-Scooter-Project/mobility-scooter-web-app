@@ -1,148 +1,83 @@
-import { useCallback, useEffect, useRef } from "react";
-import type {
-  WorkerStatusInfo,
-  WorkerSseEvent,
-} from "~/services/video-worker";
+﻿import { useCallback, useEffect, useRef } from "react";
+import type { WorkerStatusInfo } from "~/services/video-worker";
+import { getWorkerStepStatus } from "~/lib/video-worker-status";
 import { useChapterStore, type TaskStatus } from "~/stores/useChapterStore";
 import { useSessionStore } from "~/stores/useSessionStore";
-import { useWorkerStatus, useWorkerEvent } from "./useWorkerSync";
+import { useWorkerStatus } from "./useWorkerSync";
 
-/** Maps raw status strings from the API to the local union type. */
-function normalizeTaskStatus(raw: string): TaskStatus {
+function normalizeTaskStatus(raw: ReturnType<typeof getWorkerStepStatus>): TaskStatus {
   switch (raw) {
     case "completed":
-    case "processed":
       return "completed";
     case "processing":
       return "processing";
     case "failed":
       return "failed";
     case "pending":
-    case "queued":
       return "pending";
     default:
       return "unknown";
   }
 }
 
-/**
- * Resolves the task-detection step status from a worker status snapshot.
- * Falls back to inferring from `overallStatus` when no step row exists yet.
- */
-function resolveTaskStatus(
-  steps: { step: string; status: string }[],
-  overallStatus: string | null,
-): TaskStatus {
-  const taskStep = steps.find((s) => s.step === "task_detection");
-  if (taskStep) return normalizeTaskStatus(taskStep.status);
-
-  if (!overallStatus) return "pending";
-  if (overallStatus === "processing") return "processing";
-  if (overallStatus === "completed" || overallStatus === "processed")
-    return "completed";
-  if (overallStatus === "failed") return "failed";
-  return "pending";
+function resolveTaskStatus(status: WorkerStatusInfo): TaskStatus {
+  return normalizeTaskStatus(getWorkerStepStatus(status, "task_detection"));
 }
 
 /**
  * Monitors task-detection processing status for the active video.
- *
- * Uses the shared worker status + SSE from useWorkerSync to avoid
- * duplicate getStatus calls and SSE connections.
- *
- * @param videoId  - The active video's backend ID, or `undefined` if none.
- * @param viewId   - The active view ID (passed to loadChaptersFromApi).
  */
 export function useChapterSync(
   videoId: string | undefined,
   viewId: string | undefined,
 ) {
-  const setTaskStatus = useChapterStore((s) => s.actions.setTaskStatus);
+  const setTaskStatus = useChapterStore((state) => state.actions.setTaskStatus);
   const loadChaptersFromApi = useChapterStore(
-    (s) => s.actions.loadChaptersFromApi,
+    (state) => state.actions.loadChaptersFromApi,
   );
   const markViewProcessed = useSessionStore(
-    (s) => s.actions.markViewProcessed,
-  );
-  const refreshViewVideoUrl = useSessionStore(
-    (s) => s.actions.refreshViewVideoUrl,
+    (state) => state.actions.markViewProcessed,
   );
 
   const abortRef = useRef<AbortController | null>(null);
+  const lastTaskStatusRef = useRef<TaskStatus>("unknown");
 
-  // Reset on videoId/viewId change.
   useEffect(() => {
     if (!videoId || !viewId) return;
 
     setTaskStatus("unknown");
+    lastTaskStatusRef.current = "unknown";
+
     const abort = new AbortController();
     abortRef.current = abort;
 
     return () => {
       abort.abort();
       abortRef.current = null;
+      lastTaskStatusRef.current = "unknown";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId, viewId]);
+  }, [videoId, viewId, setTaskStatus]);
 
   const handleStatus = useCallback(
     (status: WorkerStatusInfo) => {
       if (!videoId || !viewId) return;
       if (abortRef.current?.signal.aborted) return;
 
-      const taskStatus = resolveTaskStatus(status.steps, status.overallStatus);
+      const taskStatus = resolveTaskStatus(status);
       setTaskStatus(taskStatus);
 
-      if (status.overallStatus) {
-        refreshViewVideoUrl(videoId);
-      }
+      const previousStatus = lastTaskStatusRef.current;
+      lastTaskStatusRef.current = taskStatus;
 
-      if (taskStatus === "completed") {
-        loadChaptersFromApi(viewId, videoId);
+      if (taskStatus === "completed" && previousStatus !== "completed") {
+        void loadChaptersFromApi(viewId, videoId);
         markViewProcessed(videoId);
-      } else if (taskStatus === "failed") {
+      } else if (taskStatus === "failed" && previousStatus !== "failed") {
         markViewProcessed(videoId, true);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [videoId, viewId],
+    [videoId, viewId, loadChaptersFromApi, markViewProcessed, setTaskStatus],
   );
 
-  const handleSseEvent = useCallback(
-    (event: WorkerSseEvent) => {
-      if (!videoId || !viewId) return;
-      if (abortRef.current?.signal.aborted) return;
-
-      if (event.type === "step" && event.step === "task_detection") {
-        const status = normalizeTaskStatus(event.status ?? "unknown");
-        setTaskStatus(status);
-
-        if (status === "completed") {
-          loadChaptersFromApi(viewId, videoId);
-        }
-      }
-
-      if (event.type === "overall") {
-        const status = resolveTaskStatus(
-          event.steps,
-          event.overallStatus,
-        );
-        setTaskStatus(status);
-
-        if (status === "completed") {
-          loadChaptersFromApi(viewId, videoId);
-          markViewProcessed(videoId);
-          refreshViewVideoUrl(videoId);
-        } else if (status === "failed") {
-          markViewProcessed(videoId, true);
-        }
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [videoId, viewId],
-  );
-
-  // Register for shared worker status and SSE events.
   useWorkerStatus(videoId, handleStatus);
-  useWorkerEvent(videoId, handleSseEvent);
 }

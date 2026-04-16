@@ -1,128 +1,184 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import {
   videoWorkerService,
   type WorkerStatusInfo,
   type WorkerSseEvent,
 } from "~/services/video-worker";
 import { create } from "zustand";
+import { isWorkerStarted, isWorkerTerminal } from "~/lib/video-worker-status";
 
 type WorkerSyncListener = (event: WorkerSseEvent) => void;
 type StatusListener = (status: WorkerStatusInfo) => void;
 
-/**
- * Tiny store that caches the latest worker status per video so that
- * multiple hooks can share one getStatus call and one SSE connection.
- */
-
-/** How often to re-check worker status while the worker hasn't started (ms). */
+/** How often to re-check worker status while processing is in flight (ms). */
 const STATUS_POLL_MS = 5_000;
 
 type WorkerSyncState = {
   /** The videoId currently being tracked. */
   videoId: string | null;
-  /** Cached initial status snapshot (set once on mount). */
-  initialStatus: WorkerStatusInfo | null;
-  /** True once the worker has acknowledged the video (overallStatus non-null). */
+  /** Cached latest status snapshot. */
+  latestStatus: WorkerStatusInfo | null;
+  /** True once the worker has acknowledged the video. */
   workerStarted: boolean;
   /** Registered listeners for SSE events. */
   sseListeners: Set<WorkerSyncListener>;
-  /** Registered listeners for the initial status fetch. */
+  /** Registered listeners for status snapshots. */
   statusListeners: Set<StatusListener>;
 };
 
 export const useWorkerSyncStore = create<WorkerSyncState>(() => ({
   videoId: null,
-  initialStatus: null,
+  latestStatus: null,
   workerStarted: false,
   sseListeners: new Set(),
   statusListeners: new Set(),
 }));
 
+function mergeWorkerEvent(
+  current: WorkerStatusInfo | null,
+  event: WorkerSseEvent,
+): WorkerStatusInfo {
+  if (event.type === "step") {
+    const steps = current?.steps ?? [];
+    const existingIndex = steps.findIndex((step) => step.step === event.step);
+    const nextSteps = [...steps];
+    const nextStep = {
+      step: event.step,
+      status: event.status ?? "pending",
+    };
+
+    if (existingIndex === -1) {
+      nextSteps.push(nextStep);
+    } else {
+      nextSteps[existingIndex] = nextStep;
+    }
+
+    return {
+      videoId: event.videoId,
+      overallStatus: current?.overallStatus ?? null,
+      durationSec: current?.durationSec ?? null,
+      steps: nextSteps,
+    };
+  }
+
+  return {
+    videoId: event.videoId,
+    overallStatus: event.overallStatus,
+    durationSec: event.durationSec,
+    steps: current?.steps ?? [],
+  };
+}
+
 /**
  * Manages a single getStatus call + SSE connection per video.
  * Other hooks register listeners via useWorkerEvent / useWorkerStatus.
- *
- * Call this once in the component tree for the active video.
  */
 export function useWorkerSync(videoId: string | undefined) {
   useEffect(() => {
     if (!videoId) return;
 
     const store = useWorkerSyncStore;
-    store.setState({ videoId, initialStatus: null, workerStarted: false });
+    store.setState({ videoId, latestStatus: null, workerStarted: false });
 
     const abort = new AbortController();
     let cleanupSse: (() => void) | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let activeRefresh: Promise<void> | null = null;
+    let queuedRefresh = false;
 
-    /** Notify all registered status listeners with the given snapshot. */
-    const notifyStatusListeners = (status: WorkerStatusInfo) => {
-      for (const cb of store.getState().statusListeners) {
-        cb(status);
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
       }
     };
 
-    (async () => {
+    const startPolling = () => {
+      if (pollTimer || abort.signal.aborted) return;
+      pollTimer = setInterval(() => {
+        void refreshStatus();
+      }, STATUS_POLL_MS);
+    };
+
+    const notifyStatusListeners = (status: WorkerStatusInfo) => {
+      for (const callback of store.getState().statusListeners) {
+        callback(status);
+      }
+    };
+
+    const applyStatus = (status: WorkerStatusInfo) => {
+      const started = isWorkerStarted(status);
+      store.setState({ latestStatus: status, workerStarted: started });
+      notifyStatusListeners(status);
+
+      if (isWorkerTerminal(status)) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    const refreshStatus = async () => {
       if (abort.signal.aborted) return;
-
-      // Single getStatus call shared by all consumers.
-      try {
-        const status = await videoWorkerService.getStatus(videoId);
-        if (abort.signal.aborted) return;
-
-        const started = status.overallStatus !== null;
-        store.setState({ initialStatus: status, workerStarted: started });
-        notifyStatusListeners(status);
-
-        // If the worker hasn't started yet (video may still be uploading),
-        // poll periodically until the worker acknowledges the video.
-        if (!started && !abort.signal.aborted) {
-          pollTimer = setInterval(async () => {
-            if (abort.signal.aborted) {
-              if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-              return;
-            }
-            try {
-              const updated = await videoWorkerService.getStatus(videoId);
-              if (abort.signal.aborted) return;
-              if (updated.overallStatus !== null) {
-                store.setState({ initialStatus: updated, workerStarted: true });
-                if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-                // Re-notify so hooks like useChapterSync can refresh the video URL.
-                notifyStatusListeners(updated);
-              }
-            } catch (err) {
-              console.error("[useWorkerSync] status poll failed:", err);
-            }
-          }, STATUS_POLL_MS);
-        }
-      } catch (err) {
-        console.error("[useWorkerSync] Failed to fetch status:", err);
+      if (activeRefresh) {
+        queuedRefresh = true;
+        return activeRefresh;
       }
 
-      if (abort.signal.aborted) return;
+      activeRefresh = (async () => {
+        try {
+          do {
+            queuedRefresh = false;
 
-      // Single SSE connection shared by all consumers.
-      cleanupSse = videoWorkerService.subscribeToEvents(videoId, (event) => {
+            try {
+              const status = await videoWorkerService.getStatus(videoId);
+              if (abort.signal.aborted) return;
+              applyStatus(status);
+            } catch (error) {
+              if (!abort.signal.aborted) {
+                console.error("[useWorkerSync] Failed to fetch status:", error);
+              }
+            }
+          } while (queuedRefresh && !abort.signal.aborted);
+        } finally {
+          activeRefresh = null;
+        }
+      })();
+
+      return activeRefresh;
+    };
+
+    startPolling();
+    void refreshStatus();
+
+    cleanupSse = videoWorkerService.subscribeToEvents(
+      videoId,
+      (event) => {
         if (abort.signal.aborted) return;
-        // Any SSE event means the worker has started processing.
-        if (!store.getState().workerStarted) {
-          store.setState({ workerStarted: true });
-          if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+
+        const merged = mergeWorkerEvent(store.getState().latestStatus, event);
+        applyStatus(merged);
+
+        for (const callback of store.getState().sseListeners) {
+          callback(event);
         }
-        for (const cb of store.getState().sseListeners) {
-          cb(event);
+
+        void refreshStatus();
+      },
+      (error) => {
+        if (!abort.signal.aborted) {
+          console.error("[useWorkerSync] SSE connection error:", error);
         }
-      });
-    })();
+      },
+    );
 
     return () => {
       abort.abort();
       cleanupSse?.();
-      if (pollTimer) clearInterval(pollTimer);
+      stopPolling();
       store.setState({
         videoId: null,
-        initialStatus: null,
+        latestStatus: null,
         workerStarted: false,
         sseListeners: new Set(),
         statusListeners: new Set(),
@@ -132,9 +188,8 @@ export function useWorkerSync(videoId: string | undefined) {
 }
 
 /**
- * Registers a callback for the initial worker status fetch.
- * Uses a ref so the latest callback is always invoked, even if
- * the status was already fetched before this hook mounted.
+ * Registers a callback for status snapshots.
+ * Uses a ref so the latest callback is always invoked.
  */
 export function useWorkerStatus(
   videoId: string | undefined,
@@ -147,17 +202,13 @@ export function useWorkerStatus(
     if (!videoId) return;
 
     const store = useWorkerSyncStore;
-
-    // Wrap in a stable function so we can reliably remove it later.
     const listener: StatusListener = (status) => cbRef.current(status);
 
-    // If already fetched for this video, call immediately.
     const state = store.getState();
-    if (state.initialStatus && state.videoId === videoId) {
-      listener(state.initialStatus);
+    if (state.latestStatus && state.videoId === videoId) {
+      listener(state.latestStatus);
     }
 
-    // Register for future updates (in case fetch hasn't completed yet).
     state.statusListeners.add(listener);
     return () => {
       store.getState().statusListeners.delete(listener);

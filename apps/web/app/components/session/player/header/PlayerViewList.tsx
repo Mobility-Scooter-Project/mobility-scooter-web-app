@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useEffect, useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "~/components/Button";
@@ -9,6 +9,7 @@ import { AddViewDialog } from "./AddViewDialog";
 
 import { useWorkerSyncStore } from "~/hooks/useWorkerSync";
 import { videoWorkerService } from "~/services/video-worker";
+import { hasWorkerFailure, isWorkerTerminal } from "~/lib/video-worker-status";
 
 interface PlayerViewListProps {
   views: View[];
@@ -75,12 +76,12 @@ export function PlayerViewList({
 }
 
 /**
- * Isolates the loading/error state logic per tab so orphaned background 
+ * Isolates the loading/error state logic per tab so orphaned background
  * tabs can recover their states after a premature page reload.
  */
 function ViewTabIndicator({ view }: { view: View }) {
-  const syncVideoId = useWorkerSyncStore((s) => s.videoId);
-  const workerStarted = useWorkerSyncStore((s) => s.workerStarted);
+  const syncVideoId = useWorkerSyncStore((state) => state.videoId);
+  const latestStatus = useWorkerSyncStore((state) => state.latestStatus);
   const isActive = view.videoId && view.videoId === syncVideoId;
 
   const [status, setStatus] = useState<{ loading: boolean; error: boolean }>({
@@ -89,52 +90,87 @@ function ViewTabIndicator({ view }: { view: View }) {
   });
 
   useEffect(() => {
-    if (view.uploading || view.uploadError) return;
-
-    if (isActive) {
-      setStatus({ loading: !workerStarted, error: false });
+    if (view.uploading || view.uploadError) {
+      setStatus({ loading: view.uploading ?? false, error: view.uploadError ?? false });
       return;
     }
 
-    if (!view.videoId) return;
+    if (isActive) {
+      if (!latestStatus) {
+        setStatus({ loading: false, error: false });
+        return;
+      }
+
+      setStatus({
+        loading: !hasWorkerFailure(latestStatus) && !isWorkerTerminal(latestStatus),
+        error: hasWorkerFailure(latestStatus),
+      });
+      return;
+    }
+
+    if (!view.videoId) {
+      setStatus({ loading: false, error: false });
+      return;
+    }
 
     let mounted = true;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-    const checkBackendStatus = async () => {
-      try {
-        const res = await videoWorkerService.getStatus(view.videoId!);
-        if (!mounted) return;
-
-        // If overallStatus is null, the worker hasn't acknowledged it yet (still uploading/pending)
-        const isPending = res.overallStatus === null;
-        const isFailed = res.overallStatus === "failed";
-
-        setStatus({ loading: isPending, error: isFailed });
-
-        // Keep checking until the worker picks it up
-        if (isPending) {
-          if (!pollTimer) pollTimer = setInterval(checkBackendStatus, 5000);
-        } else {
-          if (pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
-          }
-        }
-      } catch (err) {
-        if (mounted) setStatus({ loading: false, error: true });
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
       }
     };
 
-    checkBackendStatus();
+    const syncFromSnapshot = async () => {
+      try {
+        const snapshot = await videoWorkerService.getStatus(view.videoId!);
+        if (!mounted) return;
+
+        const isEmptySnapshot =
+          snapshot.overallStatus === null && snapshot.steps.length === 0;
+        if (isEmptySnapshot) {
+          setStatus({ loading: false, error: false });
+          stopPolling();
+          return;
+        }
+
+        const error = hasWorkerFailure(snapshot);
+        const loading = !error && !isWorkerTerminal(snapshot);
+
+        setStatus({ loading, error });
+
+        if (loading) {
+          if (!pollTimer) {
+            pollTimer = setInterval(() => {
+              void syncFromSnapshot();
+            }, 5_000);
+          }
+        } else {
+          stopPolling();
+        }
+      } catch {
+        if (mounted) {
+          setStatus({ loading: false, error: false });
+        }
+        stopPolling();
+      }
+    };
+
+    void syncFromSnapshot();
 
     return () => {
       mounted = false;
-      if (pollTimer) clearInterval(pollTimer);
+      stopPolling();
     };
-  }, [view.videoId, view.uploading, view.uploadError, isActive, workerStarted]);
+  }, [view.videoId, view.uploading, view.uploadError, isActive, latestStatus]);
 
-  if (status.error) return <AlertCircle className="size-3 shrink-0 text-destructive" />;
-  if (status.loading) return <Loader2 className="size-3 shrink-0 animate-spin" />;
+  if (status.error) {
+    return <AlertCircle className="size-3 shrink-0 text-destructive" />;
+  }
+  if (status.loading) {
+    return <Loader2 className="size-3 shrink-0 animate-spin" />;
+  }
   return null;
 }

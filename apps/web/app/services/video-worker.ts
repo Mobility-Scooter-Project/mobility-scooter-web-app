@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "~/config/constants";
+﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
 
 /** Processing status for a single worker step. */
@@ -15,6 +15,16 @@ export type WorkerStatusInfo = {
   steps: WorkerStepInfo[];
 };
 
+/** Detailed worker status for a single step. */
+export type WorkerStepStatusInfo = {
+  videoId: string;
+  step: string;
+  status: string | null;
+  durationSec: number | null;
+  attempts: number;
+  lastError: string | null;
+};
+
 /** SSE event payload for a step-level status change. */
 type StepSseEvent = {
   type: "step";
@@ -23,6 +33,7 @@ type StepSseEvent = {
   status: string | null;
   durationSec: number | null;
   attempts: number;
+  lastError: string | null;
 };
 
 /** SSE event payload for an overall (terminal) status change. */
@@ -31,7 +42,6 @@ type OverallSseEvent = {
   videoId: string;
   overallStatus: string | null;
   durationSec: number | null;
-  steps: WorkerStepInfo[];
 };
 
 /** Union of all possible SSE event payloads. */
@@ -51,13 +61,28 @@ export const videoWorkerService = {
    * Returns the overall processing status and per-step breakdown.
    */
   getStatus: async (videoId: string): Promise<WorkerStatusInfo> => {
+    const res = await fetch(`${API_BASE_URL}/api/v1/video-worker/${videoId}/status`, {
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch worker status: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
+  getStepStatus: async (
+    videoId: string,
+    step: string,
+  ): Promise<WorkerStepStatusInfo> => {
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/video-worker/${videoId}/status`,
+      `${API_BASE_URL}/api/v1/video-worker/${videoId}/${step}/status`,
       { headers: authHeaders() },
     );
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch worker status: ${res.status}`);
+      throw new Error(`Failed to fetch worker step status: ${res.status}`);
     }
 
     return res.json();
@@ -81,7 +106,7 @@ export const videoWorkerService = {
     const url = `${API_BASE_URL}/api/v1/video-worker/${videoId}/worker-events`;
 
     // EventSource doesn't support custom headers, so we pass the token as a query param.
-    // The backend SSE controller accepts this via @Query('token') fallback.
+    // The backend JWT middleware accepts this via `req.query.token`.
     const eventSource = new EventSource(
       accessToken ? `${url}?token=${encodeURIComponent(accessToken)}` : url,
     );
@@ -97,7 +122,6 @@ export const videoWorkerService = {
 
     eventSource.onerror = (e) => {
       onError?.(e);
-      // Browser will auto-reconnect; if the stream completed, close it.
       if (eventSource.readyState === EventSource.CLOSED) {
         eventSource.close();
       }
