@@ -1,13 +1,15 @@
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import type { View } from "~/data/mock-session-data";
 import { VideoStageToggles } from "./VideoStageToggles";
 import { StageOverlay } from "./StageOverlay";
+import { VideoInteractionFeedback } from "./VideoInteractionFeedback";
 import { PipelineProgress } from "../../common/PipelineProgress";
 import { useVideoPipeline } from "~/hooks/useVideoPipeline";
 import { useVideoSync } from "~/hooks/useVideoSync";
 import { usePlayableVideoSource } from "~/hooks/usePlayableVideoSource";
 import { useVideoStore } from "~/stores/useVideoStore";
+import { VIDEO_SHORTCUT_FEEDBACK } from "~/hooks/videoPlayerShortcuts";
 
 interface VideoStageProps {
   activeView: View | null;
@@ -15,7 +17,11 @@ interface VideoStageProps {
 
 export function VideoStage({ activeView }: VideoStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const isPlaying = useVideoStore((state) => state.isPlaying);
   const isVideoLoading = useVideoStore((state) => state.isVideoLoading);
+  const { setIsPlaying, showInteractionFeedback } = useVideoStore(
+    (state) => state.actions,
+  );
 
   const { pipelineSteps, pipelineVisible, frames } = useVideoPipeline(activeView);
   const { playbackUrl } = usePlayableVideoSource(
@@ -26,6 +32,14 @@ export function VideoStage({ activeView }: VideoStageProps) {
 
   const hasActiveView = Boolean(activeView);
   const hasPlaybackUrl = Boolean(playbackUrl);
+
+  const handleVideoClick = useCallback(() => {
+    const nextPlaying = !isPlaying;
+    setIsPlaying(nextPlaying);
+    showInteractionFeedback(
+      nextPlaying ? VIDEO_SHORTCUT_FEEDBACK.play : VIDEO_SHORTCUT_FEEDBACK.pause,
+    );
+  }, [isPlaying, setIsPlaying, showInteractionFeedback]);
 
   return (
     <section className="flex flex-col gap-y-3">
@@ -43,6 +57,7 @@ export function VideoStage({ activeView }: VideoStageProps) {
             preload="auto"
             className="block h-full w-full object-contain"
             controls={false}
+            onClick={handleVideoClick}
             {...videoHandlers}
           />
         ) : hasActiveView ? (
@@ -66,6 +81,7 @@ export function VideoStage({ activeView }: VideoStageProps) {
           </div>
         )}
 
+        <VideoInteractionFeedback />
         <StageOverlay frames={frames} />
       </div>
     </section>

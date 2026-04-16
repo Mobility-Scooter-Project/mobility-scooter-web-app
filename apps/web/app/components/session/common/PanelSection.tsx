@@ -9,17 +9,17 @@ interface PanelSectionBodyProps extends React.ComponentProps<"div"> {}
 
 interface PanelScrollAreaProps extends React.ComponentProps<"div"> {}
 
-export function PanelSection({
-  className,
-  ...props
-}: PanelSectionProps) {
-  return (
-    <div
-      className={cn("flex h-full flex-col gap-y-9", className)}
-      {...props}
-    />
-  );
-}
+export const PanelSection = React.forwardRef<HTMLDivElement, PanelSectionProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn("flex h-full flex-col gap-y-9", className)}
+        {...props}
+      />
+    );
+  },
+);
 
 export function PanelSectionHeader({
   className,

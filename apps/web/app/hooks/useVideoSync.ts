@@ -9,6 +9,7 @@ export function useVideoSync(
   const isPlaying = useVideoStore((state) => state.isPlaying);
   const volume = useVideoStore((state) => state.volume);
   const isMuted = useVideoStore((state) => state.isMuted);
+  const playbackRate = useVideoStore((state) => state.playbackRate);
   const currentTime = useVideoStore((state) => state.currentTime);
   const {
     setCurrentTime,
@@ -24,6 +25,11 @@ export function useVideoSync(
     videoRef.current.muted = isMuted;
     videoRef.current.volume = isMuted ? 0 : volume;
   }, [volume, isMuted, videoRef]);
+
+  useEffect(() => {
+    if (!videoRef.current) return;
+    videoRef.current.playbackRate = playbackRate;
+  }, [playbackRate, videoRef]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -80,6 +86,8 @@ export function useVideoSync(
 
   const resumePlaybackIfNeeded = (video: HTMLVideoElement) => {
     sourceReloadingRef.current = false;
+    video.playbackRate = playbackRate;
+
     if (isPlaying && video.paused) {
       void video.play().catch(() => {
         // The normal play effect already handles play-state failures.
