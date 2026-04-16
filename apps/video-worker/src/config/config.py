@@ -53,10 +53,17 @@ GOOGLE_LLMS = [
 TASK_DETECTION_MODEL = "gemma-3-27b-it"  # Choose from the above list
 
 # Pipeline retry configuration
-ALL_STEPS = {"pose_estimation", "transcription", "task_detection"}
+ALL_STEPS = {"pose_estimation", "transcription", "task_detection", "stability_classification"}
 MAX_STEP_RETRIES = 3
 # Backoff cap for step retries (seconds)
 STEP_RETRY_BACKOFF_CAP_SEC = 60
 
 TASK_DETECTION_MAX_RETRIES = 2
 TASK_DETECTION_RETRY_DELAY = 60  # seconds between task detection retries (seconds)
+
+# Stability classifier inference configuration
+STABILITY_MODEL = "stability_model.pt"
+STABILITY_MODEL_URL = environ.get("STABILITY_MODEL_URL")
+STABILITY_WINDOW_FRAMES = 30
+STABILITY_FEATURES_PER_FRAME = 18  # x0,y0,...,x8,y8
+STABILITY_WINDOW_SECONDS = 1.0

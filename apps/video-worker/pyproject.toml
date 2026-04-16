@@ -21,6 +21,7 @@ dependencies = [
     "whisperx (>=3.8)",
     "google-genai (>=1.0)",
     "torch (==2.8.0)",
+    "torch-geometric(==2.7.0)", 
 ]
 
 [tool.poetry]

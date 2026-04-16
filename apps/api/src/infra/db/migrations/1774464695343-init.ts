@@ -53,6 +53,9 @@ export class Init1774464695343 implements MigrationInterface {
       `CREATE TABLE "videos"."video_task" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "videoId" uuid NOT NULL, "timestamp" double precision NOT NULL, "task" text NOT NULL, "note" text, "score" double precision, "createdByUserId" uuid, "updatedByUserId" uuid, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_65eb0fba87a8fce66347b06c5a4" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
+      `CREATE TABLE "videos"."stability" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "startFrame" integer NOT NULL, "endFrame" integer NOT NULL, "startTime" double precision NOT NULL, "endTime" double precision NOT NULL, "predictedClass" integer NOT NULL, "confidence" double precision NOT NULL, "videoId" uuid NOT NULL, "cuCreatedat" TIMESTAMP NOT NULL DEFAULT now(), "cuUpdatedat" TIMESTAMP, CONSTRAINT "PK_2cb80d7901464cfbef0339e2603" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
       `CREATE TYPE "units"."assignment_status_enum" AS ENUM('todo', 'in_progress', 'submitted', 'approved', 'denied')`,
     );
     await queryRunner.query(
@@ -153,6 +156,9 @@ export class Init1774464695343 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "videos"."video_task" ADD CONSTRAINT "FK_226ec069c8a4f2d88fc712bdae4" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "videos"."stability" ADD CONSTRAINT "FK_044568f4d3a34bca17f5c708d18" FOREIGN KEY ("videoId") REFERENCES "videos"."video"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "videos"."video_task" ADD CONSTRAINT "FK_7c2a9e1b4f8d3a5012345678abc" FOREIGN KEY ("createdByUserId") REFERENCES "users"."user"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
@@ -281,6 +287,9 @@ export class Init1774464695343 implements MigrationInterface {
       `ALTER TABLE "videos"."video_task" DROP CONSTRAINT "FK_226ec069c8a4f2d88fc712bdae4"`,
     );
     await queryRunner.query(
+      `ALTER TABLE "videos"."stability" DROP CONSTRAINT "FK_044568f4d3a34bca17f5c708d18"`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "video_worker"."status" DROP CONSTRAINT "FK_cde63259abb6942899a221cca85"`,
     );
     await queryRunner.query(
@@ -345,6 +354,7 @@ export class Init1774464695343 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "units"."assignment"`);
     await queryRunner.query(`DROP TYPE "units"."assignment_status_enum"`);
     await queryRunner.query(`DROP TABLE "videos"."video_task"`);
+    await queryRunner.query(`DROP TABLE "videos"."stability"`);
     await queryRunner.query(`DROP TABLE "video_worker"."status"`);
     await queryRunner.query(`DROP TABLE "video_worker"."event"`);
     await queryRunner.query(`DROP TABLE "video_worker"."step_status"`);
