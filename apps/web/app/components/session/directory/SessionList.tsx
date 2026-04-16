@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { SessionCard } from "~/components/session/directory/SessionCard";
 import type { Session } from "~/data/mock-session-data";
-import { useSessionMRUSort } from "~/hooks/useMRUSort";
+import { sortSessionsForDirectory } from "~/lib/session-directory-sorting";
 
 interface SessionListProps {
   /* List of sessions to display */
@@ -25,25 +26,24 @@ export function SessionList({
   activeSessionId,
   onSelect,
 }: SessionListProps) {
-  const { sortedSessions, trackClick } = useSessionMRUSort(
-    sessions,
-    activeSessionId,
+  const sortedSessions = useMemo(
+    () => sortSessionsForDirectory(sessions),
+    [sessions],
   );
 
-  const handleSelection = (session: Session, index: number) => {
-    trackClick(session.id, index);
+  const handleSelection = (session: Session) => {
     onSelect(session.id, session.notification);
   };
 
   return (
     <div className="flex flex-col gap-3">
-      {sortedSessions.map((session, index) => (
+      {sortedSessions.map((session) => (
         <SessionCard
           key={session.id}
           date={session.date}
           isActive={activeSessionId === session.id}
           hasNotification={session.notification}
-          onClick={() => handleSelection(session, index)}
+          onClick={() => handleSelection(session)}
         />
       ))}
     </div>
