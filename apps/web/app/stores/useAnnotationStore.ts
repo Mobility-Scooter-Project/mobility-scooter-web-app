@@ -162,10 +162,8 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       const currentVideoId = get().videoId;
 
       set((state) => ({
-        annotations: sortAnnotations(
-          state.annotations.map((annotation) =>
-            annotation.id === id ? { ...annotation, ...updates } : annotation,
-          ),
+        annotations: state.annotations.map((annotation) =>
+          annotation.id === id ? { ...annotation, ...updates } : annotation,
         ),
       }));
 

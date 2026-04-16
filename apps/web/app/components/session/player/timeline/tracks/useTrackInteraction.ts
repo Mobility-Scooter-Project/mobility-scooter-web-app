@@ -14,6 +14,8 @@ interface UseTrackInteractionParams<T extends TimeRange> {
   getItemById: (id: string) => T | undefined;
   onUpdate: (id: string, updates: Partial<T>) => void;
   onSelect?: (id: string) => void;
+  onInteractionStart?: (id: string, action: TrackInteraction) => void;
+  onInteractionEnd?: () => void;
 }
 
 export function useTrackInteraction<T extends TimeRange>({
@@ -22,6 +24,8 @@ export function useTrackInteraction<T extends TimeRange>({
   getItemById,
   onUpdate,
   onSelect,
+  onInteractionStart,
+  onInteractionEnd,
 }: UseTrackInteractionParams<T>) {
   return useCallback(
     (event: React.MouseEvent, id: string, action: TrackInteraction) => {
@@ -44,6 +48,8 @@ export function useTrackInteraction<T extends TimeRange>({
       };
 
       let hasDragged = false;
+      onSelect?.(id);
+      onInteractionStart?.(id, action);
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const deltaX = moveEvent.clientX - startX;
@@ -54,7 +60,6 @@ export function useTrackInteraction<T extends TimeRange>({
 
         if (!hasDragged) {
           hasDragged = true;
-          onSelect?.(id);
         }
 
         const deltaSeconds = (deltaX / rect.width) * safeDuration;
@@ -70,17 +75,22 @@ export function useTrackInteraction<T extends TimeRange>({
       };
 
       const handleMouseUp = () => {
-        if (!hasDragged) {
-          onSelect?.(id);
-        }
-
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
+        onInteractionEnd?.();
       };
 
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     },
-    [containerRef, getItemById, onSelect, onUpdate, totalDuration],
+    [
+      containerRef,
+      getItemById,
+      onInteractionEnd,
+      onInteractionStart,
+      onSelect,
+      onUpdate,
+      totalDuration,
+    ],
   );
 }
