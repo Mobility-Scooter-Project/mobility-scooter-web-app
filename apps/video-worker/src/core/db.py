@@ -24,6 +24,7 @@ class DBActor():
       VALUES (%s, %s, %s, %s, %s)
       ON CONFLICT ("videoId", "frameIndex")
       DO UPDATE SET
+        timestamp = EXCLUDED.timestamp,
         angle = EXCLUDED.angle,
         keypoints = EXCLUDED.keypoints,
         "cuUpdatedat" = NOW();
@@ -33,6 +34,24 @@ class DBActor():
     except Exception as e:
       self.connection.rollback()
       logger.error(f"Failed to upload keypoints to database: {e}")
+    else:
+      self.connection.commit()
+
+  def clear_video_keypoints(self, video_id):
+    """
+    Delete all pose keypoint rows for a video before a fresh pose run.
+    """
+    self._lazyInit()
+    query = """
+      DELETE FROM videos.keypoint
+      WHERE "videoId" = %s;
+    """
+    try:
+      self.cursor.execute(query, (video_id,))
+    except Exception as e:
+      self.connection.rollback()
+      logger.error(f"Failed to clear keypoints for video {video_id}: {e}")
+      raise
     else:
       self.connection.commit()
           

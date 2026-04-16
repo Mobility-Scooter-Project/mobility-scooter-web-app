@@ -284,6 +284,8 @@ class PoseEstimation:
       None
     """
     logger.info(f"Running pose estimation for {filename}")
+    # If a new video is uploaded using the same video id, clear the previous keypoints
+    ray.get(self.db.clear_video_keypoints.remote(video_id))
     temp_video_path = None
     try:
       with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
