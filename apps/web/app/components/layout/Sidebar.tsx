@@ -18,27 +18,21 @@ const navItems: NavItem[] = [
   { name: "Admin", icon: "LayoutDashboard" },
 ];
 
+const sidebarButtonClass =
+  "h-10 w-full rounded-md px-3 overflow-hidden justify-start bg-transparent shadow-none text-foreground hover:bg-foreground/20";
+
 function SidebarButton({
   item,
-  isCollapsed,
   ...props
-}: {
-  item: NavItem;
-  isCollapsed: boolean;
-}) {
+}: { item: NavItem } & React.ComponentProps<typeof Button>) {
   return (
     <Button
-      size={isCollapsed ? "icon" : "default"}
-      className={cn(
-        "w-full bg-transparent shadow-none text-foreground hover:bg-foreground/20",
-        !isCollapsed && "justify-start",
-        item.active && "bg-accent"
-      )}
+      size="none"
+      className={cn(sidebarButtonClass, item.active && "bg-accent")}
       {...props}
     >
       <Icon name={item.icon} />
-      {!isCollapsed && <span className="ml-3">{item.name}</span>}
-      <span className="sr-only">{item.name}</span>
+      <span className="whitespace-nowrap">{item.name}</span>
     </Button>
   );
 }
@@ -58,41 +52,30 @@ export function Sidebar() {
       {/* Header / Toggle Button */}
       <Button
         onClick={handleToggle}
-        className={cn(
-          "mt-1 flex items-center w-full bg-transparent shadow-none text-foreground hover:bg-foreground/20",
-          isCollapsed ? "justify-center" : "justify-between"
-        )}
+        size="none"
+        className={cn(sidebarButtonClass, "mt-1 min-h-10 py-2")}
       >
-        <div className="flex items-center">
+        <div className="flex items-center gap-3 shrink-0">
           <Icon name="Droplet" />
-          {!isCollapsed && (
-            <span className="ml-3 text-left text-wrap text-base">
-              Mobility Scooter Research Project
-            </span>
-          )}
+          <span className="w-36 text-left text-base leading-snug">
+          {"Mobility\u00A0Scooter"}
+          <br />
+          {"Research\u00A0Project"}
+        </span>
+          <Icon name="PanelLeft" />
         </div>
-
-        {!isCollapsed && <Icon name="PanelLeft" />}
-
         <span className="sr-only">Toggle Sidebar</span>
       </Button>
 
       {/* Main Navigation */}
       <div className="mt-4 flex flex-col gap-1 grow">
         {navItems.map((item) => (
-          <SidebarButton
-            key={item.name}
-            item={item}
-            isCollapsed={isCollapsed}
-          />
+          <SidebarButton key={item.name} item={item} />
         ))}
       </div>
 
       {/* Settings Button */}
-      <SidebarButton
-        item={{ name: "Settings", icon: "Settings" }}
-        isCollapsed={isCollapsed}
-      />
+      <SidebarButton item={{ name: "Settings", icon: "Settings" }} />
     </nav>
   );
 }
