@@ -42,7 +42,11 @@ type KeypointStore = {
 function buildSortedFrames(cache: Map<number, KeypointRow>): VideoFrameData[] {
   return Array.from(cache.values())
     .sort((a, b) => a.timestamp - b.timestamp)
-    .map((row) => ({ timestamp: row.timestamp, keypoints: row.keypoints }));
+    .map((row) => ({
+      timestamp: row.timestamp,
+      angle: row.angle,
+      keypoints: row.keypoints,
+    }));
 }
 
 export const useKeypointStore = create<KeypointStore>((set, get) => ({

@@ -3,10 +3,12 @@ import { useVideoStore } from "~/stores/useVideoStore";
 import type { Keypoints, VideoFrameData } from "~/types/overlay";
 
 /**
- * Returns the keypoints for the most recent past frame based on the current video time.
+ * Returns the most recent past frame based on the current video time.
  * This acts as a step-function, showing ground-truth data without interpolation.
  */
-export function useCurrentKeypoints(frames?: VideoFrameData[]): Keypoints | null {
+export function useCurrentFrameData(
+  frames?: VideoFrameData[],
+): VideoFrameData | null {
   const currentTime = useVideoStore((state) => state.currentTime);
   const lastIndexRef = useRef(0);
 
@@ -24,17 +26,17 @@ export function useCurrentKeypoints(frames?: VideoFrameData[]): Keypoints | null
       currentTime >= frames[index].timestamp &&
       currentTime < frames[index + 1].timestamp
     ) {
-      return frames[index].keypoints;
+      return frames[index];
     }
 
     if (currentTime < frames[0].timestamp) {
       lastIndexRef.current = 0;
-      return frames[0].keypoints;
+      return frames[0];
     }
 
     if (currentTime >= frames[maxIndex].timestamp) {
       lastIndexRef.current = maxIndex;
-      return frames[maxIndex].keypoints;
+      return frames[maxIndex];
     }
 
     let low = 0;
@@ -53,6 +55,15 @@ export function useCurrentKeypoints(frames?: VideoFrameData[]): Keypoints | null
     index = Math.max(0, high);
     lastIndexRef.current = index;
 
-    return frames[index].keypoints;
+    return frames[index];
   }, [frames, currentTime]);
+}
+
+/**
+ * Returns the keypoints for the most recent past frame based on the current video time.
+ * This acts as a step-function, showing ground-truth data without interpolation.
+ */
+export function useCurrentKeypoints(frames?: VideoFrameData[]): Keypoints | null {
+  const currentFrame = useCurrentFrameData(frames);
+  return currentFrame?.keypoints ?? null;
 }

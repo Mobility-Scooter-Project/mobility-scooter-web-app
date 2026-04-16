@@ -15,5 +15,6 @@ export type Keypoints = Record<string, Coordinate>;
  */
 export interface VideoFrameData {
   timestamp: number;
+  angle?: number | null;
   keypoints: Keypoints;
 }
