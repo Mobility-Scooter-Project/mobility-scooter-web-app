@@ -13,6 +13,7 @@ import { UnitAuthorizationService } from '@src/shared/unit-authorization.service
 import { KeypointsModule } from './keypoints/keypoints.module';
 import { VideoTasksModule } from './tasks/video-tasks.module';
 import { VideoAnnotationsModule } from './annotations/video-annotations.module';
+import { VideoStabilityModule } from './stability/video-stability.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { VideoAnnotationsModule } from './annotations/video-annotations.module';
     KeypointsModule,
     VideoTasksModule,
     VideoAnnotationsModule,
+    VideoStabilityModule,
   ],
   providers: [VideosService, UnitAuthorizationService],
   controllers: [VideosController],

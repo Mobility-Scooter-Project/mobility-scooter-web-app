@@ -27,5 +27,10 @@ export class UpdateVideoTitleDto {
 export class ReprocessVideoDto {
   @IsOptional()
   @IsArray()
-  steps?: ('pose_estimation' | 'transcription' | 'task_detection')[];
+  steps?: (
+    | 'pose_estimation'
+    | 'transcription'
+    | 'task_detection'
+    | 'stability_classification'
+  )[];
 }
