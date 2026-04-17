@@ -1,8 +1,4 @@
-import { useState } from "react";
-import { Button } from "~/components/Button";
-import { FileUpload } from "~/components/FileUpload";
-import { OverlayCard } from "~/components/OverlayCard";
-import { TextInput } from "~/components/TextInput";
+import { MediaUploadDialog } from "~/components/session/common/MediaUploadDialog";
 import { useSessionStore } from "~/stores/useSessionStore";
 
 interface AddViewDialogProps {
@@ -12,9 +8,7 @@ interface AddViewDialogProps {
   onViewCreated?: (viewId: string) => void;
 }
 
-/**
- * Dialog for adding a new view to an existing session.
- */
+/** Dialog for adding one or more views to an existing session. */
 export function AddViewDialog({
   open,
   onOpenChange,
@@ -23,73 +17,28 @@ export function AddViewDialog({
 }: AddViewDialogProps) {
   const addView = useSessionStore((state) => state.actions.addView);
 
-  const [mediaTitle, setMediaTitle] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-
-  const handleClose = () => {
-    onOpenChange(false);
-
-    setTimeout(() => {
-      setMediaTitle("");
-      setFile(null);
-    }, 200);
-  };
-
-  const handleSubmit = () => {
-    if (!mediaTitle.trim() || !file) return;
-
-    const createdViewId = addView(sessionId, {
-      label: mediaTitle.trim(),
-      file,
-    });
-
-    if (createdViewId) onViewCreated?.(createdViewId);
-
-    handleClose();
-  };
-
-  const isValid = mediaTitle.trim().length > 0 && file !== null;
-
   return (
-    <OverlayCard
+    <MediaUploadDialog
       open={open}
-      onClose={handleClose}
+      onOpenChange={onOpenChange}
       title="Add View"
       contentClassName="max-w-xl"
-      bodyClassName="flex flex-col gap-3"
-    >
-      <TextInput
-        id="view-media-title"
-        label="Media Title"
-        placeholder="e.g., Side Angle, Overhead, POV..."
-        variant="form"
-        value={mediaTitle}
-        onChange={(e) => setMediaTitle(e.target.value)}
-        autoFocus
-      />
+      uploadId="view-media-file"
+      uploadLabel="Upload Media"
+      submitLabel="Add Views"
+      submittingLabel="Adding..."
+      submitErrorMessage="Failed to add views."
+      onSubmit={async (drafts) => {
+        const createdViewId = await addView(
+          sessionId,
+          drafts.map((draft) => ({
+            title: draft.title.trim(),
+            file: draft.media.file,
+          })),
+        );
 
-      <FileUpload
-        id="view-media-file"
-        label="Upload Media"
-        type="single"
-        size={120}
-        acceptedTypes={[".mp4", ".mov", ".webm"]}
-        disabled={!mediaTitle.trim()}
-        onInput={(e) => {
-          const files = (e.target as HTMLInputElement).files;
-          if (files?.[0]) setFile(files[0]);
-        }}
-      />
-
-      <div className="flex justify-end w-full">
-        <Button
-          onClick={handleSubmit}
-          disabled={!isValid}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
-        >
-          Upload Video
-        </Button>
-      </div>
-    </OverlayCard>
+        onViewCreated?.(createdViewId);
+      }}
+    />
   );
 }

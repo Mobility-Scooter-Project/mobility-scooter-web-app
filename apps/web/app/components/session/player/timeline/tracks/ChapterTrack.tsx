@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import { useChapterStore } from "~/stores/useChapterStore";
 import { useVideoStore } from "~/stores/useVideoStore";
 import { calculateTimelineSegments } from "~/lib/timeline-calculations";
 import { clamp } from "./timeline-track";
+import { useTimelineSeek } from "~/hooks/useTimelineSeek";
 
 const TRACK_ACTIVE_CLASS = "bg-foreground";
 const TRACK_INACTIVE_CLASS = "bg-accent";
@@ -17,9 +18,9 @@ export function ChapterTrack() {
   const chapters = useChapterStore((state) => state.chapters);
   const currentTime = useVideoStore((state) => state.currentTime);
   const duration = useVideoStore((state) => state.duration);
-  const setCurrentTime = useVideoStore((state) => state.actions.setCurrentTime);
-
-  const [isDragging, setIsDragging] = useState(false);
+  const seekTo = useVideoStore((state) => state.actions.seekTo);
+  const { handlePointerDown, handlePointerMove, handlePointerUp } =
+    useTimelineSeek(trackRef, duration);
 
   const safeDuration = duration > 0 ? duration : 1;
 
@@ -29,62 +30,6 @@ export function ChapterTrack() {
   );
 
   const progressPercent = clamp((currentTime / safeDuration) * 100, 0, 100);
-
-  const seekFromClientX = useCallback(
-    (clientX: number) => {
-      const track = trackRef.current;
-      if (!track) return;
-
-      const rect = track.getBoundingClientRect();
-      if (rect.width <= 0) return;
-
-      const relativeX = clamp(clientX - rect.left, 0, rect.width);
-      const nextTime = (relativeX / rect.width) * safeDuration;
-
-      setCurrentTime(nextTime);
-    },
-    [safeDuration, setCurrentTime],
-  );
-
-  const handlePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
-      setIsDragging(true);
-      seekFromClientX(event.clientX);
-    },
-    [seekFromClientX],
-  );
-
-  const handlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDragging) return;
-      seekFromClientX(event.clientX);
-    },
-    [isDragging, seekFromClientX],
-  );
-
-  const handlePointerUp = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDragging) return;
-      event.currentTarget.releasePointerCapture(event.pointerId);
-      setIsDragging(false);
-      seekFromClientX(event.clientX);
-    },
-    [isDragging, seekFromClientX],
-  );
-
-  useEffect(() => {
-    const stopDragging = () => setIsDragging(false);
-
-    window.addEventListener("pointerup", stopDragging);
-    window.addEventListener("pointercancel", stopDragging);
-
-    return () => {
-      window.removeEventListener("pointerup", stopDragging);
-      window.removeEventListener("pointercancel", stopDragging);
-    };
-  }, []);
 
   return (
     <div className="w-full">
@@ -102,22 +47,22 @@ export function ChapterTrack() {
         onKeyDown={(event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
-            setCurrentTime(clamp(currentTime - 5, 0, safeDuration));
+            seekTo(clamp(currentTime - 5, 0, safeDuration));
           }
 
           if (event.key === "ArrowRight") {
             event.preventDefault();
-            setCurrentTime(clamp(currentTime + 5, 0, safeDuration));
+            seekTo(clamp(currentTime + 5, 0, safeDuration));
           }
 
           if (event.key === "Home") {
             event.preventDefault();
-            setCurrentTime(0);
+            seekTo(0);
           }
 
           if (event.key === "End") {
             event.preventDefault();
-            setCurrentTime(safeDuration);
+            seekTo(safeDuration);
           }
         }}
         className="relative h-4 w-full cursor-pointer touch-none select-none"
@@ -139,7 +84,7 @@ export function ChapterTrack() {
 
           return (
             <div
-              key={segment.id}
+              key={`${segment.id}-${index}`}
               className="absolute top-1/2 h-1 -translate-y-1/2"
               style={{
                 left: `${startPercent}%`,

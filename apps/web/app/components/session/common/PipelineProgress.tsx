@@ -14,14 +14,18 @@ interface PipelineProgressProps {
 
 /**
  * A minimal text-based progress indicator that shows the current pipeline step.
- * Displays "Step X/N — label..." with a pulsing dot animation.
+ * Displays "Step X/N - label..." with a pulsing animation.
  */
-export function PipelineProgress({ steps, className }: PipelineProgressProps) {
-  // Find the first non-completed step to display.
-  const activeIndex = steps.findIndex(
-    (s) => s.status === "active" || s.status === "pending",
-  );
-  const failedIndex = steps.findIndex((s) => s.status === "failed");
+export function PipelineProgress({
+  steps,
+  className,
+}: PipelineProgressProps) {
+  const activeIndex = steps.findIndex((step) => step.status === "active");
+  const pendingIndex =
+    activeIndex === -1
+      ? steps.findIndex((step) => step.status === "pending")
+      : -1;
+  const failedIndex = steps.findIndex((step) => step.status === "failed");
 
   if (failedIndex !== -1) {
     const step = steps[failedIndex];
@@ -33,15 +37,16 @@ export function PipelineProgress({ steps, className }: PipelineProgressProps) {
         )}
       >
         <span>
-          Step {failedIndex + 1}/{steps.length} — {step.label} failed
+          Step {failedIndex + 1}/{steps.length} - {step.label} failed
         </span>
       </span>
     );
   }
 
-  if (activeIndex === -1) return null;
+  const visibleIndex = activeIndex !== -1 ? activeIndex : pendingIndex;
+  if (visibleIndex === -1) return null;
 
-  const step = steps[activeIndex];
+  const step = steps[visibleIndex];
 
   return (
     <span
@@ -51,7 +56,7 @@ export function PipelineProgress({ steps, className }: PipelineProgressProps) {
       )}
     >
       <span className="animate-pulse">
-        Step {activeIndex + 1}/{steps.length} — {step.label}
+        Step {visibleIndex + 1}/{steps.length} - {step.label}
       </span>
     </span>
   );

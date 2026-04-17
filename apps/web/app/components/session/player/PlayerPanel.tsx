@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-
+import { useRef } from "react";
 import {
   PanelScrollArea,
   PanelSection,
@@ -11,17 +10,27 @@ import { PlayerHeader } from "./header/PlayerHeader";
 import { PlayerViewList } from "./header/PlayerViewList";
 import { VideoStage } from "./video/VideoStage";
 import { useSessionDataSync } from "~/hooks/useSessionDataSync";
+import { useVideoPlayerLogic } from "~/hooks/useVideoPlayerLogic";
 
 export function PlayerPanel() {
-  const { activeSession, activeViewId, setActiveViewId } = useSessionDataSync();
+  const { activeSession, activeView, activeViewId, setActiveViewId } =
+    useSessionDataSync();
 
-  const activeView = useMemo(
-    () => activeSession?.views.find((view) => view.id === activeViewId) ?? null,
-    [activeSession, activeViewId],
+  const playerPanelRef = useRef<HTMLDivElement | null>(null);
+  const { handlePointerDownCapture } = useVideoPlayerLogic(
+    playerPanelRef,
+    Boolean(activeView?.videoId || activeView?.videoUrl),
   );
 
   return (
-    <PanelSection className="px-4.5 pt-4.5 gap-y-4.5">
+    <PanelSection
+      ref={playerPanelRef}
+      role="region"
+      aria-label="Video player"
+      tabIndex={0}
+      onPointerDownCapture={handlePointerDownCapture}
+      className="px-4.5 pt-4.5 gap-y-4.5 outline-none"
+    >
       <PlayerHeader
         sessionId={activeSession?.id ?? null}
         activeView={activeView}

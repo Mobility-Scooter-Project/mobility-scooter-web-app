@@ -95,10 +95,10 @@ export function TrackLabel({
       <Icon
         name={VARIANT_ICONS[variant]}
         size="secondary"
-        className="pointer-events-none text-white"
+        className="pointer-events-none relative z-20 text-white"
       />
 
-      {children}
+      {children ? <span className="relative z-20">{children}</span> : null}
 
       {interactive && onResizeStart && (
         <ResizeHandle side="left" onMouseDown={onResizeStart} />

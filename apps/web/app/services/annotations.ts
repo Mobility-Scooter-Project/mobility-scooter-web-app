@@ -1,9 +1,11 @@
-import { API_BASE_URL } from "~/config/constants";
+﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
 
 /** Response shape returned by annotation endpoints. */
 export type AnnotationResponse = {
   annotationId: string;
+  createdByUserId: string;
+  updatedByUserId: string | null;
   title: string;
   description: string;
   startTime: number;
@@ -32,10 +34,9 @@ export const annotationService = {
    * Lists all annotations for a video.
    */
   getAll: async (videoId: string): Promise<AnnotationResponse[]> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations`,
-      { headers: authHeaders() },
-    );
+    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/annotations`, {
+      headers: authHeaders(),
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to fetch annotations: ${res.status}`);
@@ -47,23 +48,16 @@ export const annotationService = {
   /**
    * POST /api/v1/videos/:videoId/annotations
    * Creates a new annotation on a video.
-   *
-   * @param videoId - The video to annotate
-   * @param dto     - Annotation title, description, and time range
-   * @returns The created annotation
    */
   create: async (
     videoId: string,
     dto: AnnotationDto,
   ): Promise<AnnotationResponse> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations`,
-      {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(dto),
-      },
-    );
+    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/annotations`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(dto),
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to create annotation: ${res.status}`);
@@ -75,11 +69,6 @@ export const annotationService = {
   /**
    * PUT /api/v1/videos/:videoId/annotations/:annotationId
    * Updates an existing annotation.
-   *
-   * @param videoId      - The parent video ID
-   * @param annotationId - The annotation to update
-   * @param dto          - Updated fields
-   * @returns The updated annotation
    */
   update: async (
     videoId: string,
@@ -105,14 +94,8 @@ export const annotationService = {
   /**
    * DELETE /api/v1/videos/:videoId/annotations/:annotationId
    * Deletes an annotation.
-   *
-   * @param videoId      - The parent video ID
-   * @param annotationId - The annotation to delete
    */
-  delete: async (
-    videoId: string,
-    annotationId: string,
-  ): Promise<void> => {
+  delete: async (videoId: string, annotationId: string): Promise<void> => {
     const res = await fetch(
       `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
       {

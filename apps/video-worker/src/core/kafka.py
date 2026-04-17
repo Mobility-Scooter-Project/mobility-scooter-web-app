@@ -2,6 +2,7 @@ import ray
 import json
 import time
 from kafka import KafkaConsumer
+from kafka.errors import CommitFailedError
 from datetime import datetime
 
 from utils.logger import logger
@@ -10,7 +11,12 @@ from pipeline.pose_estimation import PoseEstimation
 from pipeline.stability_classification import StabilityClassification
 from core.db import DBActor
 from core.api_webhook import notify_overall_terminal
-from config.config import ALL_STEPS
+from config.config import (
+  ALL_STEPS,
+  KAFKA_CLIENT_ID,
+  KAFKA_MAX_POLL_INTERVAL_MS,
+  KAFKA_MAX_POLL_RECORDS,
+)
 
 
 @ray.remote
@@ -24,10 +30,10 @@ class KafkaActor:
           bootstrap_servers=brokers,
           group_id=group_id,
           auto_offset_reset="earliest",
-          client_id="video_worker",
+          client_id=KAFKA_CLIENT_ID,
           enable_auto_commit=False,
-          max_poll_interval_ms=60 * 60 * 1000,  # 1 hour (CPU)
-          max_poll_records=1,  # consume only one message at a time (CPU)
+          max_poll_interval_ms=KAFKA_MAX_POLL_INTERVAL_MS,
+          max_poll_records=KAFKA_MAX_POLL_RECORDS,
         )
 
       except Exception as e:
@@ -51,6 +57,17 @@ class KafkaActor:
     self.audio_actor = TaskIdentification.remote()
     self.stability_actor = StabilityClassification.remote()
     self.db = DBActor.remote()
+
+  def _commit_processed_message(self, video_id):
+    try:
+      self.consumer.commit()
+    except CommitFailedError as e:
+      logger.warning(
+        "Kafka offset commit failed after processing "
+        f"{video_id}; results were already persisted and terminal webhooks were sent. "
+        "This usually means another worker instance joined the consumer group "
+        f"or the local dev process restarted: {e}"
+      )
 
   def _wait_step(self, video_id, name, ref, completed_steps, failed_steps):
     """
@@ -148,7 +165,7 @@ class KafkaActor:
           ray.get(self.db.update_processing_status.remote(video_id, status, overall_duration_sec))
           notify_overall_terminal(video_id, status, overall_duration_sec)
 
-        self.consumer.commit()
+        self._commit_processed_message(video_id)
     except Exception as e:
       logger.error(f"Failed to consume messages: {e}")
       raise e

@@ -37,6 +37,9 @@ export const AnnotationCard = memo(
     onDelete,
   }: AnnotationCardProps) => {
     const videoDuration = useVideoStore((state) => state.duration);
+    const stopCardClick = (event: React.MouseEvent<HTMLElement>) => {
+      event.stopPropagation();
+    };
 
     const handleStartChange = (newStart: number) => {
       const validStart = validateTimeBoundary(
@@ -74,6 +77,7 @@ export const AnnotationCard = memo(
           <TextArea
             value={data.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
+            onClick={stopCardClick}
             placeholder="Enter Title"
             className="text-headline"
           />
@@ -103,6 +107,7 @@ export const AnnotationCard = memo(
           <TextArea
             value={data.description}
             onChange={(e) => onUpdate({ description: e.target.value })}
+            onClick={stopCardClick}
             placeholder="Write here..."
             className="text-base"
           />

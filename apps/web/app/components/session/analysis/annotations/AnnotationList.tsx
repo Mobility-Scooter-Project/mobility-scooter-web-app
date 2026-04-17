@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { useAnnotationStore } from "~/stores/useAnnotationStore";
 import { useSelectionStore } from "~/stores/useSelectionStore";
+import { sortAnnotationsByStartTime } from "~/lib/analysis-panel-sorting";
 import { AnnotationCard } from "./AnnotationCard";
 
 /**
@@ -7,7 +9,11 @@ import { AnnotationCard } from "./AnnotationCard";
  */
 export function AnnotationList() {
   const annotations = useAnnotationStore((state) => state.annotations);
-  
+  const sortedAnnotations = useMemo(
+    () => sortAnnotationsByStartTime(annotations),
+    [annotations],
+  );
+
   const selectedId = useSelectionStore((state) => state.selectedId);
   const selectedType = useSelectionStore((state) => state.selectedType);
   const { setSelection, clearSelection } = useSelectionStore((state) => state.actions);
@@ -19,7 +25,7 @@ export function AnnotationList() {
 
   return (
     <div className="flex flex-col gap-3">
-      {annotations.map((annotation) => (
+      {sortedAnnotations.map((annotation) => (
         <AnnotationCard
           key={annotation.id}
           data={annotation}

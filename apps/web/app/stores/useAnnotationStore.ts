@@ -1,19 +1,69 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { useSelectionStore } from "./useSelectionStore";
 import {
   annotationService,
   type AnnotationResponse,
 } from "~/services/annotations";
+import { userAuthStore } from "~/lib/auth";
+import type { Annotation } from "~/data/mock-session-data";
+import { sortAnnotationsByStartTime } from "~/lib/analysis-panel-sorting";
 
-type Annotation = {
-  id: string;
-  title: string;
-  startTime: number;
-  endTime: number;
-  author: string;
-  date: string;
-  description: string;
-};
+const ANNOTATION_SAVE_DELAY_MS = 700;
+const pendingAnnotationSaves = new Map<string, ReturnType<typeof setTimeout>>();
+
+function getAnnotationSaveKey(videoId: string, annotationId: string): string {
+  return `${videoId}:${annotationId}`;
+}
+
+function clearPendingAnnotationSave(videoId: string, annotationId: string) {
+  const key = getAnnotationSaveKey(videoId, annotationId);
+  const timer = pendingAnnotationSaves.get(key);
+  if (timer) {
+    clearTimeout(timer);
+    pendingAnnotationSaves.delete(key);
+  }
+}
+
+function getAnnotationAuthor(createdByUserId: string): string {
+  const currentUserId = userAuthStore.getState().user?.id ?? null;
+  return createdByUserId === currentUserId ? "You" : "Collaborator";
+}
+
+/** Converts an API annotation response to the local Annotation shape. */
+function fromApi(res: AnnotationResponse): Annotation {
+  return {
+    id: res.annotationId,
+    title: res.title,
+    description: res.description,
+    startTime: res.startTime,
+    endTime: res.endTime ?? res.startTime,
+    author: getAnnotationAuthor(res.createdByUserId),
+    date: res.updatedByUserId ? "Edited" : "Created",
+  };
+}
+
+function toDto(annotation: Annotation) {
+  return {
+    title: annotation.title,
+    description: annotation.description,
+    startTime: annotation.startTime,
+    endTime: annotation.endTime,
+  };
+}
+
+function scheduleAnnotationPersist(videoId: string, annotation: Annotation) {
+  clearPendingAnnotationSave(videoId, annotation.id);
+
+  const snapshot = toDto(annotation);
+  const timer = setTimeout(() => {
+    pendingAnnotationSaves.delete(getAnnotationSaveKey(videoId, annotation.id));
+    void annotationService
+      .update(videoId, annotation.id, snapshot)
+      .catch((error) => console.error("Failed to persist annotation:", error));
+  }, ANNOTATION_SAVE_DELAY_MS);
+
+  pendingAnnotationSaves.set(getAnnotationSaveKey(videoId, annotation.id), timer);
+}
 
 type AnnotationStore = {
   /** The videoId annotations are currently scoped to. */
@@ -39,35 +89,6 @@ type AnnotationStore = {
   };
 };
 
-/** Converts an API annotation response to the local Annotation shape. */
-function fromApi(res: AnnotationResponse): Annotation {
-  return {
-    id: res.annotationId,
-    title: res.title,
-    description: res.description,
-    startTime: res.startTime,
-    endTime: res.endTime ?? res.startTime,
-    author: "",
-    date: "",
-  };
-}
-
-/**
- * Persists the current state of an annotation to the API.
- * Fires in the background — errors are logged but don't block the UI.
- */
-function persistAnnotation(videoId: string | null, annotation: Annotation) {
-  if (!videoId) return;
-  annotationService
-    .update(videoId, annotation.id, {
-      title: annotation.title,
-      description: annotation.description,
-      startTime: annotation.startTime,
-      endTime: annotation.endTime,
-    })
-    .catch((err) => console.error("Failed to persist annotation:", err));
-}
-
 /**
  * Manages video annotations, including creation, editing, deletion,
  * and synchronization with the backend API.
@@ -83,44 +104,29 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
       try {
         const data = await annotationService.getAll(videoId);
-        // Only apply if we're still on the same video.
         if (get().videoId !== videoId) return;
-        set({ annotations: data.map(fromApi) });
+        set({ annotations: sortAnnotationsByStartTime(data.map(fromApi)) });
       } catch (error) {
         console.error("Failed to load annotations:", error);
       }
     },
 
     setAnnotations: (annotations) => {
-      set({ annotations });
+      set({ videoId: null, annotations: sortAnnotationsByStartTime(annotations) });
       useSelectionStore.getState().actions.clearSelection();
     },
 
     handleTitleChange: (id, next) => {
-      set((state) => ({
-        annotations: state.annotations.map((a) =>
-          a.id === id ? { ...a, title: next } : a,
-        ),
-      }));
+      get().actions.updateAnnotation(id, { title: next });
     },
 
     handleDescriptionChange: (id, next) => {
-      set((state) => ({
-        annotations: state.annotations.map((a) =>
-          a.id === id ? { ...a, description: next } : a,
-        ),
-      }));
+      get().actions.updateAnnotation(id, { description: next });
     },
 
     handleNewAnnotation: () => {
       const { videoId } = get();
       if (!videoId) return;
-
-      const dateStr = new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
 
       const dto = {
         title: "",
@@ -129,48 +135,50 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         endTime: 1,
       };
 
-      // Create on the API, then insert locally with the real ID.
       annotationService
         .create(videoId, dto)
-        .then((res) => {
-          // Only insert if still on the same video.
+        .then((response) => {
           if (get().videoId !== videoId) return;
 
-          const newAnnotation: Annotation = {
-            id: res.annotationId,
-            ...dto,
-            endTime: dto.endTime,
-            author: "",
-            date: dateStr,
-          };
-
+          const newAnnotation = fromApi(response);
           set((state) => ({
-            annotations: [newAnnotation, ...state.annotations],
+            annotations: sortAnnotationsByStartTime([
+              newAnnotation,
+              ...state.annotations,
+            ]),
           }));
           useSelectionStore
             .getState()
-            .actions.setSelection("annotation", res.annotationId);
+            .actions.setSelection("annotation", response.annotationId);
         })
-        .catch((err) => console.error("Failed to create annotation:", err));
+        .catch((error) => console.error("Failed to create annotation:", error));
     },
 
     updateAnnotation: (id, updates) => {
+      const currentVideoId = get().videoId;
+
       set((state) => ({
-        annotations: state.annotations.map((ann) =>
-          ann.id === id ? { ...ann, ...updates } : ann,
+        annotations: state.annotations.map((annotation) =>
+          annotation.id === id ? { ...annotation, ...updates } : annotation,
         ),
       }));
 
-      // Persist the merged annotation.
-      const updated = get().annotations.find((a) => a.id === id);
-      if (updated) persistAnnotation(get().videoId, updated);
+      if (!currentVideoId) return;
+
+      const updated = get().annotations.find((annotation) => annotation.id === id);
+      if (updated) {
+        scheduleAnnotationPersist(currentVideoId, updated);
+      }
     },
 
     handleDeleteAnnotation: (id) => {
       const { videoId } = get();
+      if (videoId) {
+        clearPendingAnnotationSave(videoId, id);
+      }
 
       set((state) => ({
-        annotations: state.annotations.filter((a) => a.id !== id),
+        annotations: state.annotations.filter((annotation) => annotation.id !== id),
       }));
 
       const selectionStore = useSelectionStore.getState();
@@ -182,9 +190,9 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       }
 
       if (videoId) {
-        annotationService
+        void annotationService
           .delete(videoId, id)
-          .catch((err) => console.error("Failed to delete annotation:", err));
+          .catch((error) => console.error("Failed to delete annotation:", error));
       }
     },
   },

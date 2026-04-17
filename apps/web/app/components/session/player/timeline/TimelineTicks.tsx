@@ -1,11 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { cn } from "~/lib/utils";
+import { useTimelineSeek } from "~/hooks/useTimelineSeek";
 
 interface TimelineTicksProps {
   duration: number;
 }
 
 export function TimelineTicks({ duration }: TimelineTicksProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const { handlePointerDown, handlePointerMove, handlePointerUp } =
+    useTimelineSeek(containerRef, duration);
+  const safeDuration = duration > 0 ? duration : 1;
+
   const ticks = useMemo(() => {
     if (!duration || duration <= 0) return [0];
 
@@ -19,7 +25,13 @@ export function TimelineTicks({ duration }: TimelineTicksProps) {
   }, [duration]);
 
   return (
-    <div className="relative h-2 w-full">
+    <div
+      ref={containerRef}
+      className="relative h-2 w-full cursor-pointer touch-none select-none"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    >
       {ticks.map((time) => {
         const isFirst = time === 0;
         const isMajor = time % 60 === 0;
@@ -32,7 +44,7 @@ export function TimelineTicks({ duration }: TimelineTicksProps) {
               isMajor ? "h-2" : "h-1",
               !isFirst && "-translate-x-1/2",
             )}
-            style={{ left: `${(time / duration) * 100}%` }}
+            style={{ left: `${(time / safeDuration) * 100}%` }}
           />
         );
       })}

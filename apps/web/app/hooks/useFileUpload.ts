@@ -12,113 +12,164 @@ export type Item = {
   timer?: number | null;
 };
 
-export function useFileUpload(isMulti: boolean) {
-  const [items, setItems] = React.useState<Item[]>([]);
+type ItemUpdater = Item[] | ((items: Item[]) => Item[]);
 
-  const cleanupItem = React.useCallback((i: Item) => {
-    if (i.timer) window.clearInterval(i.timer);
-    // Important: Prevents memory leaks by releasing the reference to the file in browser memory
-    if (i.previewUrl) URL.revokeObjectURL(i.previewUrl);
+interface UseFileUploadOptions {
+  isMulti: boolean;
+  items?: Item[];
+  onItemsChange?: (items: Item[]) => void;
+  cleanupPreviewUrlsOnUnmount?: boolean;
+}
+
+function resolveItemsUpdate(current: Item[], updater: ItemUpdater) {
+  return typeof updater === "function" ? updater(current) : updater;
+}
+
+export function useFileUpload({
+  isMulti,
+  items: controlledItems,
+  onItemsChange,
+  cleanupPreviewUrlsOnUnmount = true,
+}: UseFileUploadOptions) {
+  const [uncontrolledItems, setUncontrolledItems] = React.useState<Item[]>([]);
+  const isControlled = controlledItems !== undefined;
+  const items = isControlled ? controlledItems : uncontrolledItems;
+  const itemsRef = React.useRef(items);
+
+  React.useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const cleanupItem = React.useCallback((item: Item, revokePreviewUrl = true) => {
+    if (item.timer) window.clearInterval(item.timer);
+    if (revokePreviewUrl && item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
   }, []);
 
-  const startUploadSimulation = React.useCallback((itemId: string) => {
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => i.id === itemId);
-      if (idx === -1) return prev;
+  const updateItems = React.useCallback(
+    (updater: ItemUpdater) => {
+      const next = resolveItemsUpdate(itemsRef.current, updater);
 
-      const copy = [...prev];
-      const speed = 4 + Math.random() * 6;
-      const tickMs = 120;
+      if (!isControlled) {
+        setUncontrolledItems(next);
+      }
 
-      const timer = window.setInterval(() => {
-        setItems((state) => {
-          const i = state.findIndex((x) => x.id === itemId);
-          if (i === -1) {
-            clearInterval(timer);
-            return state;
-          }
+      onItemsChange?.(next);
+    },
+    [isControlled, onItemsChange],
+  );
 
-          const cur = state[i];
-          if (cur.status === "done") {
-            clearInterval(timer);
-            return state;
-          }
+  const startUploadSimulation = React.useCallback(
+    (itemId: string) => {
+      updateItems((previous) => {
+        const index = previous.findIndex((item) => item.id === itemId);
+        if (index === -1) return previous;
 
-          const nextProg = Math.min(100, cur.progress + speed);
-          const updated = { ...cur, progress: nextProg };
-          const next = [...state];
-          next[i] = updated;
+        const next = [...previous];
+        const speed = 4 + Math.random() * 6;
+        const tickMs = 120;
 
-          if (nextProg >= 100) {
-            clearInterval(timer);
-            (async () => {
-              // Concurrency: Probing both duration and dimensions simultaneously
-              const [duration, nat] = await Promise.all([
-                probeDuration(cur.file).catch(() => undefined),
-                getNaturalDims(cur.file, cur.previewUrl || ""),
-              ]);
+        const timer = window.setInterval(() => {
+          updateItems((state) => {
+            const itemIndex = state.findIndex((item) => item.id === itemId);
+            if (itemIndex === -1) {
+              clearInterval(timer);
+              return state;
+            }
 
-              setItems((fin) => {
-                const j = fin.findIndex((x) => x.id === itemId);
-                if (j === -1) return fin;
-                const arr = [...fin];
-                arr[j] = {
-                  ...fin[j],
-                  status: "done",
-                  progress: 100,
-                  durationSec: duration,
-                  natural: nat,
-                  timer: null,
-                };
-                return arr;
-              });
-            })();
-          }
-          return next;
-        });
-      }, tickMs);
+            const current = state[itemIndex];
+            if (current.status === "done") {
+              clearInterval(timer);
+              return state;
+            }
 
-      copy[idx] = { ...copy[idx], timer };
-      return copy;
-    });
-  }, []);
+            const nextProgress = Math.min(100, current.progress + speed);
+            const updated = { ...current, progress: nextProgress };
+            const updatedItems = [...state];
+            updatedItems[itemIndex] = updated;
+
+            if (nextProgress >= 100) {
+              clearInterval(timer);
+              (async () => {
+                const [duration, natural] = await Promise.all([
+                  probeDuration(current.file).catch(() => undefined),
+                  getNaturalDims(current.file, current.previewUrl || ""),
+                ]);
+
+                updateItems((finalItems) => {
+                  const finalIndex = finalItems.findIndex(
+                    (item) => item.id === itemId,
+                  );
+                  if (finalIndex === -1) return finalItems;
+
+                  const finalNext = [...finalItems];
+                  finalNext[finalIndex] = {
+                    ...finalItems[finalIndex],
+                    status: "done",
+                    progress: 100,
+                    durationSec: duration,
+                    natural,
+                    timer: null,
+                  };
+                  return finalNext;
+                });
+              })();
+            }
+
+            return updatedItems;
+          });
+        }, tickMs);
+
+        next[index] = { ...next[index], timer };
+        return next;
+      });
+    },
+    [updateItems],
+  );
 
   const addItems = React.useCallback(
     (newItems: Item[]) => {
-      setItems((prev) => {
+      if (!isMulti) {
+        itemsRef.current.forEach((item) => cleanupItem(item));
+      }
+
+      updateItems((previous) => {
         if (!isMulti) {
-          prev.forEach(cleanupItem);
           return newItems;
         }
-        return [...newItems, ...prev];
+
+        return [...newItems, ...previous];
       });
 
-      // Ensure the state update is flushed to the DOM before starting intervals
       requestAnimationFrame(() => {
         newItems.forEach((item) => startUploadSimulation(item.id));
       });
     },
-    [isMulti, cleanupItem, startUploadSimulation],
+    [cleanupItem, isMulti, startUploadSimulation, updateItems],
   );
 
   const removeItem = React.useCallback(
-    (rid: string) => {
-      setItems((prev) => {
-        const toRemove = prev.find((i) => i.id === rid);
-        if (toRemove) cleanupItem(toRemove);
-        return prev.filter((i) => i.id !== rid);
+    (id: string) => {
+      updateItems((previous) => {
+        const removed = previous.find((item) => item.id === id);
+        if (removed) {
+          cleanupItem(removed);
+        }
+
+        return previous.filter((item) => item.id !== id);
       });
     },
-    [cleanupItem],
+    [cleanupItem, updateItems],
   );
 
   React.useEffect(() => {
-    return () =>
-      setItems((prev) => {
-        prev.forEach(cleanupItem);
-        return [];
-      });
-  }, [cleanupItem]);
+    return () => {
+      itemsRef.current.forEach((item) =>
+        cleanupItem(item, cleanupPreviewUrlsOnUnmount),
+      );
+    };
+  }, [cleanupItem, cleanupPreviewUrlsOnUnmount]);
 
   return { items, addItems, removeItem };
 }

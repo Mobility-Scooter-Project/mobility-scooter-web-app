@@ -6,106 +6,121 @@ import { usePointStore } from "~/stores/usePointsStore";
 import { KEYPOINT_TO_NAME } from "~/components/session/player/video/overlays/overlay-utils";
 import type { Point } from "~/data/mock-session-data";
 
+const DEFAULT_POINTS: Point[] = Object.values(KEYPOINT_TO_NAME).map((name) => ({
+  id: name,
+  name,
+  status: "visible",
+}));
+
 /**
  * Fetches sessions from the API on mount and syncs the active
  * session/view with the derived chapter, annotation, and point stores.
- *
- * When the active session changes, fetches its videos from the API.
- * When the active view changes (and has a videoId), fetches annotations
- * and task-detection chapters from the API.
  */
 export function useSessionDataSync() {
   const sessions = useSessionStore((state) => state.sessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const activeViewId = useSessionStore((state) => state.activeViewId);
-  const { setActiveViewId, fetchSessions, fetchSessionVideos } =
+  const { setActiveViewId, fetchSessions, fetchSessionVideos, ensureViewVideoUrl } =
     useSessionStore((state) => state.actions);
 
+  const chapterVideoId = useChapterStore((state) => state.videoId);
+  const chapterViewId = useChapterStore((state) => state.activeViewId);
   const loadChapters = useChapterStore((state) => state.actions.loadChapters);
   const loadChaptersFromApi = useChapterStore(
     (state) => state.actions.loadChaptersFromApi,
   );
+
+  const annotationVideoId = useAnnotationStore((state) => state.videoId);
   const loadAnnotations = useAnnotationStore(
     (state) => state.actions.loadAnnotations,
   );
   const setAnnotations = useAnnotationStore(
     (state) => state.actions.setAnnotations,
   );
+
   const setPoints = usePointStore((state) => state.actions.setPoints);
 
-  // Fetch sessions from the API once on mount.
   useEffect(() => {
-    fetchSessions();
+    void fetchSessions();
   }, [fetchSessions]);
 
   const activeSession = useMemo(
-    () => sessions.find((s) => s.id === activeSessionId),
+    () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [sessions, activeSessionId],
   );
 
-  // When the active session changes, fetch its videos if needed.
+  const activeView = useMemo(
+    () => activeSession?.views.find((view) => view.id === activeViewId) ?? null,
+    [activeSession, activeViewId],
+  );
+
   useEffect(() => {
-    if (activeSessionId) {
-      fetchSessionVideos(activeSessionId);
-    }
+    if (!activeSessionId) return;
+    void fetchSessionVideos(activeSessionId);
   }, [activeSessionId, fetchSessionVideos]);
 
-  // Keep activeViewId in sync with available views.
   useEffect(() => {
     if (!activeSession) {
-      if (activeViewId) setActiveViewId("");
+      if (activeViewId) {
+        setActiveViewId("");
+      }
       return;
     }
 
-    const viewExists = activeSession.views.some((v) => v.id === activeViewId);
-    const nextViewId = viewExists
-      ? activeViewId
-      : (activeSession.views[0]?.id ?? "");
+    const viewExists = activeSession.views.some((view) => view.id === activeViewId);
+    const nextViewId = viewExists ? activeViewId : (activeSession.views[0]?.id ?? "");
 
     if (nextViewId !== activeViewId) {
       setActiveViewId(nextViewId);
     }
   }, [activeSession, activeViewId, setActiveViewId]);
 
-  // Sync analysis data when the active view changes.
+  const activeVideoId = activeView?.videoId ?? null;
+  const activePoints = activeView?.points ?? null;
+  const activeAnnotations = activeView?.annotations ?? null;
+  const activeChapters = activeView?.chapters ?? null;
+
   useEffect(() => {
-    if (!activeSession || !activeViewId) return;
+    if (!activeView || !activeViewId) return;
 
-    const view = activeSession.views.find((v) => v.id === activeViewId);
-    if (!view) return;
+    if (activeVideoId) {
+      setPoints(activePoints && activePoints.length > 0 ? activePoints : DEFAULT_POINTS);
+      void ensureViewVideoUrl(activeVideoId);
 
-    // If the view has a backend videoId and no local points, generate them
-    // from the known keypoint mapping so the points panel is populated.
-    if (view.videoId && view.points.length === 0) {
-      const defaultPoints: Point[] = Object.values(KEYPOINT_TO_NAME).map(
-        (name) => ({ id: name, name, status: "visible" as const }),
-      );
-      setPoints(defaultPoints);
-    } else {
-      setPoints(view.points);
+      if (annotationVideoId !== activeVideoId) {
+        void loadAnnotations(activeVideoId);
+      }
+
+      if (chapterVideoId !== activeVideoId || chapterViewId !== activeViewId) {
+        void loadChaptersFromApi(activeViewId, activeVideoId);
+      }
+
+      return;
     }
 
-    // If the view has a backend videoId, load data from the API.
-    if (view.videoId) {
-      loadAnnotations(view.videoId);
-      loadChaptersFromApi(activeViewId, view.videoId);
-    } else {
-      // Fallback: use local data from the view object.
-      setAnnotations(view.annotations);
-      loadChapters(activeViewId, view.chapters);
-    }
+    setPoints(activePoints ?? []);
+    setAnnotations(activeAnnotations ?? []);
+    loadChapters(activeViewId, activeChapters ?? []);
   }, [
-    activeSession,
+    activeAnnotations,
+    activeChapters,
+    activePoints,
+    activeVideoId,
     activeViewId,
+    annotationVideoId,
+    chapterVideoId,
+    chapterViewId,
+    ensureViewVideoUrl,
+    loadAnnotations,
     loadChapters,
     loadChaptersFromApi,
-    loadAnnotations,
     setAnnotations,
     setPoints,
   ]);
 
   return {
     activeSession,
+    activeView,
     activeViewId,
     setActiveViewId,
   };

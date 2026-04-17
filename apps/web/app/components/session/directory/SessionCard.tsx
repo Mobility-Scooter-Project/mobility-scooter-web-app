@@ -35,7 +35,9 @@ export function SessionCard({
       size="fill"
       className={cn(
         "flex justify-between shrink-0",
-        isActive && "bg-foreground/15",
+        isActive
+          ? "bg-foreground/15 hover:bg-foreground/15"
+          : "hover:bg-accent/40",
       )}
       aria-selected={isActive}
       onClick={onClick}

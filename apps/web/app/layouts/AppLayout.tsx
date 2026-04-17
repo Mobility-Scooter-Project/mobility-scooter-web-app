@@ -10,9 +10,9 @@ export async function clientLoader({ request }: { request: Request }) {
 export default function AppLayout() {
   return (
     <div className="h-full p-4">
-      <div className="flex h-full gap-4">
+      <div className="flex h-full gap-4.5">
         <Sidebar />
-        <main className="flex-1">
+        <main className="min-h-0 min-w-0 flex-1">
           <Outlet />
         </main>
       </div>
