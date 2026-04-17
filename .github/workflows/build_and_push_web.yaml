@@ -7,9 +7,13 @@ on:
       - main
     paths:
       - apps/web/**
+      - Dockerfile
+      - .github/workflows/build_and_push_web.yaml
   pull_request:
     paths:
       - apps/web/**
+      - Dockerfile
+      - .github/workflows/build_and_push_web.yaml
   workflow_dispatch:
 
 env:
@@ -69,6 +73,7 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=https://cis240470.projects.jetstream-cloud.org
             VITE_API_KEY=your-api-key
+            VITE_UNIT_ID=a0f4aada-5c5e-427c-9864-e0c6fdca980e
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
