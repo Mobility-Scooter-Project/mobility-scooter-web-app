@@ -41,6 +41,12 @@ export type FileUploadProps = Omit<
   labelClassName?: string;
   /* Additional CSS classes for the dropzone area. */
   className?: string;
+  /* Current upload items when using the component in controlled mode. */
+  items?: Item[];
+  /* Optional callback with the current upload items. */
+  onItemsChange?: (items: Item[]) => void;
+  /* Whether blob preview URLs should be revoked when the component unmounts. */
+  cleanupPreviewUrlsOnUnmount?: boolean;
 };
 
 /*
@@ -56,11 +62,19 @@ export function FileUpload({
   containerClassName,
   labelClassName,
   className,
+  items: controlledItems,
+  onItemsChange,
+  cleanupPreviewUrlsOnUnmount = true,
   multiple = true,
   ...rest
 }: FileUploadProps) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const { items, addItems, removeItem } = useFileUpload(type === "multi");
+  const { items, addItems, removeItem } = useFileUpload({
+    isMulti: type === "multi",
+    items: controlledItems,
+    onItemsChange,
+    cleanupPreviewUrlsOnUnmount,
+  });
 
   const acceptArr = acceptList(acceptedTypes);
   const acceptAttr = buildAcceptAttr(acceptedTypes);

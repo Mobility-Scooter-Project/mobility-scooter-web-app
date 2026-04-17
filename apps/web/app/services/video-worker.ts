@@ -121,10 +121,12 @@ export const videoWorkerService = {
     };
 
     eventSource.onerror = (e) => {
-      onError?.(e);
       if (eventSource.readyState === EventSource.CLOSED) {
         eventSource.close();
+        return;
       }
+
+      onError?.(e);
     };
 
     return () => eventSource.close();
