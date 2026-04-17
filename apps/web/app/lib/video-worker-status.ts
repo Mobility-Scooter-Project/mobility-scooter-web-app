@@ -14,6 +14,8 @@ export function normalizeWorkerStatus(
     case "completed":
     case "processed":
       return "completed";
+    case "partially_processed":
+      return "failed";
     case "processing":
       return "processing";
     case "failed":
