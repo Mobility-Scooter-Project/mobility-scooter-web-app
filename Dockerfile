@@ -87,6 +87,7 @@ FROM python:3.11-slim AS worker
 
 # Install only the runtime libraries (graphics and database drivers).
 RUN apt-get update && apt-get install --no-install-recommends -y \
+    ffmpeg \
     libpq5 \
     libgl1 \
     libglib2.0-0 \
