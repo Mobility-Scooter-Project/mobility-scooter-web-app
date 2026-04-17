@@ -204,7 +204,7 @@ class StabilityClassification:
     """
     rows = ray.get(self.db.get_video_keypoints.remote(video_id))
     if len(rows) < 2:
-      logger.warning(f"[{STEP_NAME}] not enough keypoints for {video_id}: {len(rows)} rows (< 2)")
+      logger.warn(f"[{STEP_NAME}] not enough keypoints for {video_id}: {len(rows)} rows (< 2)")
       ray.get(self.db.upsert_stability_inferences.remote(video_id, []))
       return
 

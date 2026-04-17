@@ -42,6 +42,9 @@ CMD [ "pnpm", "start" ]
 # ==========================================
 # Inherit everything from the 'build' stage.
 FROM build AS api
+# ffmpeg: used for on-demand video frame thumbnails (see VideosService.extractVideoFrameJpeg).
+RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/src/mswa/apps/api
 EXPOSE 3000
 # Start the backend API.

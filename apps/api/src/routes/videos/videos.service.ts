@@ -1,4 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { S3Service } from '@infra/openstack/s3/s3.service';
 import { SwiftService } from '@infra/openstack/swift/swift.service';
 import { QueueService } from '@infra/queue/queue.service';
@@ -14,6 +16,10 @@ import {
   VideoMetadataDto,
 } from './videos.dto';
 import { UnitAuthorizationService } from '@src/shared/unit-authorization.service';
+import { VideoAuthorizationService } from '@src/shared/video-authorization.service';
+
+const execFileAsync = promisify(execFile);
+const THUMB_PRESIGN_TTL_SEC = 15 * 60;
 
 type VideoMetadataOutput = {
   id: string;
@@ -46,6 +52,7 @@ export class VideosService {
     @InjectRepository(PatientSession)
     private readonly patientSessionRepository: Repository<PatientSession>,
     private readonly unitAuthorizationService: UnitAuthorizationService,
+    private readonly videoAuthorizationService: VideoAuthorizationService,
   ) {}
 
   /**
@@ -489,5 +496,78 @@ export class VideosService {
         },
       ],
     });
+  }
+
+  public async extractVideoFrameJpeg(
+    userId: string,
+    videoId: string,
+    timestamp: number,
+  ): Promise<Buffer> {
+    if (!Number.isFinite(timestamp) || timestamp < 0) {
+      throw new HttpException('Invalid timestamp', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.videoAuthorizationService.assertUserCanAccessVideo(
+      userId,
+      videoId,
+    );
+
+    let video: { file: { path: string } } | null;
+    try {
+      video = await this.videoRepository.findOne({
+        where: { id: videoId },
+        relations: { file: true },
+        select: { id: true, file: { path: true } },
+      });
+    } catch (error) {
+      this.logger.error('Failed to load video for thumbnail', error);
+      throw new HttpException('Invalid input', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!video?.file?.path) {
+      throw new HttpException('Video not found', HttpStatus.NOT_FOUND);
+    }
+
+    const objectUrl = await this.s3.presignedUrl(
+      'GET',
+      video.file.path,
+      THUMB_PRESIGN_TTL_SEC,
+    );
+
+    try {
+      const { stdout } = await execFileAsync(
+        'ffmpeg',
+        [
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-ss',
+          String(timestamp),
+          '-i',
+          objectUrl,
+          '-frames:v',
+          '1',
+          '-q:v',
+          '3',
+          '-f',
+          'image2pipe',
+          '-vcodec',
+          'mjpeg',
+          '-',
+        ],
+        { encoding: 'buffer', maxBuffer: 10 * 1024 * 1024 },
+      );
+      return Buffer.isBuffer(stdout)
+        ? stdout
+        : Buffer.from(stdout as unknown as string, 'binary');
+    } catch (error) {
+      this.logger.warn(
+        `ffmpeg thumbnail failed for video ${videoId} at timestamp=${timestamp}: ${error}`,
+      );
+      throw new HttpException(
+        'Could not generate thumbnail',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
   }
 }
