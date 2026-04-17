@@ -22,8 +22,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # expose env var to build process
 ARG VITE_API_BASE_URL
 ARG VITE_API_KEY
+ARG VITE_UNIT_ID
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_API_KEY=$VITE_API_KEY
+ENV VITE_UNIT_ID=$VITE_UNIT_ID
 # Run the build script (likely using Turborepo) to compile all apps.
 RUN pnpm build
 
