@@ -24,7 +24,6 @@ describe('VideoTasksService', () => {
   let videoAuthorizationService: jest.Mocked<
     Pick<VideoAuthorizationService, 'assertUserCanAccessVideo'>
   >;
-
   const userId = '11111111-1111-1111-1111-111111111111';
   const videoId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
   const taskId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';

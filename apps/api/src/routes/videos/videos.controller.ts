@@ -2,12 +2,15 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Logger,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -62,6 +65,22 @@ export class VideosController {
     @Param('videoId', ParseUUIDPipe) videoId: string,
   ) {
     return this.videosService.getVideoPresignedUrl(req.locals.userId, videoId);
+  }
+
+  @Get(':videoId/thumbnail')
+  @Header('Cache-Control', 'private, max-age=3600')
+  async getVideoThumbnail(
+    @Req() req: { locals: { userId: string } },
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @Query('timestamp') timestampRaw: string,
+  ): Promise<StreamableFile> {
+    const timestamp = Number(timestampRaw);
+    const jpeg = await this.videosService.extractVideoFrameJpeg(
+      req.locals.userId,
+      videoId,
+      timestamp,
+    );
+    return new StreamableFile(jpeg, { type: 'image/jpeg' });
   }
 
   @Get(':videoId')
