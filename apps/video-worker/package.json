@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Video processing worker for the video processing service",
     "scripts": {
-        "dev": "nodemon --exec 'poetry run python src/main.py' --ext py --watch ./"
+        "dev": "nodemon --watch ./src --ext py --ignore 'src/**/*.pyc' --ignore 'src/**/__pycache__' --exec 'poetry run python -B src/main.py'"
     },
     "devDependencies": {
         "nodemon": "^3.1.9"

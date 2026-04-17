@@ -9,3 +9,5 @@ kubeconfig.yaml
 # Coverage reports
 coverage/
 *.lcov
+__pycache__/
+*.py[cod]
