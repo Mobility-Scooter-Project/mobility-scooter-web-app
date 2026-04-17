@@ -153,6 +153,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         const prev = existing.find((session) => session.id === item.sessionId);
         return {
           id: item.sessionId,
+          patientId: item.patientId,
           patientUuid: item.patientUuid,
           date: formatSessionDate(item.sessionDate),
           notification: prev?.notification ?? false,
@@ -258,6 +259,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
       const newSession: Session = {
         id: result.sessionId,
+        patientId: data.patientId,
         patientUuid: result.patientUuid,
         date: formatSessionDate(sessionDate),
         notification: false,

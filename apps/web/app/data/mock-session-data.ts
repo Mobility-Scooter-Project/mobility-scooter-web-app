@@ -60,6 +60,7 @@ export type View = {
 
 export type Session = {
   id: string;
+  patientId?: string;
   patientUuid?: string;
   date: string;
   notification: boolean;

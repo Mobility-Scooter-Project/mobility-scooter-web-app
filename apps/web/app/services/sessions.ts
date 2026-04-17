@@ -4,6 +4,7 @@ import { userAuthStore } from "~/lib/auth";
 /** Response shape returned by GET /api/v1/units/:unitId/sessions */
 export type SessionListItem = {
   sessionId: string;
+  patientId: string;
   patientUuid: string;
   sessionDate: string;
   sessionTime: string;
