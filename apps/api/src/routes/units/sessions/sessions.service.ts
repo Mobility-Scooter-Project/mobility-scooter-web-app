@@ -17,6 +17,7 @@ type SessionVideoListItem = {
 
 type SessionItem = {
   sessionId: string;
+  patientId: string;
   patientUuid: string;
   sessionDate: string;
   sessionTime: string;
@@ -179,7 +180,7 @@ export class SessionsService {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { uuid: true },
+          patient: { uuid: true, patientId: true },
         },
       });
     } catch (error) {
@@ -192,6 +193,7 @@ export class SessionsService {
 
     return sessions.map((session) => ({
       sessionId: session.id,
+      patientId: session.patient.patientId,
       patientUuid: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
@@ -222,7 +224,7 @@ export class SessionsService {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { uuid: true },
+          patient: { uuid: true, patientId: true },
         },
       });
     } catch (error) {
@@ -240,6 +242,7 @@ export class SessionsService {
 
     return {
       sessionId: session.id,
+      patientId: session.patient.patientId,
       patientUuid: session.patient.uuid,
       sessionDate: session.sessionDate,
       sessionTime: session.sessionTime,
