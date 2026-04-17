@@ -112,10 +112,9 @@ class KafkaActor:
         if "stability_classification" in steps:
           # Stability depends on pose keypoints, so run immediately after pose completes.
           if not pose_completed:
-            logger.warning(
+            logger.info(
               f"Skipping stability_classification for {video_id}: pose_estimation was not run or not completed"
             )
-            failed_steps.add("stability_classification")
           else:
             self._wait_step(
               video_id,

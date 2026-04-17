@@ -237,7 +237,7 @@ class PoseEstimation:
       try:
         angle = self.calculate_angle(midpoint_shoulder_px, midpoint_hip_px)
       except Exception as e:
-        logger.warning(f"Failed to calculate angle at frame {frame_idx}, skipping: {e}")
+        logger.warn(f"Failed to calculate angle at frame {frame_idx}, skipping: {e}")
         continue
  
       kps_norm = {
