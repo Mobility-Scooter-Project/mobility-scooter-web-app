@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:latest
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
@@ -17,9 +17,25 @@ services:
     image: redpandadata/redpanda
     volumes:
       - queue:/var/lib/redpanda/data
-    environment:
-      - REDPANDA_AUTO_CREATE_TOPICS_ENABLE=true
-      - REDPANDA_ADVERTISED_LISTENERS=PLAINTEXT://queue:9092
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --check=false
+      - --node-id
+      - "0"
+      - --set
+      - redpanda.auto_create_topics_enabled=true
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://queue:9092
 
   api:
     image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/api:develop
@@ -28,6 +44,7 @@ services:
     depends_on:
       - db
       - kv
+      - queue
 
   worker:
     image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/worker:develop
@@ -36,6 +53,11 @@ services:
     depends_on:
       - db
       - queue
+    gpus: all
+    shm_size: "8gb"
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
 
   web:
     image: ghcr.io/mobility-scooter-project/mobility-scooter-web-app/web:develop
