@@ -37,6 +37,10 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private kv: Redis;
 
+  private nowInSeconds(): number {
+    return Math.floor(Date.now() / 1000);
+  }
+
   constructor(
     private readonly configService: ConfigService<AppConfig>,
     private readonly db: DataSource,
@@ -292,7 +296,7 @@ export class AuthService {
         email,
         role,
         purpose: JOIN_ORG_COMPLETE_JWT_PURPOSE,
-        exp: Number(Date.now() + 1000 * 60 * 60 * 24),
+        exp: this.nowInSeconds() + 60 * 60 * 24,
       },
       { secret: this.configService.get('jwtSecret') },
     );
@@ -558,8 +562,8 @@ export class AuthService {
       userId: userId,
       userRole: userRole,
       sessionId: session.id,
-      exp: Number(Date.now() + 1000 * 60 * 15), // 15 minutes
-      iat: Number(new Date().toISOString()),
+      exp: this.nowInSeconds() + 60 * 15, // 15 minutes
+      iat: this.nowInSeconds(),
     });
 
     let refreshToken: string | undefined;
@@ -568,8 +572,8 @@ export class AuthService {
         userId: userId,
         userRole: userRole,
         sessionId: session.id,
-        exp: Number(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
-        iat: Number(new Date().toISOString()),
+        exp: this.nowInSeconds() + 60 * 60 * 24 * 30, // 30 days
+        iat: this.nowInSeconds(),
       });
 
       const newRefreshToken = this.refreshTokenRepository.create({
@@ -590,7 +594,7 @@ export class AuthService {
     // res - Express response object
     // refreshToken - The refresh token value to set in cookie
     if (res) {
-      const secure = process.env.NODE_ENV === 'production';
+      const secure = this.configService.get('environment') === 'production';
       const cookie =
         `refreshToken=${encodeURIComponent(refreshToken)}; ` +
         `HttpOnly; Path=/api/v1/auth/refresh-token; Max-Age=2592000; SameSite=Lax` +
@@ -618,7 +622,7 @@ export class AuthService {
     if (!res) {
       return;
     }
-    const secure = process.env.NODE_ENV === 'production';
+    const secure = this.configService.get('environment') === 'production';
     const cookie =
       'refreshToken=; HttpOnly; Path=/api/v1/auth/refresh-token; Max-Age=0; SameSite=Lax' +
       (secure ? '; Secure' : '');
@@ -843,7 +847,7 @@ export class AuthService {
     const payload = {
       userId: user.id,
       purpose: PASSWORD_RESET_JWT_PURPOSE,
-      exp: Number(Date.now() + 1000 * 60 * 60 * 24),
+      exp: this.nowInSeconds() + 60 * 60 * 24,
     };
 
     let token: string;
