@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
 import type { IconProps } from "~/components/Icon";
+import { API_BASE_URL } from "~/config/constants";
+import { userAuthStore } from "~/lib/auth";
 import { cn } from "~/lib/utils";
 
 interface NavItem {
@@ -55,16 +57,51 @@ function SidebarButton({
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const settingsMenuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const signOut = userAuthStore((s) => s.signOut);
 
   const handleToggle = () => setIsCollapsed((prev) => !prev);
+  const handleSignOut = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Even if the network call fails, clear local state and send user to login.
+    }
+    signOut();
+    setShowSettingsMenu(false);
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    if (!showSettingsMenu) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(target)) {
+        setShowSettingsMenu(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [showSettingsMenu]);
 
   return (
     <nav
       aria-label="Main Navigation"
       className={cn(
-        "relative flex h-full flex-col bg-card transition-all duration-250 ease-in-out overflow-hidden",
+        "relative flex h-full flex-col bg-card transition-all duration-250 ease-in-out overflow-visible",
         isCollapsed ? "w-14 rounded-[28px] p-2" : "w-64 rounded-xl p-3"
       )}
     >
@@ -107,12 +144,29 @@ export function Sidebar() {
         })}
       </div>
 
-      <SidebarButton
-        item={{ name: "Settings", icon: "Settings", disabled: true }}
-        active={location.pathname.startsWith("/settings")}
-        aria-disabled
-        onClick={undefined}
-      />
+      <div className="relative" ref={settingsMenuRef}>
+        <SidebarButton
+          item={{ name: "Settings", icon: "Settings" }}
+          active={location.pathname.startsWith("/settings")}
+          onClick={() => setShowSettingsMenu((prev) => !prev)}
+        />
+        {showSettingsMenu ? (
+          <div
+            className={cn(
+              "absolute bottom-12 z-20 min-w-40 rounded-md border border-accent bg-card p-1 shadow-md",
+              isCollapsed ? "left-0" : "left-3"
+            )}
+          >
+            <Button
+              className="w-full justify-start"
+              variant="ghost"
+              onClick={handleSignOut}
+            >
+              Log out
+            </Button>
+          </div>
+        ) : null}
+      </div>
     </nav>
   );
 }

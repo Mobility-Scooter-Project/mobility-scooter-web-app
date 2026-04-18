@@ -35,7 +35,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (!response.ok) {
       const error = await response.json();
-      return { error: error.message || "Login failed" };
+      const message =
+        typeof error.message === "string"
+          ? error.message
+          : Array.isArray(error.message)
+            ? error.message.join(", ")
+            : "Login failed";
+      return {
+        error: message,
+        needsEmailVerification: response.status === 403,
+      };
     }
 
     const data = await response.json();
@@ -82,7 +91,12 @@ export default function LoginPage() {
   };
 
   const actionData = useActionData() as
-    | { error?: string; success?: boolean; token?: string }
+    | {
+        error?: string;
+        success?: boolean;
+        token?: string;
+        needsEmailVerification?: boolean;
+      }
     | undefined;
 
   /**
@@ -159,9 +173,15 @@ export default function LoginPage() {
       </div>
 
       {actionData?.error && (
-        <p role="alert" className="text-base text-destructive">
-          {actionData.error}
-        </p>
+        <div className="flex w-full flex-col gap-3" role="alert">
+          <p className="text-base text-destructive">{actionData.error}</p>
+          {actionData.needsEmailVerification && (
+            <p className="text-base text-muted-foreground">
+              Use the link in your email to verify this address, or request a new
+              link (you will need the password you used when you registered).
+            </p>
+          )}
+        </div>
       )}
 
       <Button className="text-label" variant={"link"} size={"none"} asChild>

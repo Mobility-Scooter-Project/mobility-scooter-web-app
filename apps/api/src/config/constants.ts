@@ -1,6 +1,7 @@
 const config = () => ({
   jwtSecret: process.env.JWT_SECRET || 'missing JWT_SECRET',
   baseUrl: process.env.BASE_URL || 'missing BASE_URL',
+  webAppUrl: process.env.WEB_APP_URL || 'missing WEB_APP_URL',
   environment: process.env.ENVIRONMENT || 'development',
   videoWorkerSecret:
     process.env.VIDEO_WORKER_SECRET || 'missing VIDEO_WORKER_SECRET',
@@ -31,6 +32,12 @@ const config = () => ({
 
   smtp: {
     host: process.env.SMTP_HOST || 'missing SMTP_HOST',
+    port: Number(process.env.SMTP_PORT) || 587,
+    user: process.env.SMTP_USER || 'missing SMTP_USER',
+    pass: process.env.SMTP_PASS || 'missing SMTP_PASS',
+    from: process.env.MAIL_FROM || 'missing MAIL_FROM',
+    secure:
+      process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1',
   },
 
   vault: {

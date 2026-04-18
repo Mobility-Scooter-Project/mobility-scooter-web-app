@@ -41,7 +41,7 @@ export class User {
     length: 255,
     nullable: true,
   })
-  passwordHash: string;
+  passwordHash: string | null;
 
   @Column({
     type: 'varchar',

@@ -2,13 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './routes/app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { AppConfig } from '@config/constants';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const configService = app.get(ConfigService<AppConfig>);
   //CORS config - allow requests from frontend
   app.enableCors({
-    origin: 'http://localhost:5173',
+    origin: configService.get('webAppUrl'),
     credentials: true,
   });
   // api config

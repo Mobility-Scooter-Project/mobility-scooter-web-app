@@ -1,7 +1,19 @@
-import { Controller, Patch, Post, Put } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Put } from '@nestjs/common';
+import { OrgsService } from './orgs.service';
 
 @Controller('organizations')
 export class OrgsController {
+  constructor(private readonly orgsService: OrgsService) {}
+
+  /**
+   * Unauthenticated: org + unit pickers for self-service join sign-up.
+   */
+  @Get('join-signup-options')
+  async joinSignupOptions() {
+    const orgs = await this.orgsService.listJoinSignupOptions();
+    return { orgs };
+  }
+
   @Post('applications')
   async createOrgApplication() {
     // TODO
