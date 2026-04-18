@@ -1,18 +1,16 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { ConfigModule } from '@nestjs/config';
-import config from '@config/constants';
-import { InfraModule } from '@infra/infra.module';
-import { JwtModule, JwtService } from '@nestjs/jwt';
-import { createMock } from '@golevelup/ts-jest';
+import { JwtService } from '@nestjs/jwt';
 import { USER_ROLES } from '@config/enums';
 import { Unit } from '@src/infra/db/entity/unit/unit';
 import { DataSource, Repository } from 'typeorm';
-import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from '@src/infra/db/entity/user/user';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
 import { MailService } from '@infra/mail/mail.service';
+import { KvService } from '@infra/kv/kv.service';
+import { ConfigService } from '@nestjs/config';
 
 const mailServiceMock = {
   isConfigured: jest.fn().mockReturnValue(false),
@@ -28,6 +26,7 @@ describe('AuthService', () => {
   let userRepository: Repository<User>;
   let refreshTokenRepository: Repository<RefreshToken>;
   let unitRepository: Repository<Unit>;
+  let kv: { set: jest.Mock; get: jest.Mock; del: jest.Mock; expire: jest.Mock };
 
   let mockUser = {
     email: 'test@example.com',
@@ -36,22 +35,65 @@ describe('AuthService', () => {
   let unit: Unit;
 
   beforeEach(async () => {
+    kv = {
+      set: jest.fn(),
+      get: jest.fn(),
+      del: jest.fn(),
+      expire: jest.fn(),
+    };
+
+    const dbMock = {
+      query: jest.fn(),
+      transaction: jest.fn(),
+    };
+    const jwtMock = {
+      sign: jest.fn(),
+      signAsync: jest.fn(),
+      verify: jest.fn(),
+      verifyAsync: jest.fn(),
+    };
+    const userRepositoryMock = {
+      findOne: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+    const refreshTokenRepositoryMock = {
+      findOne: jest.fn(),
+      save: jest.fn(),
+      remove: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+    };
+    const unitRepositoryMock = {
+      findOne: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-          load: [config],
-        }),
-        InfraModule,
-        JwtModule,
-        TypeOrmModule.forFeature([User, RefreshToken, Unit]),
+      providers: [
+        AuthService,
+        { provide: DataSource, useValue: dbMock },
+        { provide: JwtService, useValue: jwtMock },
+        { provide: getRepositoryToken(User), useValue: userRepositoryMock },
+        {
+          provide: getRepositoryToken(RefreshToken),
+          useValue: refreshTokenRepositoryMock,
+        },
+        { provide: getRepositoryToken(Unit), useValue: unitRepositoryMock },
+        { provide: MailService, useValue: mailServiceMock },
+        { provide: KvService, useValue: { kv } },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'jwtSecret') return 'test-jwt-secret';
+              if (key === 'webAppUrl') return 'http://localhost:5173';
+              if (key === 'environment') return 'test';
+              return undefined;
+            }),
+          },
+        },
       ],
-      providers: [AuthService],
-    })
-      .overrideProvider(MailService)
-      .useValue(mailServiceMock)
-      .useMocker(createMock)
-      .compile();
+    }).compile();
 
     service = module.get<AuthService>(AuthService);
     db = module.get<DataSource>(DataSource);
@@ -61,7 +103,7 @@ describe('AuthService', () => {
       getRepositoryToken(RefreshToken),
     );
     unitRepository = module.get<Repository<Unit>>(getRepositoryToken(Unit));
-    unit = db.getRepository(Unit).create({ name: 'Test Unit' });
+    unit = { id: 'unit-id', name: 'Test Unit' } as Unit;
 
     mailServiceMock.isConfigured.mockReset();
     mailServiceMock.isConfigured.mockReturnValue(false);
@@ -72,8 +114,8 @@ describe('AuthService', () => {
     mailServiceMock.sendJoinOrgCompleteEmail.mockReset();
     mailServiceMock.sendJoinOrgCompleteEmail.mockResolvedValue(undefined);
 
-    jest.spyOn(jwt, 'sign').mockReturnValue('signed-token');
-    jest.spyOn(jwt, 'verify').mockReturnValue({ userId: 'test-user-id' });
+    jest.spyOn(jwt, 'sign').mockReturnValue('signed-token' as never);
+    jest.spyOn(jwt, 'verify').mockReturnValue({ userId: 'test-user-id' } as never);
 
     jest
       .spyOn(service as any, '_createUserSession')
@@ -87,6 +129,7 @@ describe('AuthService', () => {
   describe('createUserWithPassword', () => {
     it('should create a user with password', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(db, 'query').mockResolvedValue([{ hash: 'hashed-password' }] as never);
 
       jest.spyOn(db, 'transaction').mockImplementation(async (cb) => {
         return {

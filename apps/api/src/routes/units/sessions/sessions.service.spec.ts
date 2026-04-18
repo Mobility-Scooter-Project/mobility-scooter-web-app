@@ -268,7 +268,7 @@ describe('SessionsService', () => {
       const rows = [
         {
           id: sessionId,
-          patient: { uuid: patientId },
+          patient: { uuid: patientId, patientId: patientCode },
           sessionDate: '2025-01-15',
           sessionTime: '09:00:00',
         },
@@ -286,12 +286,13 @@ describe('SessionsService', () => {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { uuid: true },
+          patient: { uuid: true, patientId: true },
         },
       });
       expect(result).toEqual([
         {
           sessionId,
+          patientId: patientCode,
           patientUuid: patientId,
           sessionDate: '2025-01-15',
           sessionTime: '09:00:00',
@@ -328,7 +329,7 @@ describe('SessionsService', () => {
     it('returns a single session', async () => {
       const row = {
         id: sessionId,
-        patient: { uuid: patientId },
+        patient: { uuid: patientId, patientId: patientCode },
         sessionDate: '2025-02-01',
         sessionTime: '12:00:00',
       } as PatientSession;
@@ -344,11 +345,12 @@ describe('SessionsService', () => {
           id: true,
           sessionDate: true,
           sessionTime: true,
-          patient: { uuid: true },
+          patient: { uuid: true, patientId: true },
         },
       });
       expect(result).toEqual({
         sessionId,
+        patientId: patientCode,
         patientUuid: patientId,
         sessionDate: '2025-02-01',
         sessionTime: '12:00:00',
