@@ -33,7 +33,14 @@ export class MailService {
     return this.transporter !== null;
   }
 
-  async sendVerificationEmail(params: {
+  /**
+   * Send a verification email to a user.
+   * @param params - The parameters for the email
+   * @param params.to - The email address of the recipient
+   * @param params.verifyUrl - The URL to verify the email
+   * @param params.givenName - The given name of the recipient
+   */
+  public async sendVerificationEmail(params: {
     to: string;
     verifyUrl: string;
     givenName?: string;
@@ -58,7 +65,13 @@ export class MailService {
     this.logger.log(`Verification email sent to ${params.to}`);
   }
 
-  async sendPasswordResetEmail(params: {
+  /**
+   * Send a password reset email to a user.
+   * @param params - The parameters for the email
+   * @param params.to - The email address of the recipient
+   * @param params.resetUrl - The URL to reset the password
+   */
+  public async sendPasswordResetEmail(params: {
     to: string;
     resetUrl: string;
   }): Promise<void> {
@@ -81,7 +94,14 @@ export class MailService {
     this.logger.log(`Password reset email sent to ${params.to}`);
   }
 
-  async sendJoinOrgCompleteEmail(params: {
+  /**
+   * Send a join organization complete email to a user.
+   * @param params - The parameters for the email
+   * @param params.to - The email address of the recipient
+   * @param params.completeUrl - The URL to complete the organization signup
+   * @param params.givenName - The given name of the recipient
+   */
+  public async sendJoinOrgCompleteEmail(params: {
     to: string;
     completeUrl: string;
     givenName?: string;

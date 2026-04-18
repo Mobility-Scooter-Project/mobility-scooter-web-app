@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Org } from '@src/infra/db/entity/org/org';
@@ -13,6 +13,7 @@ export type JoinSignupOrgOption = {
 
 @Injectable()
 export class OrgsService {
+  private readonly logger = new Logger(OrgsService.name);
   constructor(
     @InjectRepository(Org)
     private readonly orgRepository: Repository<Org>,
@@ -20,8 +21,9 @@ export class OrgsService {
 
   /**
    * Public list for join-org sign-up: orgs with nested units (non–soft-deleted only).
+   * @returns A promise that resolves to the list of join signup options
    */
-  async listJoinSignupOptions(): Promise<JoinSignupOrgOption[]> {
+  public async listJoinSignupOptions(): Promise<JoinSignupOrgOption[]> {
     const orgs = await this.orgRepository.find({
       relations: { units: true },
       order: { name: 'ASC' },

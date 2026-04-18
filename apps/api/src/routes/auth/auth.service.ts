@@ -128,6 +128,12 @@ export class AuthService {
   /**
    * Join-org application: creates a pending user (no password) and emails a link to set a password.
    * Completing that link verifies email ownership and activates sign-in (see completeJoinOrgApplication).
+   * @param email - The email address of the user
+   * @param orgId - The ID of the organization
+   * @param unitId - The ID of the unit
+   * @param profile - The profile of the user
+   * @returns A promise that resolves to the message and complete token
+   * @throws HttpException if the user already exists or the unit is invalid
    */
   public async submitJoinOrgApplication(
     email: string,
@@ -177,6 +183,16 @@ export class AuthService {
     );
   }
 
+  /**
+   * Save a join organization applicant without a password.
+   * @param email - The email address of the user
+   * @param fields - The fields to save
+   * @param fields.role - The role of the user
+   * @param fields.givenName - The given name of the user
+   * @param fields.surname - The surname of the user
+   * @param fields.unit - The unit of the user
+   * @returns A promise that resolves to the user
+   */
   private async saveJoinOrgApplicantWithoutPassword(
     email: string,
     fields: {
@@ -219,6 +235,14 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * Issue a join organization complete delivery.
+   * @param userId - The ID of the user
+   * @param email - The email address of the user
+   * @param givenName - The given name of the user
+   * @param role - The role of the user
+   * @returns A promise that resolves to the message and complete token
+   */
   private async issueJoinOrgCompleteDelivery(
     userId: string,
     email: string,
@@ -285,6 +309,13 @@ export class AuthService {
     };
   }
 
+  /**
+   * Issue a join organization complete JWT.
+   * @param userId - The ID of the user
+   * @param email - The email address of the user
+   * @param role - The role of the user
+   * @returns A promise that resolves to the JWT
+   */
   private async issueJoinOrgCompleteJwt(
     userId: string,
     email: string,
@@ -302,6 +333,11 @@ export class AuthService {
     );
   }
 
+  /**
+   * Preview a join organization complete JWT.
+   * @param token - The JWT to preview
+   * @returns A promise that resolves to the email of the user
+   */
   public async previewJoinOrgComplete(token: string): Promise<{ email: string }> {
     let payload: { userId?: string; purpose?: string };
     try {
@@ -357,6 +393,12 @@ export class AuthService {
     return { email: user.email };
   }
 
+  /**
+   * Complete a join organization application.
+   * @param token - The JWT to complete the application
+   * @param password - The password to set for the user
+   * @returns A promise that resolves when the application is completed
+   */
   public async completeJoinOrgApplication(
     token: string,
     password: string,
@@ -450,6 +492,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * Check if a password matches a stored hash.
+   * @param password - The password to check
+   * @param passwordHash - The stored hash to compare against
+   * @returns A promise that resolves to true if the password matches the hash, false otherwise
+   */
   private async passwordMatchesStoredHash(
     password: string,
     passwordHash: string | null | undefined,
@@ -464,6 +512,12 @@ export class AuthService {
     return result[0].hash === passwordHash;
   }
 
+  /**
+   * Resolve a unit for a join by its IDs.
+   * @param orgId - The ID of the organization
+   * @param unitId - The ID of the unit
+   * @returns A promise that resolves to the unit
+   */
   private async resolveUnitForJoinByIds(
     orgId: string,
     unitId: string,
@@ -486,6 +540,11 @@ export class AuthService {
     return unit;
   }
 
+  /**
+   * Normalize a join organization role.
+   * @param role - The role to normalize
+   * @returns A promise that resolves to the normalized role
+   */
   private normalizeJoinOrgRole(role: string | undefined): USER_ROLES | null {
     if (typeof role !== 'string') {
       return null;
@@ -511,7 +570,14 @@ export class AuthService {
     }
   }
 
-  /* istanbul ignore next */
+  /**
+   * Create a user session.
+   * @param userId - The ID of the user
+   * @param userRole - The role of the user
+   * @param identity - The identity of the user
+   * @param res - The response object
+   * @returns A promise that resolves to the refresh token response
+   */
   private async _createUserSession(
     userId: string,
     userRole: USER_ROLES,
@@ -605,7 +671,11 @@ export class AuthService {
     return { token, refreshToken };
   }
 
-  /* istanbul ignore next */
+  /**
+   * Invalidate a refresh token.
+   * @param refreshToken - The refresh token to invalidate
+   * @returns A promise that resolves when the refresh token is invalidated
+   */
   private async _invalidateRefreshToken(refreshToken: string) {
     try {
       await this.refreshTokenRepository.delete({ token: refreshToken });
@@ -618,6 +688,11 @@ export class AuthService {
     }
   }
 
+  /**
+   * Clear a refresh token cookie.
+   * @param res - The response object
+   * @returns A promise that resolves when the refresh token cookie is cleared
+   */
   private clearRefreshTokenCookie(res?: Response) {
     if (!res) {
       return;
@@ -629,6 +704,12 @@ export class AuthService {
     res.setHeader('Set-Cookie', cookie);
   }
 
+  /**
+   * Logout a user.
+   * @param refreshToken - The refresh token to logout
+   * @param res - The response object
+   * @returns A promise that resolves to the logout response
+   */
   public async logout(
     refreshToken: string | undefined,
     res?: Response,
@@ -815,6 +896,8 @@ export class AuthService {
    * Starts password reset: same response whether or not the email exists (anti-enumeration).
    * When a user exists: stores a short-lived reset token in KV and emails a link (if SMTP is configured),
    * or returns the token in the JSON only when SMTP is not configured (development).
+   * @param email - The email address of the user
+   * @returns A promise that resolves to the request password reset response
    */
   public async generateResetPasswordToken(
     email: string,

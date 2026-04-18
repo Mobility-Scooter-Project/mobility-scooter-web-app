@@ -31,11 +31,11 @@ const config = () => ({
   },
 
   smtp: {
-    host: process.env.SMTP_HOST ?? '',
+    host: process.env.SMTP_HOST || 'missing SMTP_HOST',
     port: Number(process.env.SMTP_PORT) || 587,
-    user: process.env.SMTP_USER ?? '',
-    pass: process.env.SMTP_PASS ?? '',
-    from: (process.env.MAIL_FROM ?? '') || 'missing MAIL_FROM',
+    user: process.env.SMTP_USER || 'missing SMTP_USER',
+    pass: process.env.SMTP_PASS || 'missing SMTP_PASS',
+    from: process.env.MAIL_FROM || 'missing MAIL_FROM',
     secure:
       process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1',
   },
