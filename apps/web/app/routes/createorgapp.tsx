@@ -60,7 +60,7 @@ export default function CreateOrgAppPage() {
 
       {/* CTA */}
       <Button size={"fill"} asChild>
-        <Link to="/verify-email">Submit Application</Link>
+        <Link to="/confirmation">Submit Application</Link>
       </Button>
     </main>
   );

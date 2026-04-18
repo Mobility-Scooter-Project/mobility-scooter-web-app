@@ -9,6 +9,7 @@ import { KvService } from './kv/kv.service';
 import { QueueService } from './queue/queue.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RoutePermissions } from './db/entity/user/route-permissions';
+import { MailService } from './mail/mail.service';
 
 /**
  * Combined infrastructure module that provides all core infrastructure services:
@@ -25,6 +26,7 @@ import { RoutePermissions } from './db/entity/user/route-permissions';
     // Basic services
     KeystoneService,
     KvService,
+    MailService,
     {
       provide: QueueService,
       useFactory: async (configService: ConfigService) => {
@@ -59,6 +61,7 @@ import { RoutePermissions } from './db/entity/user/route-permissions';
     SwiftService,
     KvService,
     QueueService,
+    MailService,
   ],
 })
 export class InfraModule {}

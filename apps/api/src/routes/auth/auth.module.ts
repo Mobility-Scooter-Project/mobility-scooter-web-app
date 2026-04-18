@@ -11,6 +11,7 @@ import { OtpController } from './otp/otp.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@src/infra/db/entity/user/user';
 import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
+import { Unit } from '@src/infra/db/entity/unit/unit';
 
 @Module({
   providers: [AuthService, OtpService],
@@ -23,7 +24,7 @@ import { RefreshToken } from '@src/infra/db/entity/user/refresh-token';
       inject: [ConfigService],
     }),
     InfraModule,
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([User, RefreshToken, Unit]),
   ],
   controllers: [AuthController, OtpController],
 })

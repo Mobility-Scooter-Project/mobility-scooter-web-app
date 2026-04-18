@@ -24,6 +24,14 @@ export default function AuthLayout() {
       to: "/login",
       msg: "Remember your password? Sign in here.",
     },
+    "/create-account": {
+      to: "/login",
+      msg: "Have an account? Sign in here.",
+    },
+    "/auth-success": {
+      to: "/login",
+      msg: "Have an account? Sign in here.",
+    },
   };
 
   const { to, msg } = underlinkMap[path] ?? {
