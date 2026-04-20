@@ -2,8 +2,14 @@
 
 import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  CircleIcon,
+} from "lucide-react";
 
+import { textInputVariants } from "~/components/TextInput";
 import { cn } from "~/lib/utils";
 
 function DropdownMenu({
@@ -252,7 +258,105 @@ function DropdownMenuSubContent({
   );
 }
 
+type DropdownOption = {
+  value: string;
+  label: string;
+  disabled?: boolean;
+};
+
+type DropdownFieldProps = {
+  label: string;
+  name: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: DropdownOption[];
+  id?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  required?: boolean;
+  ariaDescribedBy?: string;
+  emptyText?: string;
+  triggerClassName?: string;
+  contentClassName?: string;
+};
+
+function DropdownField({
+  label,
+  name,
+  value,
+  onValueChange,
+  options,
+  id,
+  placeholder = "Select an option...",
+  disabled = false,
+  required = false,
+  ariaDescribedBy,
+  emptyText = "No options available.",
+  triggerClassName,
+  contentClassName,
+}: DropdownFieldProps) {
+  const triggerId = id ?? React.useId();
+  const selectedOption = options.find((option) => option.value === value);
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <label htmlFor={triggerId} className="text-label text-foreground">
+        {label}
+      </label>
+
+      <input type="hidden" name={name} value={value} />
+
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            id={triggerId}
+            type="button"
+            disabled={disabled}
+            aria-required={required}
+            aria-describedby={ariaDescribedBy}
+            className={cn(
+              textInputVariants({ variant: "form" }),
+              "cursor-pointer justify-between gap-2 pr-4.5 text-left",
+              !selectedOption && "text-accent",
+              disabled && "cursor-not-allowed opacity-50",
+              triggerClassName
+            )}
+          >
+            <span className="min-w-0 flex-1 truncate text-base">
+              {selectedOption?.label ?? placeholder}
+            </span>
+            <ChevronDownIcon className="size-4 shrink-0 text-accent" />
+          </button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="start"
+          className={cn("p-1", contentClassName)}
+          style={{ width: "var(--radix-dropdown-menu-trigger-width)" }}
+        >
+          {options.length === 0 ? (
+            <DropdownMenuItem disabled>{emptyText}</DropdownMenuItem>
+          ) : (
+            <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
+              {options.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.value || option.label}
+                  value={option.value}
+                  disabled={option.disabled}
+                >
+                  {option.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export {
+  DropdownField,
   DropdownMenu,
   DropdownMenuPortal,
   DropdownMenuTrigger,
@@ -268,4 +372,5 @@ export {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  type DropdownOption,
 };

@@ -7,6 +7,7 @@ import {
 } from "react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/Button";
+import { DropdownField, type DropdownOption } from "~/components/Dropdown";
 import { TextInput } from "~/components/TextInput";
 import { API_BASE_URL } from "~/config/constants";
 
@@ -51,11 +52,8 @@ type ActionSuccess = {
 type ActionError = { error: string };
 type ActionData = ActionSuccess | ActionError | undefined;
 
-const selectClassName =
-  "box-border flex h-10 w-full cursor-pointer appearance-none rounded-md border border-accent bg-transparent pl-4.5 pr-10 text-base text-foreground outline-none transition-shadow focus-visible:shadow-focus";
-
 /** Must match `USER_ROLES` in the API (`lead`, `researcher`, `trainee`, `admin`). */
-const INTENDED_ROLE_OPTIONS: { value: string; label: string }[] = [
+const INTENDED_ROLE_OPTIONS: DropdownOption[] = [
   { value: "", label: "No preference" },
   { value: "lead", label: "Lead" },
   { value: "researcher", label: "Researcher" },
@@ -143,8 +141,15 @@ export default function JoinOrgAppPage() {
   const [orgId, setOrgId] = useState("");
   const [unitId, setUnitId] = useState("");
 
-  const unitsResolved =
-    orgs.find((o) => o.id === orgId)?.units ?? [];
+  const orgOptions: DropdownOption[] = orgs.map((org) => ({
+    value: org.id,
+    label: org.name,
+  }));
+  const unitsResolved = orgs.find((o) => o.id === orgId)?.units ?? [];
+  const unitOptions: DropdownOption[] = unitsResolved.map((unit) => ({
+    value: unit.id,
+    label: unit.name,
+  }));
 
   useEffect(() => {
     setUnitId("");
@@ -172,7 +177,7 @@ export default function JoinOrgAppPage() {
                 <a
                   href={`/create-account?token=${encodeURIComponent(actionData.completeToken)}`}
                 >
-                  Open “set password” page
+                  Open "set password" page
                 </a>
               </Button>
             </div>
@@ -192,7 +197,7 @@ export default function JoinOrgAppPage() {
           Request to Join Organization
         </h2>
         <p>
-          Request access to your organization’s workspace. Once approved, you’ll
+          Request access to your organization's workspace. Once approved, you'll
           get a one-time magic link to register your account.
         </p>
       </div>
@@ -242,74 +247,47 @@ export default function JoinOrgAppPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <div className="flex flex-col gap-2 w-full">
-              <label htmlFor="intendedRole" className="text-label text-foreground">
-                Intended role (optional)
-              </label>
-              <select
-                id="intendedRole"
-                name="intendedRole"
-                className={selectClassName}
-                value={intendedRole}
-                onChange={(e) => setIntendedRole(e.target.value)}
-                aria-describedby="intended-role-hint"
-              >
-                {INTENDED_ROLE_OPTIONS.map((o) => (
-                  <option key={o.value || "none"} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DropdownField
+              id="intendedRole"
+              label="Intended role (optional)"
+              name="intendedRole"
+              value={intendedRole}
+              onValueChange={setIntendedRole}
+              options={INTENDED_ROLE_OPTIONS}
+            />
           </div>
         </div>
 
         <div className="flex w-full flex-col gap-4.5">
           <h3 className="font-semibold">Organization</h3>
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2 w-full">
-              <label htmlFor="orgId" className="text-label text-foreground">
-                Organization
-              </label>
-              <select
-                id="orgId"
-                name="orgId"
-                className={selectClassName}
-                value={orgId}
-                onChange={(e) => setOrgId(e.target.value)}
-                required
-                disabled={orgs.length === 0}
-              >
-                <option value="">Select organization…</option>
-                {orgs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DropdownField
+              id="orgId"
+              label="Organization"
+              name="orgId"
+              value={orgId}
+              onValueChange={setOrgId}
+              options={orgOptions}
+              placeholder="Select organization..."
+              required
+              disabled={orgOptions.length === 0}
+            />
 
             {orgId ? (
-              <div className="flex flex-col gap-2 w-full">
-                <label htmlFor="unitId" className="text-label text-foreground">
-                  Unit
-                </label>
-                <select
-                  id="unitId"
-                  name="unitId"
-                  className={selectClassName}
-                  value={unitId}
-                  onChange={(e) => setUnitId(e.target.value)}
-                  required
-                >
-                  <option value="">Select unit…</option>
-                  {unitsResolved.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <DropdownField
+                id="unitId"
+                label="Unit"
+                name="unitId"
+                value={unitId}
+                onValueChange={setUnitId}
+                options={unitOptions}
+                placeholder={
+                  unitOptions.length > 0 ? "Select unit..." : "No units available"
+                }
+                emptyText="No units available."
+                required
+                disabled={unitOptions.length === 0}
+              />
             ) : null}
           </div>
         </div>
