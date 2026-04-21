@@ -21,8 +21,11 @@ const PLAYHEAD_PREFETCH_WINDOW_SEC = 2.5;
 /** Minimum spacing between incremental `since` refreshes (ms). */
 const MIN_FETCH_GAP_MS = 750;
 
-/** Back off briefly after an empty `since` response while still processing (ms). */
-const EMPTY_RESULT_COOLDOWN_MS = 1_500;
+/** Back off after an empty or tiny incremental batch while pose streaming is still in flight (ms). */
+const STREAMING_BATCH_COOLDOWN_MS = 2_250;
+
+/** Minimum timestamp coverage gain that counts as a meaningful incremental batch while streaming (sec). */
+const MIN_STREAMING_BATCH_COVERAGE_SEC = 2;
 
 function normalizePoseStatus(raw: ReturnType<typeof getWorkerStepStatus>): PoseStatus {
   switch (raw) {
@@ -77,7 +80,7 @@ export function useKeypointSync(videoId: string | undefined) {
   const pendingTargetTimestampRef = useRef<number | null>(null);
   const pendingForceRef = useRef(false);
   const lastSinceRequestAtRef = useRef(0);
-  const emptyCooldownUntilRef = useRef(0);
+  const fetchCooldownUntilRef = useRef(0);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -116,7 +119,7 @@ export function useKeypointSync(videoId: string | undefined) {
           return false;
         }
 
-        if (now < emptyCooldownUntilRef.current) {
+        if (now < fetchCooldownUntilRef.current) {
           return false;
         }
       }
@@ -141,7 +144,8 @@ export function useKeypointSync(videoId: string | undefined) {
 
           if (rows.length === 0) {
             if (!receivedAny) {
-              emptyCooldownUntilRef.current = Date.now() + EMPTY_RESULT_COOLDOWN_MS;
+              fetchCooldownUntilRef.current =
+                Date.now() + STREAMING_BATCH_COOLDOWN_MS;
             }
             pendingDrainToEmptyRef.current = false;
             pendingTargetTimestampRef.current = null;
@@ -158,9 +162,26 @@ export function useKeypointSync(videoId: string | undefined) {
             break;
           }
 
+          const coverageGainSec = Math.max(
+            0,
+            lastRow.timestamp - cursorTimestamp,
+          );
+
           mergeRows(rows, { advanceCursor: true });
           receivedAny = true;
-          emptyCooldownUntilRef.current = 0;
+          fetchCooldownUntilRef.current = 0;
+
+          if (
+            isPoseStreaming(lastPoseStatusRef.current) &&
+            coverageGainSec < MIN_STREAMING_BATCH_COVERAGE_SEC
+          ) {
+            fetchCooldownUntilRef.current =
+              Date.now() + STREAMING_BATCH_COOLDOWN_MS;
+            pendingDrainToEmptyRef.current = false;
+            pendingTargetTimestampRef.current = null;
+            pendingForceRef.current = false;
+            break;
+          }
 
           await delay(PAGE_DELAY_MS);
         }
@@ -243,7 +264,7 @@ export function useKeypointSync(videoId: string | undefined) {
     pendingForceRef.current = false;
     activeSyncPromiseRef.current = null;
     lastSinceRequestAtRef.current = 0;
-    emptyCooldownUntilRef.current = 0;
+    fetchCooldownUntilRef.current = 0;
 
     const abort = new AbortController();
     abortRef.current = abort;
@@ -268,7 +289,7 @@ export function useKeypointSync(videoId: string | undefined) {
       pendingForceRef.current = false;
       activeSyncPromiseRef.current = null;
       lastSinceRequestAtRef.current = 0;
-      emptyCooldownUntilRef.current = 0;
+      fetchCooldownUntilRef.current = 0;
     };
   }, [reset, startPolling, stopPolling, syncSince, videoId]);
 
