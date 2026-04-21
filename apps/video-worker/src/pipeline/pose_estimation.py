@@ -292,9 +292,20 @@ class PoseEstimation:
         temp_video_path = temp_video.name
         urllib.request.urlretrieve(video_url, temp_video_path)
 
-      # Decode video with GPU or CPU
-      ctx = gpu(0) if torch.cuda.is_available() else cpu(0)
-      vr = VideoReader(temp_video_path, ctx=ctx)
+      # Prefer GPU decode when available, but gracefully fall back to CPU
+      # when decord was built without CUDA support.
+      use_gpu_decode = torch.cuda.is_available()
+      if use_gpu_decode:
+        try:
+          vr = VideoReader(temp_video_path, ctx=gpu(0))
+        except Exception as e:
+          logger.warn(
+            "GPU video decode unavailable in decord; falling back to CPU decode: "
+            f"{e}"
+          )
+          vr = VideoReader(temp_video_path, ctx=cpu(0))
+      else:
+        vr = VideoReader(temp_video_path, ctx=cpu(0))
 
       total_frames = len(vr)
       self.frame_width  = vr[0].shape[1]

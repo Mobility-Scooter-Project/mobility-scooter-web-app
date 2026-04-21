@@ -8,7 +8,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const formData = await parseFormData(request, uploadHandler);
     const object = formData.get("file") as File;
 
-    const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT, "Content-Length": object.size.toString() });
+    const client = getApiClient({ "Content-Length": object.size.toString() }) as any;
     const bucketName = "web-bucket";
     const filePath = encodeURIComponent(`videos/Test.mp4`);
 

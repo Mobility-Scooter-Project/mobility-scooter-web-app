@@ -2,7 +2,7 @@ import { useLoaderData } from "react-router";
 import { getApiClient } from "~/lib/api";
 
 export async function loader() {
-    const client = getApiClient({ "X-User": process.env.TESTING_USER_JWT });
+    const client = getApiClient() as any;
     const res = await client.api.v1.storage["presigned-url"].$post({
         json: {
             filePath: "videos/Test.mp4",
