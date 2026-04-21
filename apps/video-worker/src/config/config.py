@@ -30,11 +30,11 @@ WHISPERX_SIZES = [
     "large-v2",
 ]
 
-WHISPERX_SIZE = "base" # large-v2 for GPU, base for CPU
+WHISPERX_SIZE = "base" 
 
 # Transcription batch size and compute type
-BATCH_SIZE = 1 # 16 for GPU, 1 for CPU
-COMPUTE_TYPE = "float32" # float16 for GPU, float32 for CPU
+BATCH_SIZE = 16 # 16 for GPU, 1 for CPU
+COMPUTE_TYPE = "float16" # float16 for GPU, float32 for CPU
 
 # WhisperX VAD (voice activity detection) options
 VAD_ONSET = 0.700
@@ -42,7 +42,7 @@ VAD_OFFSET = 0.500
 
 # Pose estimation (YOLO)
 POSE_MODEL = "yolo11n-pose.pt"
-POSE_BATCH_SIZE = 1 # 4 for GPU, 1 for CPU
+POSE_BATCH_SIZE = 4 # 4 for GPU, 1 for CPU
 POSE_FRAME_SKIP = 6 # process every 6 frames to reduce database writes => 5 frames per second
 MAX_FRAMES = None # keep at 300 for short testing, None for production
 
