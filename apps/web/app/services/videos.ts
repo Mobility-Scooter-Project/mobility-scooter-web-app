@@ -142,6 +142,30 @@ export const videoService = {
     return parseVideoUrlResponse(body);
   },
 
+  getThumbnail: async (
+    videoId: string,
+    timestamp: number,
+    signal?: AbortSignal,
+  ): Promise<Blob> => {
+    const params = new URLSearchParams({
+      timestamp: String(Math.max(0, timestamp)),
+    });
+
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/videos/${videoId}/thumbnail?${params.toString()}`,
+      {
+        headers: authHeaders(),
+        signal,
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch video thumbnail: ${res.status}`);
+    }
+
+    return res.blob();
+  },
+
   getVideo: async (videoId: string): Promise<VideoRecord> => {
     const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}`, {
       headers: authHeaders(),

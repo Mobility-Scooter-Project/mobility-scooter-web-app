@@ -1,6 +1,7 @@
 // app/components/session/analysis/chapters/ChapterCard.tsx
 
 import { memo, useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { TextArea } from "~/components/TextArea";
 import { Button } from "~/components/Button";
 import { TimeInput } from "../../common/TimeInput";
@@ -11,6 +12,9 @@ import { cn } from "~/lib/utils";
 import { validateTimeBoundary } from "~/lib/timeline-calculations";
 import type { Chapter } from "~/data/mock-session-data";
 import { useVideoStore } from "~/stores/useVideoStore";
+import { selectActiveView, useSessionStore } from "~/stores/useSessionStore";
+import { useChapterStore } from "~/stores/useChapterStore";
+import { useChapterThumbnail } from "./useChapterThumbnail";
 
 interface ChapterCardProps {
   data: Chapter;
@@ -33,6 +37,14 @@ export const ChapterCard = memo(
     const cardRef = useRef<HTMLDivElement>(null);
     const videoDuration = useVideoStore((state) => state.duration);
     const seekTo = useVideoStore((state) => state.actions.seekTo);
+    const videoId = useChapterStore((state) => state.videoId);
+    const activeView = useSessionStore(selectActiveView);
+    const { thumbnailUrl, isLoading } = useChapterThumbnail({
+      videoId,
+      timestamp: data.timestamp,
+      fallbackUrl: data.thumbnailUrl,
+      enabled: Boolean(videoId && !activeView?.uploading && !activeView?.uploadError),
+    });
 
     useAutoDeselect(cardRef, isSelected, onDeselect);
 
@@ -71,14 +83,20 @@ export const ChapterCard = memo(
         className="gap-y-4.5"
       >
         {/* Thumbnail (and settings) */}
-        <div className="flex items-start justify-between">
-          {data.thumbnailUrl && (
+        <div className="flex items-start justify-between gap-3">
+          <div className="relative w-full max-w-60 min-w-0 overflow-hidden rounded-sm">
             <img
-              src={data.thumbnailUrl}
+              src={thumbnailUrl}
               alt={data.title || "Chapter thumbnail"}
-              className="rounded-sm object-cover aspect-video w-full max-w-60 min-w-0"
+              className="aspect-video w-full object-cover"
             />
-          )}
+
+            {isLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/55">
+                <Loader2 className="size-4 animate-spin text-foreground" />
+              </div>
+            ) : null}
+          </div>
 
           <AnalysisCardSettings onDelete={onDelete} />
         </div>
