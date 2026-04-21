@@ -1,4 +1,4 @@
-﻿import { API_BASE_URL, UNIT_ID } from "~/config/constants";
+﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
 
 /** Response shape returned by GET /api/v1/units/:unitId/sessions */
@@ -41,13 +41,24 @@ function authHeaders(): HeadersInit {
   };
 }
 
+async function resolveUnitId(): Promise<string> {
+  const { user, fetchUser } = userAuthStore.getState();
+  if (user?.unitId) return user.unitId;
+
+  const refreshedUser = await fetchUser();
+  if (refreshedUser?.unitId) return refreshedUser.unitId;
+
+  throw new Error("User is missing unit assignment.");
+}
+
 export const sessionService = {
   /**
    * GET /api/v1/units/:unitId/sessions
    * Fetches all sessions for the current unit.
    */
   getAll: async (): Promise<SessionListItem[]> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions`, {
+    const unitId = await resolveUnitId();
+    const res = await fetch(`${API_BASE_URL}/api/v1/units/${unitId}/sessions`, {
       headers: authHeaders(),
     });
 
@@ -66,7 +77,8 @@ export const sessionService = {
    * @returns The created session's ID and resolved patient UUID
    */
   create: async (dto: CreateSessionDto): Promise<CreateSessionResponse> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions`, {
+    const unitId = await resolveUnitId();
+    const res = await fetch(`${API_BASE_URL}/api/v1/units/${unitId}/sessions`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(dto),
@@ -89,8 +101,9 @@ export const sessionService = {
   getSessionVideos: async (
     sessionId: string,
   ): Promise<SessionVideoItem[]> => {
+    const unitId = await resolveUnitId();
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/units/${UNIT_ID}/sessions/${sessionId}/videos`,
+      `${API_BASE_URL}/api/v1/units/${unitId}/sessions/${sessionId}/videos`,
       { headers: authHeaders() },
     );
 

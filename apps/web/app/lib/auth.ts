@@ -16,6 +16,7 @@ type User = {
   title: string | null;
   phoneNumber: string | null;
   city: string | null;
+  unitId: string | null;
 };
 
 /**
