@@ -182,6 +182,13 @@ type SessionStore = {
   };
 };
 
+export function selectActiveView(state: SessionStore): View | null {
+  const activeSession = state.sessions.find(
+    (session) => session.id === state.activeSessionId,
+  );
+  return activeSession?.views.find((view) => view.id === state.activeViewId) ?? null;
+}
+
 /**
  * Manages the list of sessions, active session selection, and view creation.
  * Session metadata is fetched from and persisted to the backend API.

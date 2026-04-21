@@ -8,7 +8,13 @@ const STAGE_TOGGLES: Array<{ key: StageOverlayKey; label: string }> = [
   { key: "points", label: "Points" },
 ];
 
-export function VideoStageToggles() {
+interface VideoStageTogglesProps {
+  disabled?: boolean;
+}
+
+export function VideoStageToggles({
+  disabled = false,
+}: VideoStageTogglesProps) {
   const enabledOverlays = useOverlayStore((s) => s.enabledOverlays);
   const toggleOverlay = useOverlayStore((s) => s.actions.toggleOverlay);
 
@@ -19,6 +25,12 @@ export function VideoStageToggles() {
           key={toggle.key}
           pressed={enabledOverlays[toggle.key]}
           onPressedChange={() => toggleOverlay(toggle.key)}
+          disabled={disabled}
+          title={
+            disabled
+              ? "Overlays unlock automatically once pose data is ready."
+              : undefined
+          }
           className="text-foreground inset-ring-2 inset-ring-accent"
         >
           {toggle.label}

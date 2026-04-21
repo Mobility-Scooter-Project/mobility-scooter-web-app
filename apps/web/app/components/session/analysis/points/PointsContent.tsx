@@ -5,13 +5,15 @@ import {
   selectAllPointsVisible,
   usePointStore,
 } from "~/stores/usePointsStore";
+import { useKeypointStore } from "~/stores/useKeypointStore";
+import { selectActiveView, useSessionStore } from "~/stores/useSessionStore";
 import {
   PanelScrollArea,
   PanelSection,
   PanelSectionBody,
   PanelSectionHeader,
 } from "../../common/PanelSection";
-
+import { ProcessingNotice } from "../../common/ProcessingNotice";
 /**
  * Tab content for the Points section in the Analysis Panel.
  *
@@ -20,9 +22,18 @@ import {
  */
 export function PointsContent() {
   const allPointsVisible = usePointStore(selectAllPointsVisible);
+  const points = usePointStore((state) => state.points);
   const toggleAllVisibility = usePointStore(
     (state) => state.actions.toggleAllVisibility,
   );
+  const poseStatus = useKeypointStore((state) => state.poseStatus);
+  const activeView = useSessionStore(selectActiveView);
+
+  const showProcessingHint =
+    Boolean(activeView?.videoId) &&
+    !activeView?.uploading &&
+    points.length > 0 &&
+    (poseStatus === "pending" || poseStatus === "processing");
 
   return (
     <PanelSection>
@@ -35,7 +46,12 @@ export function PointsContent() {
 
       <PanelSectionBody>
         <PanelScrollArea>
-          <PointList />
+          <div className="flex flex-col gap-3">
+            {showProcessingHint ? (
+              <ProcessingNotice>Overlay data is still updating.</ProcessingNotice>
+            ) : null}
+            <PointList />
+          </div>
         </PanelScrollArea>
       </PanelSectionBody>
     </PanelSection>

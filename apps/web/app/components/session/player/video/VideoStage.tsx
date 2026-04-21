@@ -32,6 +32,8 @@ export function VideoStage({ activeView }: VideoStageProps) {
 
   const hasActiveView = Boolean(activeView);
   const hasPlaybackUrl = Boolean(playbackUrl);
+  const overlayControlsReady =
+    Boolean(activeView?.videoId) && hasPlaybackUrl && frames.length > 0;
 
   const handleVideoClick = useCallback(() => {
     const nextPlaying = !isPlaying;
@@ -44,8 +46,14 @@ export function VideoStage({ activeView }: VideoStageProps) {
   return (
     <section className="flex flex-col gap-y-3">
       <div className="flex items-center justify-between gap-4">
-        <VideoStageToggles />
-        {pipelineVisible && <PipelineProgress steps={pipelineSteps} />}
+        <VideoStageToggles disabled={!overlayControlsReady} />
+        {pipelineVisible && (
+          <PipelineProgress
+            steps={pipelineSteps}
+            playbackReady={hasPlaybackUrl}
+            overlaysReady={overlayControlsReady}
+          />
+        )}
       </div>
 
       <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black">
