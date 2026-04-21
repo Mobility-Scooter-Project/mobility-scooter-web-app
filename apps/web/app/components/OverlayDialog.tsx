@@ -40,6 +40,7 @@ export function OverlayDialog({
 
         {/* Content (center this directly) */}
         <DialogPrimitive.Content
+          aria-describedby={undefined}
           className={cn(
             "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
             "z-50 outline-none w-[calc(100%-2rem)]",
