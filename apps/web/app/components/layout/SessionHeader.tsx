@@ -1,5 +1,6 @@
 import { Button } from "~/components/Button";
 import { Icon } from "~/components/Icon";
+import { formatSessionTime } from "~/lib/session-date-time";
 import { useSessionStore } from "~/stores/useSessionStore";
 
 const HEADER_ITEM_CLASS = "px-4 whitespace-nowrap";
@@ -38,7 +39,14 @@ export function SessionHeader() {
 
         <div className="flex items-center gap-3">
           {activeSession?.date ? (
-            <span className={HEADER_ITEM_CLASS}>{activeSession.date}</span>
+            <div className="flex items-center gap-3">
+              <span className={HEADER_ITEM_CLASS}>{activeSession.date}</span>
+              {activeSession.time ? (
+                <span className={`${HEADER_ITEM_CLASS} text-foreground`}>
+                  {formatSessionTime(activeSession.time)}
+                </span>
+              ) : null}
+            </div>
           ) : null}
           <Button
             variant="ghost"
