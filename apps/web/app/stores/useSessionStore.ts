@@ -2,6 +2,10 @@ import { create } from "zustand";
 import { type Session, type View } from "~/data/mock-session-data";
 import { sessionService } from "~/services/sessions";
 import { videoService } from "~/services/videos";
+import {
+  formatSessionDate,
+  normalizeSessionTime,
+} from "~/lib/session-date-time";
 
 const VIEW_TITLE_SAVE_DELAY_MS = 1_200;
 
@@ -67,14 +71,6 @@ function updateViewByVideoId(
 
 function isRemoteVideoUrl(url: string): boolean {
   return Boolean(url) && !url.startsWith("blob:");
-}
-
-/**
- * Converts an API session date (YYYY-MM-DD) to the display format (MM/DD/YYYY).
- */
-function formatSessionDate(isoDate: string): string {
-  const [year, month, day] = isoDate.split("-");
-  return `${month}/${day}/${year}`;
 }
 
 function resolveViewLabel(title: string, fileName: string): string {
@@ -170,6 +166,7 @@ type SessionStore = {
     addSession: (data: {
       patientId: string;
       date: Date;
+      time: string;
       media: MediaInput[];
     }) => Promise<string>;
     addView: (sessionId: string, media: MediaInput[]) => Promise<string>;
@@ -181,6 +178,13 @@ type SessionStore = {
     markAsRead: (sessionId: string) => void;
   };
 };
+
+export function selectActiveView(state: SessionStore): View | null {
+  const activeSession = state.sessions.find(
+    (session) => session.id === state.activeSessionId,
+  );
+  return activeSession?.views.find((view) => view.id === state.activeViewId) ?? null;
+}
 
 /**
  * Manages the list of sessions, active session selection, and view creation.
@@ -241,6 +245,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
             patientId: item.patientId,
             patientUuid: item.patientUuid,
             date: formatSessionDate(item.sessionDate),
+            time: normalizeSessionTime(item.sessionTime),
             notification: prev?.notification ?? false,
             views: prev?.views ?? [],
           };
@@ -328,10 +333,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           String(data.date.getDate()).padStart(2, "0"),
         ].join("-");
 
-        const sessionTime = [
-          String(data.date.getHours()).padStart(2, "0"),
-          String(data.date.getMinutes()).padStart(2, "0"),
-        ].join(":");
+        const sessionTime = normalizeSessionTime(data.time);
 
         const result = await sessionService.create({
           patientId: data.patientId,
@@ -352,6 +354,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           patientId: data.patientId,
           patientUuid: result.patientUuid,
           date: formatSessionDate(sessionDate),
+          time: sessionTime,
           notification: false,
           views,
         };

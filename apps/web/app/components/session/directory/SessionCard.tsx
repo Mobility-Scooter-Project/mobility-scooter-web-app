@@ -1,10 +1,13 @@
 import { Icon } from "~/components/Icon";
 import { Button } from "~/components/Button";
+import { formatSessionTime } from "~/lib/session-date-time";
 import { cn } from "~/lib/utils";
 
 interface SessionCardProps {
   /* Display date for the session (e.g. "08/15/2024") */
   date: string;
+  /* Raw session time for the card (e.g. "14:30") */
+  time?: string;
   /* Whether this session is currently active (selected) */
   isActive: boolean;
   /* Whether this session has an unread notification (e.g. new data since last viewed) */
@@ -25,6 +28,7 @@ interface SessionCardProps {
  */
 export function SessionCard({
   date,
+  time,
   isActive,
   hasNotification,
   onClick,
@@ -44,11 +48,18 @@ export function SessionCard({
     >
       <div className="flex items-center gap-3">
         <Icon name="FilePlay" strokeWidth={hasNotification ? 2 : 1} />
-        <span
-          className={cn("text-headline", !hasNotification && "font-normal")}
-        >
-          {date}
-        </span>
+        <div className="flex flex-col items-start">
+          <span
+            className={cn("text-headline", !hasNotification && "font-normal")}
+          >
+            {date}
+          </span>
+          {time ? (
+            <span className="text-xs text-foreground">
+              {formatSessionTime(time)}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {hasNotification && (

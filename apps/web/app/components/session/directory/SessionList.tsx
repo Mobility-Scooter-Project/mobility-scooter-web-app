@@ -41,6 +41,7 @@ export function SessionList({
         <SessionCard
           key={session.id}
           date={session.date}
+          time={session.time}
           isActive={activeSessionId === session.id}
           hasNotification={session.notification}
           onClick={() => handleSelection(session)}

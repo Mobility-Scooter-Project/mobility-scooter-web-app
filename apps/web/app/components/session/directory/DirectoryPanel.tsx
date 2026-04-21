@@ -7,6 +7,7 @@ import { TextInput } from "~/components/TextInput";
 import { useSessionStore } from "~/stores/useSessionStore";
 import { SessionList } from "~/components/session/directory/SessionList";
 import { NewSessionDialog } from "~/components/session/directory/NewSessionDialog";
+import { formatSessionTime } from "~/lib/session-date-time";
 import {
   PanelScrollArea,
   PanelSection,
@@ -27,9 +28,18 @@ export function DirectoryPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredSessions = sessions.filter((s) =>
-    s.date.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const normalizedQuery = searchQuery.toLowerCase();
+  const filteredSessions = sessions.filter((session) => {
+    const searchText = [
+      session.date,
+      formatSessionTime(session.time),
+      session.time ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return searchText.includes(normalizedQuery);
+  });
 
   return (
     <PanelSection className="p-4.5">

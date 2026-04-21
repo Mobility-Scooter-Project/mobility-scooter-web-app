@@ -63,6 +63,7 @@ export type Session = {
   patientId?: string;
   patientUuid?: string;
   date: string;
+  time?: string;
   notification: boolean;
   views: View[];
 };

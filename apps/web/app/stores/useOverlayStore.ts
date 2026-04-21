@@ -10,7 +10,7 @@ interface OverlayStore {
 }
 
 const DEFAULT_OVERLAYS: Record<StageOverlayKey, boolean> = {
-  gait: true,
+  gait: false,
   sway: false,
   points: false,
 };

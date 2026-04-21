@@ -1,3 +1,4 @@
+import { AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 export type StepStatus = "pending" | "active" | "completed" | "failed";
@@ -10,54 +11,62 @@ interface Step {
 interface PipelineProgressProps {
   steps: Step[];
   className?: string;
+  playbackReady?: boolean;
+  overlaysReady?: boolean;
 }
 
-/**
- * A minimal text-based progress indicator that shows the current pipeline step.
- * Displays "Step X/N - label..." with a pulsing animation.
- */
+function getStatusMessage(
+  steps: Step[],
+  playbackReady: boolean,
+  overlaysReady: boolean,
+) {
+  const failedStep = steps.find((step) => step.status === "failed");
+  if (failedStep) {
+    return "Processing failed";
+  }
+
+  const chapterStep = steps[2];
+  const chaptersReady = chapterStep?.status === "completed";
+
+  if (!playbackReady) {
+    return "Uploading";
+  }
+
+  if (overlaysReady && !chaptersReady) {
+    return "Generating chapters";
+  }
+
+  if (!overlaysReady) {
+    return "Analyzing";
+  }
+
+  return "Processing";
+}
+
 export function PipelineProgress({
   steps,
   className,
+  playbackReady = false,
+  overlaysReady = false,
 }: PipelineProgressProps) {
-  const activeIndex = steps.findIndex((step) => step.status === "active");
-  const pendingIndex =
-    activeIndex === -1
-      ? steps.findIndex((step) => step.status === "pending")
-      : -1;
   const failedIndex = steps.findIndex((step) => step.status === "failed");
-
-  if (failedIndex !== -1) {
-    const step = steps[failedIndex];
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1.5 text-xs text-foreground",
-          className,
-        )}
-      >
-        <span>
-          Step {failedIndex + 1}/{steps.length} - {step.label} failed
-        </span>
-      </span>
-    );
-  }
-
-  const visibleIndex = activeIndex !== -1 ? activeIndex : pendingIndex;
-  if (visibleIndex === -1) return null;
-
-  const step = steps[visibleIndex];
+  const label = getStatusMessage(steps, playbackReady, overlaysReady);
 
   return (
     <span
+      role="status"
+      aria-live="polite"
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs text-muted-foreground",
+        "inline-flex min-w-0 items-center gap-1.5 text-label text-foreground",
         className,
       )}
     >
-      <span className="animate-pulse">
-        Step {visibleIndex + 1}/{steps.length} - {step.label}
-      </span>
+      {failedIndex !== -1 ? (
+        <AlertCircle className="size-3.5 shrink-0 text-destructive" />
+      ) : (
+        <Loader2 className="size-3.5 shrink-0 animate-spin" />
+      )}
+      <span className={cn(failedIndex !== -1 && "text-destructive")}>{label}</span>
     </span>
   );
 }
