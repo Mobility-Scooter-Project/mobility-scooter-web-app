@@ -45,20 +45,32 @@ describe('MeService', () => {
   describe('getProfile', () => {
     it('should return user profile', async () => {
       const userId = '12345';
-      const mockProfile = {
+      const dbUser = {
         id: userId,
-        name: 'Test User',
         email: 'test@example.com',
+        givenName: 'Test',
+        surname: 'User',
         phoneNumber: '1234567890',
         title: 'Mr.',
         role: 'admin',
         city: 'Test City',
+        unit: { id: 'unit-1' },
       };
-      userRepo.findOne = jest.fn().mockResolvedValue(mockProfile);
+      userRepo.findOne = jest.fn().mockResolvedValue(dbUser);
 
       const profile = await service.getProfile(userId);
 
-      expect(profile).toEqual(mockProfile);
+      expect(profile).toEqual({
+        id: userId,
+        email: 'test@example.com',
+        givenName: 'Test',
+        surname: 'User',
+        phoneNumber: '1234567890',
+        title: 'Mr.',
+        role: 'admin',
+        city: 'Test City',
+        unitId: 'unit-1',
+      });
     });
   });
 
@@ -66,25 +78,37 @@ describe('MeService', () => {
     it('should update and return user profile', async () => {
       const userId = '12345';
       const updateData = {
-        name: 'Updated User',
+        givenName: 'Updated',
+        surname: 'User',
         phoneNumber: '0987654321',
         title: 'Ms.',
         city: 'Updated City',
       };
-      const updatedProfile = {
+      const dbUser = {
         id: userId,
         email: 'test@example.com',
         ...updateData,
         role: 'admin',
+        unit: { id: 'unit-2' },
       };
 
       userRepo.update = jest.fn().mockResolvedValue(undefined);
-      userRepo.findOne = jest.fn().mockResolvedValue(updatedProfile);
+      userRepo.findOne = jest.fn().mockResolvedValue(dbUser);
 
       const profile = await service.updateProfile(userId, updateData);
 
       expect(userRepo.update).toHaveBeenCalledWith({ id: userId }, updateData);
-      expect(profile).toEqual(updatedProfile);
+      expect(profile).toEqual({
+        id: userId,
+        email: 'test@example.com',
+        givenName: 'Updated',
+        surname: 'User',
+        phoneNumber: '0987654321',
+        title: 'Ms.',
+        role: 'admin',
+        city: 'Updated City',
+        unitId: 'unit-2',
+      });
     });
   });
 
