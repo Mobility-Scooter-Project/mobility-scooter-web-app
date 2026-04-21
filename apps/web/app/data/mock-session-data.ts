@@ -47,6 +47,8 @@ export type View = {
   videoId?: string;
   label: string;
   videoUrl: string;
+  /** Remote playback URL, fetched from the API when available. */
+  remoteVideoUrl?: string;
   chapters: Chapter[];
   points: Point[];
   annotations: Annotation[];

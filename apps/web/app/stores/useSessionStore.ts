@@ -127,6 +127,7 @@ function buildUploadingViews(media: CreatedMedia[]): View[] {
     videoId: entry.videoId,
     label: entry.title,
     videoUrl: URL.createObjectURL(entry.file),
+    remoteVideoUrl: "",
     points: [],
     chapters: [],
     annotations: [],
@@ -200,9 +201,11 @@ export const useSessionStore = create<SessionStore>((set, get) => {
       })),
     }));
 
-    if (!failed) {
-      void get().actions.refreshViewVideoUrl(videoId);
+    if (failed) {
+      return;
     }
+
+    void get().actions.refreshViewVideoUrl(videoId);
   };
 
   return {
@@ -280,6 +283,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           videoId: item.videoId,
           label: resolveViewLabel(item.title, item.fileName),
           videoUrl: "",
+          remoteVideoUrl: "",
           points: [],
           chapters: [],
           annotations: [],
@@ -301,10 +305,14 @@ export const useSessionStore = create<SessionStore>((set, get) => {
       ensureViewVideoUrl: async (videoId, force = false) => {
         const currentView = findViewByVideoId(get().sessions, videoId);
         if (!currentView) return;
+        if (!force && currentView.uploading) {
+          return;
+        }
+        const hasBlobPlayback = currentView.videoUrl.startsWith("blob:");
         if (
           !force &&
           (isRemoteVideoUrl(currentView.videoUrl) ||
-            currentView.videoUrl.startsWith("blob:"))
+            (hasBlobPlayback && Boolean(currentView.remoteVideoUrl)))
         ) {
           return;
         }
@@ -314,7 +322,11 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           set((state) => ({
             sessions: updateViewByVideoId(state.sessions, videoId, (view) => ({
               ...view,
-              videoUrl: url,
+              remoteVideoUrl: url,
+              videoUrl:
+                !force && view.videoUrl.startsWith("blob:")
+                  ? view.videoUrl
+                  : url,
             })),
           }));
         } catch (error) {

@@ -1,8 +1,12 @@
 import { useEffect, useRef, type RefObject, type SyntheticEvent } from "react";
+import { useSessionStore } from "~/stores/useSessionStore";
 import { useVideoStore } from "~/stores/useVideoStore";
+
+const VIDEO_SOURCE_RETRY_MS = 5_000;
 
 export function useVideoSync(
   videoRef: RefObject<HTMLVideoElement | null>,
+  videoId: string | undefined,
   activeViewId: string | undefined,
   playbackUrl: string | undefined,
 ) {
@@ -17,8 +21,44 @@ export function useVideoSync(
     setIsPlaying,
     setIsVideoLoading,
   } = useVideoStore((state) => state.actions);
+  const refreshViewVideoUrl = useSessionStore(
+    (state) => state.actions.refreshViewVideoUrl,
+  );
 
   const sourceReloadingRef = useRef(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearRetryTimer = () => {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  };
+
+  const scheduleSourceRetry = () => {
+    if (
+      retryTimerRef.current ||
+      !videoId ||
+      !playbackUrl ||
+      playbackUrl.startsWith("blob:")
+    ) {
+      return;
+    }
+
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      void refreshViewVideoUrl(videoId);
+    }, VIDEO_SOURCE_RETRY_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -58,15 +98,18 @@ export function useVideoSync(
     if (!video) {
       sourceReloadingRef.current = false;
       setIsVideoLoading(false);
+      clearRetryTimer();
       return;
     }
 
     if (!playbackUrl) {
       sourceReloadingRef.current = false;
       setIsVideoLoading(false);
+      clearRetryTimer();
       return;
     }
 
+    clearRetryTimer();
     sourceReloadingRef.current = true;
     setIsVideoLoading(true);
     video.load();
@@ -76,6 +119,7 @@ export function useVideoSync(
     const video = videoRef.current;
     setCurrentTime(0);
     setDuration(0);
+    clearRetryTimer();
 
     if (!video) return;
 
@@ -85,6 +129,7 @@ export function useVideoSync(
   }, [activeViewId, setCurrentTime, setDuration, videoRef]);
 
   const resumePlaybackIfNeeded = (video: HTMLVideoElement) => {
+    clearRetryTimer();
     sourceReloadingRef.current = false;
     video.playbackRate = playbackRate;
 
@@ -122,6 +167,7 @@ export function useVideoSync(
       setCurrentTime(event.currentTarget.currentTime),
     onPlay: () => setIsPlaying(true),
     onPlaying: () => {
+      clearRetryTimer();
       sourceReloadingRef.current = false;
       setIsPlaying(true);
       setIsVideoLoading(false);
@@ -139,6 +185,7 @@ export function useVideoSync(
     onError: () => {
       sourceReloadingRef.current = false;
       setIsVideoLoading(false);
+      scheduleSourceRetry();
     },
   };
 }
