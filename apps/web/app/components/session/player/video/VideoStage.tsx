@@ -28,7 +28,12 @@ export function VideoStage({ activeView }: VideoStageProps) {
     activeView?.videoId,
     activeView?.videoUrl,
   );
-  const videoHandlers = useVideoSync(videoRef, activeView?.id, playbackUrl);
+  const videoHandlers = useVideoSync(
+    videoRef,
+    activeView?.videoId,
+    activeView?.id,
+    playbackUrl,
+  );
 
   const hasActiveView = Boolean(activeView);
   const hasPlaybackUrl = Boolean(playbackUrl);
