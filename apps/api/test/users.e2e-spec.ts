@@ -3,8 +3,7 @@ import { TestingModule, Test } from '@nestjs/testing';
 import { AppModule } from '@src/routes/app.module';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import dotenv from 'dotenv';
-dotenv.config();
+import { USER_ROLES } from '@config/enums';
 
 describe('UserController (e2e)', () => {
   let app: INestApplication<App>;
@@ -26,16 +25,19 @@ describe('UserController (e2e)', () => {
       .send({ email: 'test@example.com', password: 'testing124' })
       .expect(201);
     token = response.body.token;
-    unitId = process.env.TESTING_UNIT_ID || 'missing';
-    expect(unitId).not.toBe('missing');
-
-    const profileResponse = await request(app.getHttpServer())
-      .get(`/units/${unitId}/users`)
+    unitId = await request(app.getHttpServer())
+      .get('/me')
       .set({ authorization: `Bearer ${token}` })
       .expect(200)
-      .then((res) => res.body[0].id);
-    userId = profileResponse;
-    expect(userId).not.toBe('');
+      .then((res) => res.body.unitId as string | null);
+    expect(unitId).toBeTruthy();
+
+    userId = await request(app.getHttpServer())
+      .get('/me')
+      .set({ authorization: `Bearer ${token}` })
+      .expect(200)
+      .then((res) => res.body.id as string);
+    expect(userId).toBeTruthy();
   });
 
   it('GET /units/:unitId/users', async () => {
@@ -61,8 +63,34 @@ describe('UserController (e2e)', () => {
   });
 
   it('DELETE /units/:unitId/users/:userId', async () => {
+    const inviteeEmail = `delete-target-${Math.floor(
+      Math.random() * 1_000_000,
+    )}@example.com`;
+    const inviteToken = await request(app.getHttpServer())
+      .post(`/units/${unitId}/invite`)
+      .set({ authorization: `Bearer ${token}` })
+      .send({ email: inviteeEmail, role: USER_ROLES.TRAINEE })
+      .expect(201)
+      .then((res) => res.body.token as string);
+
+    await request(app.getHttpServer())
+      .post(`/units/invites/${inviteToken}`)
+      .expect(201);
+
+    const targetUserId = await request(app.getHttpServer())
+      .get(`/units/${unitId}/users`)
+      .set({ authorization: `Bearer ${token}` })
+      .expect(200)
+      .then((res) => {
+        const invitedUser = (res.body as Array<{ id: string; email: string }>).find(
+          (user) => user.email === inviteeEmail,
+        );
+        return invitedUser?.id ?? '';
+      });
+    expect(targetUserId).toBeTruthy();
+
     return await request(app.getHttpServer())
-      .delete(`/units/${unitId}/users/${userId}`)
+      .delete(`/units/${unitId}/users/${targetUserId}`)
       .set({ authorization: `Bearer ${token}` })
       .expect(200);
   });

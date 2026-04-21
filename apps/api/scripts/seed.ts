@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import { exit } from "process";
 import db from "datasource";
 import { Org } from "@src/infra/db/entity/org/org";
@@ -10,56 +8,10 @@ import { UserIdentity } from "@src/infra/db/entity/user/identity";
 import { APPLICATION_STATUS, USER_ROLES } from "@config/enums";
 import type { Repository } from "typeorm";
 
-const SEED_ORG_NAME = "Test Org";
-const SEED_UNIT_NAME = "Test Unit";
+const SEED_ORG_NAME = "Casa Colina Hospital";
+const SEED_UNIT_NAME = "Research Unit";
 const SEED_USER_EMAIL = "test@example.com";
 const SEED_USER_PASSWORD = "testing124";
-
-/**
- * Upserts a KEY=VALUE line in an .env file.
- * If the key already exists, replaces its value (and removes duplicates).
- * If the key does not exist, appends it.
- */
-function upsertEnvVar(envPath: string, key: string, value: string) {
-  let content = "";
-  if (fs.existsSync(envPath)) {
-    content = fs.readFileSync(envPath, "utf-8");
-  }
-
-  const lines = content.split("\n");
-  const pattern = new RegExp(`^${key}=`);
-  const filtered = lines.filter((line) => !pattern.test(line));
-  filtered.push(`${key}=${value}`);
-  const result = filtered
-    .filter((l, i, arr) => {
-      return l.trim() !== "" || i < arr.length - 1;
-    })
-    .join("\n")
-    .replace(/\n*$/, "\n");
-
-  fs.writeFileSync(envPath, result);
-}
-
-/**
- * Writes the unit ID to both the API .env (TESTING_UNIT_ID)
- * and the web .env (VITE_UNIT_ID) so they stay in sync.
- */
-function syncUnitId(unitId: string) {
-  const apiEnvPath = path.resolve(__dirname, "../.env");
-  const webEnvPath = path.resolve(__dirname, "../../web/.env");
-
-  upsertEnvVar(apiEnvPath, "TESTING_UNIT_ID", unitId);
-  console.log(`  → API .env: TESTING_UNIT_ID=${unitId}`);
-
-  if (fs.existsSync(webEnvPath)) {
-    upsertEnvVar(webEnvPath, "VITE_UNIT_ID", unitId);
-    console.log(`  → Web .env: VITE_UNIT_ID=${unitId}`);
-  } else {
-    console.log(
-      `  → Web .env not found at ${webEnvPath}, skipping VITE_UNIT_ID sync`,
-    );
-  }
-}
 
 async function main() {
   try {
@@ -86,8 +38,6 @@ async function main() {
         `Seed tenant already exists (${SEED_ORG_NAME} / ${SEED_UNIT_NAME}).`,
       );
       await ensureTestUser(existingUnit, userRepository, userIdentityRepository);
-      console.log(`TESTING_UNIT_ID=${existingUnit.id}`);
-      syncUnitId(existingUnit.id);
       exit(0);
     }
 
@@ -120,8 +70,6 @@ async function main() {
 
     console.log(`Successfully seeded ${SEED_ORG_NAME} / ${SEED_UNIT_NAME}`);
     await ensureTestUser(unit, userRepository, userIdentityRepository);
-    console.log(`TESTING_UNIT_ID=${unit.id}`);
-    syncUnitId(unit.id);
     exit(0);
   } catch (e) {
     console.error(`Seed failed: ${e}`);
