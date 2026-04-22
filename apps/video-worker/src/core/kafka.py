@@ -96,8 +96,10 @@ class KafkaActor:
         transcript_get_url = data["transcriptGetUrl"]
         video_title = data.get("title", "")
         filename = data["filename"]
-        # if not provided, set all steps
-        steps = set(data.get("steps", [])) or ALL_STEPS
+        requested_steps = data.get("steps")
+
+        # If steps are not provided, start from a fresh copy of ALL_STEPS
+        steps = set(requested_steps) if requested_steps else set(ALL_STEPS)
         source = f"{video_title} {filename}".lower()
         if "front" not in source:
           steps.discard("pose_estimation")
