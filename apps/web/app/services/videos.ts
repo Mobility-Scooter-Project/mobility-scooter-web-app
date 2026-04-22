@@ -1,5 +1,6 @@
 ﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 
 /** Response shape returned by POST /api/v1/videos/upload */
 type VideoMetadataResponse = {
@@ -84,19 +85,21 @@ export const videoService = {
     file: Pick<File, "name" | "type">,
     title?: string,
   ): Promise<VideoMetadataResponse> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/upload`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders(),
-      },
-      body: JSON.stringify({
-        sessionId,
-        patientUuid,
-        fileName: createUploadFileName(file),
-        ...(title !== undefined ? { title } : {}),
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/upload`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify({
+          sessionId,
+          patientUuid,
+          fileName: createUploadFileName(file),
+          ...(title !== undefined ? { title } : {}),
+        }),
       }),
-    });
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to create video metadata: ${res.status}`);
@@ -148,9 +151,8 @@ export const videoService = {
       });
 
       xhr.onload = () => {
-        markTransferComplete();
-
         if (xhr.status >= 200 && xhr.status < 300) {
+            markTransferComplete();
           resolve();
           return;
         }
@@ -178,9 +180,11 @@ export const videoService = {
    * @returns A presigned URL string valid for 24 hours
    */
   getPresignedUrl: async (videoId: string): Promise<string> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/download`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/download`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to get video URL: ${res.status}`);
@@ -199,12 +203,14 @@ export const videoService = {
       timestamp: String(Math.max(0, timestamp)),
     });
 
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/thumbnail?${params.toString()}`,
-      {
-        headers: authHeaders(),
-        signal,
-      },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(
+        `${API_BASE_URL}/api/v1/videos/${videoId}/thumbnail?${params.toString()}`,
+        {
+          headers: authHeaders(),
+          signal,
+        },
+      ),
     );
 
     if (!res.ok) {
@@ -215,9 +221,11 @@ export const videoService = {
   },
 
   getVideo: async (videoId: string): Promise<VideoRecord> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch video metadata: ${res.status}`);
@@ -227,14 +235,16 @@ export const videoService = {
   },
 
   updateTitle: async (videoId: string, title: string): Promise<VideoRecord> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders(),
-      },
-      body: JSON.stringify({ title }),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify({ title }),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to update video title: ${res.status}`);

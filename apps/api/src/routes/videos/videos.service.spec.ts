@@ -217,14 +217,6 @@ describe('VideosService', () => {
       expect(videoRepository.findOne).toHaveBeenCalledWith({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          file: { id: true, path: true },
-          session: {
-            id: true,
-            patient: { uuid: true },
-            unit: { id: true },
-          },
-        },
       });
       expect(swift.putObjectStream).toHaveBeenCalled();
       expect(s3.presignedUrl).toHaveBeenCalled();
@@ -250,6 +242,7 @@ describe('VideosService', () => {
           patient: { uuid: 'test-patient-id' },
           unit: { id: unitId },
         },
+        title: 'Front walk',
       } as any);
 
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
@@ -272,14 +265,6 @@ describe('VideosService', () => {
       expect(videoRepository.findOne).toHaveBeenCalledWith({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          file: { id: true, path: true },
-          session: {
-            id: true,
-            patient: { uuid: true },
-            unit: { id: true },
-          },
-        },
       });
 
       expect(s3.presignedUrl).toHaveBeenCalledWith(
@@ -308,6 +293,7 @@ describe('VideosService', () => {
             value: JSON.stringify({
               id: videoId,
               url: videoUrl,
+              title: 'Front walk',
               filename: filePath,
               transcriptPutUrl,
               transcriptGetUrl,

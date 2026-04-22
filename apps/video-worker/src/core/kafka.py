@@ -94,11 +94,12 @@ class KafkaActor:
         video_url = data["url"]
         transcript_put_url = data["transcriptPutUrl"]
         transcript_get_url = data["transcriptGetUrl"]
+        video_title = data.get("title", "")
         filename = data["filename"]
         # if not provided, set all steps
         steps = set(data.get("steps", [])) or ALL_STEPS
-        # skip pose for side-view videos (filename contains "side")
-        if "side" in filename.lower():
+        source = f"{video_title} {filename}".lower()
+        if "front" not in source:
           steps.discard("pose_estimation")
           # Stability depends on pose keypoints; skip it when pose is intentionally skipped.
           steps.discard("stability_classification")

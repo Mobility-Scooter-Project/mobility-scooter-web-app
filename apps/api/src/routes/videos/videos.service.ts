@@ -33,6 +33,7 @@ export type GetVideoOutput = {
 
 /** Shape used when we only need the stored file path (object key) and unit for auth. */
 type VideoWithPath = {
+  title?: string;
   file: { path: string };
   session: { patient: { uuid: string }; unit: { id: string } };
 };
@@ -293,10 +294,6 @@ export class VideosService {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          file: { id: true, path: true },
-          session: { id: true, patient: { uuid: true }, unit: { id: true } },
-        },
       })) as VideoWithPath | null;
     } catch (error) {
       this.logger.error('Error fetching video metadata', error);
@@ -362,6 +359,7 @@ export class VideosService {
           value: JSON.stringify({
             id: videoId,
             url: videoUrl,
+            title: video.title ?? '',
             filename: filePath,
             transcriptPutUrl,
             transcriptGetUrl,
@@ -401,10 +399,6 @@ export class VideosService {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          file: { id: true, path: true },
-          session: { id: true, patient: { uuid: true }, unit: { id: true } },
-        },
       })) as VideoWithPath | null;
     } catch (error) {
       this.logger.error('Error fetching video metadata', error);
@@ -449,10 +443,6 @@ export class VideosService {
       video = (await this.videoRepository.findOne({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          file: { id: true, path: true },
-          session: { id: true, patient: { uuid: true }, unit: { id: true } },
-        },
       })) as VideoWithPath | null;
     } catch (error) {
       this.logger.error('Error fetching video metadata for reprocess', error);
@@ -488,6 +478,7 @@ export class VideosService {
           value: JSON.stringify({
             id: videoId,
             url: videoUrl,
+            title: video.title ?? '',
             filename: filePath,
             transcriptPutUrl,
             transcriptGetUrl,

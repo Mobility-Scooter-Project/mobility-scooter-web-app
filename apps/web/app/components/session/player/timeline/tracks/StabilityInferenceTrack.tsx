@@ -100,28 +100,8 @@ export function StabilityInferenceTrack({
     return null;
   }
 
-  if (
-    stepStatus === "unknown" ||
-    stepStatus === "pending" ||
-    stepStatus === "processing"
-  ) {
-    return (
-      <div className="text-xs text-foreground/65">Stability inference processing...</div>
-    );
-  }
-
-  if (stepStatus === "failed") {
-    return (
-      <div className="text-xs text-[#DF2A51]">Stability inference failed.</div>
-    );
-  }
-
-  if (trackSegments.length === 0) {
-    return (
-      <div className="text-xs text-foreground/65">
-        Stability inference completed. No segments available.
-      </div>
-    );
+  if (stepStatus !== "completed" || trackSegments.length === 0) {
+    return null;
   }
 
   return (

@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 import type { Coordinate } from "~/types/overlay";
 
 /** A single row of keypoint data returned by the API. */
@@ -37,9 +38,10 @@ export const keypointService = {
       maxDeltaSeconds: String(maxDeltaSeconds),
     });
 
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/keypoints/nearest?${params}`,
-      { headers: authHeaders() },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/keypoints/nearest?${params}`, {
+        headers: authHeaders(),
+      }),
     );
 
     if (!res.ok) {
@@ -67,9 +69,10 @@ export const keypointService = {
       limit: String(limit),
     });
 
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/keypoints/since?${params}`,
-      { headers: authHeaders() },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/keypoints/since?${params}`, {
+        headers: authHeaders(),
+      }),
     );
 
     if (!res.ok) {
