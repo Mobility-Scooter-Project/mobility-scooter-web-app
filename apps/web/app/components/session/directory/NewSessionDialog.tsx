@@ -17,6 +17,7 @@ export function NewSessionDialog({
   onOpenChange,
 }: NewSessionDialogProps) {
   const addSession = useSessionStore((state) => state.actions.addSession);
+  const fetchSessions = useSessionStore((state) => state.actions.fetchSessions);
   const [patientId, setPatientId] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState<string | undefined>(undefined);
@@ -42,8 +43,11 @@ export function NewSessionDialog({
       uploadDisabled={!sessionDetailsReady}
       canContinue={sessionDetailsReady}
       submitLabel="Create Session"
-      submittingLabel="Creating..."
+      submittingLabel="Uploading..."
       submitErrorMessage="Failed to create session."
+      onUploadsReceived={() => {
+        void fetchSessions();
+      }}
       onReset={resetDialog}
       renderUploadFields={({ clearError }) => (
         <>
@@ -84,7 +88,7 @@ export function NewSessionDialog({
           </div>
         </>
       )}
-      onSubmit={async (drafts) => {
+      onSubmit={async (drafts, { setUploadProgress }) => {
         if (!date) {
           throw new Error("Session date is required.");
         }
@@ -101,6 +105,7 @@ export function NewSessionDialog({
             title: draft.title.trim(),
             file: draft.media.file,
           })),
+          onUploadProgress: setUploadProgress,
         });
       }}
     />

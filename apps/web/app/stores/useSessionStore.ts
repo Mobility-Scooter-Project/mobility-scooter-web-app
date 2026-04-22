@@ -69,6 +69,10 @@ function updateViewByVideoId(
   }));
 }
 
+function replaceSession(sessions: Session[], nextSession: Session): Session[] {
+  return [nextSession, ...sessions.filter((session) => session.id !== nextSession.id)];
+}
+
 function isRemoteVideoUrl(url: string): boolean {
   return Boolean(url) && !url.startsWith("blob:");
 }
@@ -86,6 +90,12 @@ type MediaInput = {
 type CreatedMedia = MediaInput & {
   videoId: string;
 };
+
+type UploadProgressCallback = (progress: {
+  completed: number;
+  received: number;
+  total: number;
+}) => void;
 
 async function createMediaBatch(
   sessionId: string,
@@ -121,7 +131,7 @@ async function createMediaBatch(
   return createdMedia;
 }
 
-function buildUploadingViews(media: CreatedMedia[]): View[] {
+function buildUploadedViews(media: CreatedMedia[]): View[] {
   return media.map((entry) => ({
     id: entry.videoId,
     videoId: entry.videoId,
@@ -132,25 +142,51 @@ function buildUploadingViews(media: CreatedMedia[]): View[] {
     chapters: [],
     annotations: [],
     risks: [],
-    uploading: true,
+    uploading: false,
+    uploadError: false,
   }));
 }
 
-function startMediaUploads(
+async function uploadMediaBatch(
   media: CreatedMedia[],
-  onSettled: (videoId: string, failed: boolean) => void,
-) {
-  media.forEach((entry) => {
-    videoService
-      .uploadFile(entry.videoId, entry.file)
-      .then(() => {
-        onSettled(entry.videoId, false);
-      })
-      .catch((error) => {
+  onProgress?: UploadProgressCallback,
+): Promise<CreatedMedia[]> {
+  const total = media.length;
+  let completed = 0;
+  let received = 0;
+
+  onProgress?.({ completed, received, total });
+
+  const results = await Promise.all(
+    media.map(async (entry) => {
+      let transferCounted = false;
+
+      const markTransferComplete = () => {
+        if (transferCounted) {
+          return;
+        }
+
+        transferCounted = true;
+        received += 1;
+        onProgress?.({ completed, received, total });
+      };
+
+      try {
+        await videoService.uploadFile(entry.videoId, entry.file, {
+          onTransferComplete: markTransferComplete,
+        });
+        return entry;
+      } catch (error) {
         console.error("Failed to upload media file:", error);
-        onSettled(entry.videoId, true);
-      });
-  });
+        return null;
+      } finally {
+        completed += 1;
+        onProgress?.({ completed, received, total });
+      }
+    }),
+  );
+
+  return results.filter((entry): entry is CreatedMedia => entry !== null);
 }
 
 type SessionStore = {
@@ -169,8 +205,13 @@ type SessionStore = {
       date: Date;
       time: string;
       media: MediaInput[];
+      onUploadProgress?: UploadProgressCallback;
     }) => Promise<string>;
-    addView: (sessionId: string, media: MediaInput[]) => Promise<string>;
+    addView: (
+      sessionId: string,
+      media: MediaInput[],
+      onUploadProgress?: UploadProgressCallback,
+    ) => Promise<string>;
     updateViewLabel: (sessionId: string, viewId: string, label: string) => void;
     /** Clears the uploading/error flags on a view when processing finishes. */
     markViewProcessed: (videoId: string, failed?: boolean) => void;
@@ -192,22 +233,6 @@ export function selectActiveView(state: SessionStore): View | null {
  * Session metadata is fetched from and persisted to the backend API.
  */
 export const useSessionStore = create<SessionStore>((set, get) => {
-  const resolveMediaUpload = (videoId: string, failed: boolean) => {
-    set((state) => ({
-      sessions: updateViewByVideoId(state.sessions, videoId, (view) => ({
-        ...view,
-        uploading: false,
-        uploadError: failed,
-      })),
-    }));
-
-    if (failed) {
-      return;
-    }
-
-    void get().actions.refreshViewVideoUrl(videoId);
-  };
-
   return {
     sessions: [],
     activeSessionId: "",
@@ -254,11 +279,10 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           };
         });
 
-        const first = sessions[0];
         set((state) => ({
           sessions,
-          activeSessionId: state.activeSessionId || first?.id || "",
-          activeViewId: state.activeViewId || first?.views[0]?.id || "",
+          activeSessionId: state.activeSessionId || sessions[0]?.id || "",
+          activeViewId: state.activeViewId || sessions[0]?.views[0]?.id || "",
         }));
       },
 
@@ -336,7 +360,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
 
       /**
        * Creates a session via the API, uploads the video file, and
-       * attaches a local view using the blob URL for immediate playback.
+       * only adds it to local state once at least one upload finishes.
        */
       addSession: async (data) => {
         const sessionDate = [
@@ -359,34 +383,45 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           data.media,
           "Failed to create media metadata for the session.",
         );
-        const views = buildUploadingViews(createdMedia);
+        const uploadedMedia = await uploadMediaBatch(createdMedia, data.onUploadProgress);
+        const failedCount = data.media.length - uploadedMedia.length;
 
-        const newSession: Session = {
-          id: result.sessionId,
-          patientId: data.patientId,
-          patientUuid: result.patientUuid,
-          date: formatSessionDate(sessionDate),
-          time: sessionTime,
-          notification: false,
-          views,
-        };
+        if (uploadedMedia.length > 0) {
+          const views = buildUploadedViews(uploadedMedia);
 
-        set((state) => ({
-          sessions: [newSession, ...state.sessions],
-          activeSessionId: result.sessionId,
-          activeViewId: views[0]?.id ?? "",
-        }));
+          const newSession: Session = {
+            id: result.sessionId,
+            patientId: data.patientId,
+            patientUuid: result.patientUuid,
+            date: formatSessionDate(sessionDate),
+            time: sessionTime,
+            notification: false,
+            views,
+          };
 
-        startMediaUploads(createdMedia, resolveMediaUpload);
+          set((state) => ({
+            sessions: replaceSession(state.sessions, newSession),
+            activeSessionId: result.sessionId,
+            activeViewId: views[0]?.id ?? "",
+          }));
+        }
+
+        if (failedCount > 0) {
+          if (uploadedMedia.length > 0) {
+            throw new Error("Some videos could not be added. Uploaded videos were kept.");
+          }
+
+          throw new Error("Failed to add the session video.");
+        }
 
         return result.sessionId;
       },
 
       /**
        * Adds a new view to an existing session by uploading the video
-       * and attaching it locally.
+       * and only appends successfully uploaded views.
        */
-      addView: async (sessionId, media) => {
+      addView: async (sessionId, media, onUploadProgress) => {
         const session = get().sessions.find((item) => item.id === sessionId);
 
         if (!session?.patientUuid || media.length === 0) {
@@ -399,22 +434,38 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           media,
           "Failed to create media metadata for the new views.",
         );
-        const views = buildUploadingViews(createdMedia);
+        const uploadedMedia = await uploadMediaBatch(createdMedia, onUploadProgress);
+        const failedCount = media.length - uploadedMedia.length;
 
-        set((state) => ({
-          sessions: state.sessions.map((item) => {
-            if (item.id !== sessionId) return item;
+        if (uploadedMedia.length > 0) {
+          const views = buildUploadedViews(uploadedMedia);
 
-            return {
-              ...item,
-              views: [...item.views, ...views],
-            };
-          }),
-        }));
+          set((state) => ({
+            sessions: state.sessions.map((item) => {
+              if (item.id !== sessionId) return item;
 
-        startMediaUploads(createdMedia, resolveMediaUpload);
+              return {
+                ...item,
+                views: [...item.views, ...views],
+              };
+            }),
+          }));
+        }
 
-        return createdMedia[0].videoId;
+        if (failedCount > 0) {
+          if (uploadedMedia.length > 0) {
+            throw new Error("Some views could not be added. Uploaded views were kept.");
+          }
+
+          throw new Error("Failed to add the new view.");
+        }
+
+        const createdViewId = uploadedMedia[0]?.videoId;
+        if (!createdViewId) {
+          throw new Error("Failed to upload the new view.");
+        }
+
+        return createdViewId;
       },
 
       updateViewLabel: (sessionId, viewId, label) => {

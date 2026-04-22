@@ -19,7 +19,7 @@ export function UploadingItem({
       <div className="flex min-w-0 w-full flex-col mt-4.5 mx-4.5 gap-2">
         <h3 className="text-headline text-foreground truncate">{name}</h3>
         <p className="text-label truncate">
-          Uploading {Math.min(100, Math.round(progress))}%
+          Preparing {Math.min(100, Math.round(progress))}%
         </p>
       </div>
       <Button

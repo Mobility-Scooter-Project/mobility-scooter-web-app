@@ -12,6 +12,10 @@ export type VideoRecord = {
   fileName: string;
 };
 
+type UploadFileOptions = {
+  onTransferComplete?: () => void;
+};
+
 const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   "video/mp4": ".mp4",
   "video/quicktime": ".mov",
@@ -23,7 +27,7 @@ const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
  * Does NOT include Content-Type so the browser can set the correct
  * multipart boundary for FormData uploads.
  */
-function authHeaders(): HeadersInit {
+function authHeaders(): Record<string, string> {
   const accessToken = userAuthStore.getState().accessToken;
   return {
     ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
@@ -107,19 +111,56 @@ export const videoService = {
    * @param videoId - The video metadata ID returned by createMetadata
    * @param file    - The video File to upload
    */
-  uploadFile: async (videoId: string, file: File): Promise<void> => {
+  uploadFile: async (
+    videoId: string,
+    file: File,
+    options?: UploadFileOptions,
+  ): Promise<void> => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/upload`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: formData,
-    });
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      let transferComplete = false;
 
-    if (!res.ok) {
-      throw new Error(`Failed to upload video file: ${res.status}`);
-    }
+      const markTransferComplete = () => {
+        if (transferComplete) {
+          return;
+        }
+
+        transferComplete = true;
+        options?.onTransferComplete?.();
+      };
+
+      xhr.open("POST", `${API_BASE_URL}/api/v1/videos/${videoId}/upload`);
+
+      Object.entries(authHeaders()).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+      });
+
+      xhr.upload.addEventListener("load", markTransferComplete);
+
+      xhr.onload = () => {
+        markTransferComplete();
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+          return;
+        }
+
+        reject(new Error(`Failed to upload video file: ${xhr.status}`));
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Failed to upload video file: network error"));
+      };
+
+      xhr.onabort = () => {
+        reject(new Error("Failed to upload video file: aborted"));
+      };
+
+      xhr.send(formData);
+    });
   },
 
   /**

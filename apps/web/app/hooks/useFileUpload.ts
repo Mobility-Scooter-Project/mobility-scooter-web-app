@@ -35,10 +35,28 @@ export function useFileUpload({
   const isControlled = controlledItems !== undefined;
   const items = isControlled ? controlledItems : uncontrolledItems;
   const itemsRef = React.useRef(items);
+  const previousItemsRef = React.useRef(items);
 
   React.useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  React.useEffect(() => {
+    if (!isControlled) {
+      previousItemsRef.current = items;
+      return;
+    }
+
+    const nextIds = new Set(items.map((item) => item.id));
+
+    for (const previousItem of previousItemsRef.current) {
+      if (!nextIds.has(previousItem.id) && previousItem.timer) {
+        window.clearInterval(previousItem.timer);
+      }
+    }
+
+    previousItemsRef.current = items;
+  }, [isControlled, items]);
 
   const cleanupItem = React.useCallback((item: Item, revokePreviewUrl = true) => {
     if (item.timer) window.clearInterval(item.timer);

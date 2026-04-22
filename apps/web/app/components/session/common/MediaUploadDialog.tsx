@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "~/components/Button";
 import { FileUpload } from "~/components/FileUpload";
 import { OverlayCard } from "~/components/OverlayCard";
@@ -14,9 +15,14 @@ const dialogCardClassName =
   "max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]";
 const dialogScrollClassName =
   "w-full min-h-0 max-h-[min(34rem,calc(100vh-14rem))] overflow-y-auto custom-scrollbar -mr-4.5 pr-4.5 lg:max-h-[min(36rem,calc(100vh-15rem))]";
-const resetAfterCloseDelayMs = 200;
 
 type Step = "upload" | "details";
+
+type UploadProgress = {
+  completed: number;
+  received: number;
+  total: number;
+};
 
 interface MediaUploadDialogProps {
   open: boolean;
@@ -31,7 +37,11 @@ interface MediaUploadDialogProps {
   submittingLabel: string;
   submitErrorMessage: string;
   renderUploadFields?: (controls: { clearError: () => void }) => React.ReactNode;
-  onSubmit: (drafts: MediaDraft[]) => Promise<void>;
+  onUploadsReceived?: () => void | Promise<void>;
+  onSubmit: (
+    drafts: MediaDraft[],
+    controls: { setUploadProgress: (progress: UploadProgress) => void },
+  ) => Promise<void>;
   onReset?: () => void;
 }
 
@@ -52,6 +62,7 @@ export function MediaUploadDialog({
   submittingLabel,
   submitErrorMessage,
   renderUploadFields,
+  onUploadsReceived,
   onSubmit,
   onReset,
 }: MediaUploadDialogProps) {
@@ -60,45 +71,62 @@ export function MediaUploadDialog({
   const [step, setStep] = useState<Step>("upload");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const resetTimeoutRef = useRef<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const submissionIdRef = useRef(0);
+  const wasOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && resetTimeoutRef.current !== null) {
-      window.clearTimeout(resetTimeoutRef.current);
-      resetTimeoutRef.current = null;
+    const safeToClose = uploadProgress?.total
+      ? uploadProgress.received >= uploadProgress.total
+      : false;
+
+    if (!isSubmitting || safeToClose) {
+      return;
     }
-  }, [open]);
 
-  useEffect(() => {
-    return () => {
-      if (resetTimeoutRef.current !== null) {
-        window.clearTimeout(resetTimeoutRef.current);
-      }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
     };
-  }, []);
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isSubmitting, uploadProgress]);
 
   const clearError = () => setSubmitError("");
 
-  const resetDialog = () => {
-    resetTimeoutRef.current = null;
+  const resetDialog = useCallback(() => {
+    submissionIdRef.current += 1;
     reset();
     setStep("upload");
     setIsSubmitting(false);
     setSubmitError("");
+    setUploadProgress(null);
     onReset?.();
-  };
+  }, [onReset, reset]);
 
-  const handleClose = () => {
-    onOpenChange(false);
-
-    if (resetTimeoutRef.current !== null) {
-      window.clearTimeout(resetTimeoutRef.current);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      resetDialog();
     }
 
-    resetTimeoutRef.current = window.setTimeout(() => {
-      resetDialog();
-    }, resetAfterCloseDelayMs);
-  };
+    wasOpenRef.current = open;
+  }, [open, resetDialog]);
+
+  const handleClose = useCallback((force = false) => {
+    const canCloseWhileSubmitting =
+      uploadProgress?.total !== undefined &&
+      uploadProgress.received >= uploadProgress.total;
+
+    if (isSubmitting && !force && !canCloseWhileSubmitting) {
+      return;
+    }
+
+    onOpenChange(false);
+  }, [isSubmitting, onOpenChange, uploadProgress]);
 
   const handleContinue = () => {
     if (!canContinue || !areMediaDraftsReady(drafts)) {
@@ -119,101 +147,190 @@ export function MediaUploadDialog({
       return;
     }
 
+    const submissionId = submissionIdRef.current + 1;
+    submissionIdRef.current = submissionId;
     setIsSubmitting(true);
     setSubmitError("");
+    setUploadProgress({ completed: 0, received: 0, total: drafts.length });
 
     try {
-      await onSubmit(drafts);
-      handleClose();
+      await onSubmit(drafts, {
+        setUploadProgress: (progress) => {
+          if (submissionIdRef.current !== submissionId) {
+            return;
+          }
+
+          setUploadProgress(progress);
+        },
+      });
+
+      if (submissionIdRef.current !== submissionId) {
+        return;
+      }
+
+      handleClose(true);
     } catch (error) {
+      if (submissionIdRef.current !== submissionId) {
+        return;
+      }
+
       console.error(`Failed to submit ${title.toLowerCase()}:`, error);
       setSubmitError(getErrorMessage(error, submitErrorMessage));
     } finally {
-      setIsSubmitting(false);
+      if (submissionIdRef.current === submissionId) {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const continueEnabled = canContinue && areMediaDraftsReady(drafts);
   const submitEnabled = areMediaDraftTitlesFilled(drafts);
+  const totalUploads = uploadProgress?.total ?? 0;
+  const completedUploads = uploadProgress?.completed ?? 0;
+  const receivedUploads = uploadProgress?.received ?? 0;
+  const transferProgressPercent =
+    totalUploads > 0 ? Math.round((receivedUploads / totalUploads) * 100) : 0;
+  const safeToClose = totalUploads > 0 && receivedUploads >= totalUploads;
+  const canDismissDialog = !isSubmitting || safeToClose;
+  const totalLabel = `${Math.max(totalUploads, 1)} video${Math.max(totalUploads, 1) === 1 ? "" : "s"}`;
+
+  let uploadStatusLabel =
+    totalUploads === 1 ? "Uploading video" : "Uploading videos";
+  let uploadStatusDetail = "Keep this page open for a moment.";
+  let uploadProgressNote = `${receivedUploads} of ${totalLabel} ready.`;
+
+  if (safeToClose && completedUploads < totalUploads) {
+    const remainingUploads = totalUploads - completedUploads;
+    uploadStatusLabel = "All set";
+    uploadStatusDetail = "Closing this window...";
+    uploadProgressNote = `Wrapping up ${remainingUploads} more video${remainingUploads === 1 ? "" : "s"}.`;
+  } else if (safeToClose) {
+    uploadStatusLabel = "All set";
+    uploadStatusDetail = "Closing this window...";
+    uploadProgressNote = `All ${totalLabel} are ready.`;
+  }
+
+  useEffect(() => {
+    if (!open || !isSubmitting || !safeToClose) {
+      return;
+    }
+
+    void onUploadsReceived?.();
+    handleClose(true);
+  }, [handleClose, onUploadsReceived, open, isSubmitting, safeToClose]);
 
   return (
     <OverlayCard
       open={open}
-      onClose={handleClose}
+      onClose={canDismissDialog ? () => handleClose(isSubmitting) : undefined}
+      closeOnBackdrop={canDismissDialog}
+      closeOnEsc={canDismissDialog}
       title={title}
       contentClassName={contentClassName}
       cardClassName={dialogCardClassName}
       bodyClassName="flex min-h-0 flex-col gap-4 overflow-hidden"
     >
-      {step === "upload" ? (
-        <>
-          <div className={dialogScrollClassName}>
-            <div className="flex w-full flex-col gap-4">
-              {renderUploadFields?.({ clearError })}
+      <div className="relative flex min-h-0 w-full flex-col gap-4">
+        {step === "upload" ? (
+          <>
+            <div className={dialogScrollClassName}>
+              <div className="flex w-full flex-col gap-4">
+                {renderUploadFields?.({ clearError })}
 
-              <FileUpload
-                id={uploadId}
-                label={uploadLabel}
-                type="multi"
-                size={120}
-                acceptedTypes={[".mp4", ".mov", ".webm"]}
-                disabled={uploadDisabled}
-                items={uploadItems}
-                onItemsChange={(items) => {
+                <FileUpload
+                  id={uploadId}
+                  label={uploadLabel}
+                  type="multi"
+                  size={120}
+                  acceptedTypes={[".mp4", ".mov", ".webm"]}
+                  disabled={uploadDisabled}
+                  items={uploadItems}
+                  onItemsChange={(items) => {
+                    clearError();
+                    syncItems(items);
+                  }}
+                  cleanupPreviewUrlsOnUnmount={false}
+                />
+              </div>
+            </div>
+
+            <div className="flex w-full justify-end">
+              <Button
+                onClick={handleContinue}
+                disabled={!continueEnabled}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
+              >
+                Continue
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={dialogScrollClassName}>
+              <MediaDetailsList
+                drafts={drafts}
+                onTitleChange={(draftId, titleValue) => {
                   clearError();
-                  syncItems(items);
+                  updateTitle(draftId, titleValue);
                 }}
-                cleanupPreviewUrlsOnUnmount={false}
+                onRemove={(draftId) => {
+                  clearError();
+                  remove(draftId);
+                }}
               />
             </div>
-          </div>
 
-          <div className="flex w-full justify-end">
-            <Button
-              onClick={handleContinue}
-              disabled={!continueEnabled}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
-            >
-              Continue
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className={dialogScrollClassName}>
-            <MediaDetailsList
-              drafts={drafts}
-              onTitleChange={(draftId, titleValue) => {
-                clearError();
-                updateTitle(draftId, titleValue);
-              }}
-              onRemove={(draftId) => {
-                clearError();
-                remove(draftId);
-              }}
-            />
-          </div>
+            {submitError ? (
+              <p
+                className="w-full text-xs leading-snug text-destructive/90"
+                role="alert"
+              >
+                {submitError}
+              </p>
+            ) : null}
 
-          {submitError ? (
-            <p className="w-full text-xs leading-snug text-destructive/90" role="alert">
-              {submitError}
-            </p>
-          ) : null}
+            <div className="flex w-full justify-end gap-3">
+              <Button variant="secondary" onClick={handleBack}>
+                Back
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!submitEnabled || isSubmitting}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {isSubmitting ? submittingLabel : submitLabel}
+              </Button>
+            </div>
+          </>
+        )}
 
-          <div className="flex w-full justify-end gap-3">
-            <Button variant="secondary" onClick={handleBack}>
-              Back
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!submitEnabled || isSubmitting}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isSubmitting ? submittingLabel : submitLabel}
-            </Button>
+        {isSubmitting ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/94 px-6 text-center">
+            <div className="flex w-full max-w-sm flex-col items-center gap-3">
+              <Loader2 className="size-6 animate-spin text-foreground" />
+              <div className="flex flex-col gap-1">
+                <p className="text-title-2 font-semibold text-foreground">
+                  {uploadStatusLabel}
+                </p>
+                <p className="text-sm text-foreground/70">
+                  {uploadStatusDetail}
+                </p>
+              </div>
+              <div className="flex w-full flex-col gap-2">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-border/70">
+                  <div
+                    className="h-full rounded-full bg-foreground transition-[width] duration-300"
+                    style={{ width: `${transferProgressPercent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-foreground/70">
+                  {uploadProgressNote}
+                </p>
+              </div>
+            </div>
           </div>
-        </>
-      )}
+        ) : null}
+      </div>
     </OverlayCard>
   );
 }
