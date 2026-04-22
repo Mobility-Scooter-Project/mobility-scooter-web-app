@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "~/components/Button";
 import { FileUpload } from "~/components/FileUpload";
 import { OverlayCard } from "~/components/OverlayCard";
+import { cn } from "~/lib/utils";
 import { useMediaDrafts } from "~/hooks/useMediaDrafts";
 import {
   areMediaDraftsReady,
@@ -22,6 +23,8 @@ type UploadProgress = {
   completed: number;
   received: number;
   total: number;
+  transferredBytes: number;
+  totalBytes: number;
 };
 
 interface MediaUploadDialogProps {
@@ -72,6 +75,7 @@ export function MediaUploadDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [selectedUploadCount, setSelectedUploadCount] = useState(0);
   const submissionIdRef = useRef(0);
   const wasOpenRef = useRef(open);
 
@@ -105,6 +109,7 @@ export function MediaUploadDialog({
     setIsSubmitting(false);
     setSubmitError("");
     setUploadProgress(null);
+    setSelectedUploadCount(0);
     onReset?.();
   }, [onReset, reset]);
 
@@ -149,9 +154,17 @@ export function MediaUploadDialog({
 
     const submissionId = submissionIdRef.current + 1;
     submissionIdRef.current = submissionId;
+    setSelectedUploadCount(drafts.length);
     setIsSubmitting(true);
     setSubmitError("");
-    setUploadProgress({ completed: 0, received: 0, total: drafts.length });
+    const totalBytes = drafts.reduce((sum, draft) => sum + draft.media.file.size, 0);
+    setUploadProgress({
+      completed: 0,
+      received: 0,
+      total: drafts.length,
+      transferredBytes: 0,
+      totalBytes,
+    });
 
     try {
       await onSubmit(drafts, {
@@ -188,16 +201,34 @@ export function MediaUploadDialog({
   const totalUploads = uploadProgress?.total ?? 0;
   const completedUploads = uploadProgress?.completed ?? 0;
   const receivedUploads = uploadProgress?.received ?? 0;
-  const transferProgressPercent =
-    totalUploads > 0 ? Math.round((receivedUploads / totalUploads) * 100) : 0;
+  const transferredBytes = uploadProgress?.transferredBytes ?? 0;
+  const totalBytes = uploadProgress?.totalBytes ?? 0;
+  const transferProgressPercent = Math.round(
+    totalBytes > 0
+      ? (transferredBytes / totalBytes) * 100
+      : totalUploads > 0
+        ? (receivedUploads / totalUploads) * 100
+        : 0,
+  );
   const safeToClose = totalUploads > 0 && receivedUploads >= totalUploads;
   const canDismissDialog = !isSubmitting || safeToClose;
   const totalLabel = `${Math.max(totalUploads, 1)} video${Math.max(totalUploads, 1) === 1 ? "" : "s"}`;
+  const skippedUploads = Math.max(0, selectedUploadCount - totalUploads);
+  const hasMeasuredByteProgress = transferredBytes > 0;
+  const showIndeterminateProgress =
+    isSubmitting &&
+    !hasMeasuredByteProgress &&
+    receivedUploads < totalUploads &&
+    totalUploads > 0;
 
   let uploadStatusLabel =
     totalUploads === 1 ? "Uploading video" : "Uploading videos";
   let uploadStatusDetail = "Keep this page open for a moment.";
   let uploadProgressNote = `${receivedUploads} of ${totalLabel} ready.`;
+
+  if (skippedUploads > 0) {
+    uploadProgressNote += ` ${skippedUploads} could not be queued.`;
+  }
 
   if (safeToClose && completedUploads < totalUploads) {
     const remainingUploads = totalUploads - completedUploads;
@@ -319,8 +350,11 @@ export function MediaUploadDialog({
               <div className="flex w-full flex-col gap-2">
                 <div className="h-2 w-full overflow-hidden rounded-full bg-border/70">
                   <div
-                    className="h-full rounded-full bg-foreground transition-[width] duration-300"
-                    style={{ width: `${transferProgressPercent}%` }}
+                    className={cn(
+                      "h-full rounded-full bg-foreground transition-[width] duration-300",
+                      showIndeterminateProgress && "animate-pulse",
+                    )}
+                    style={{ width: `${showIndeterminateProgress ? 35 : transferProgressPercent}%` }}
                   />
                 </div>
                 <p className="text-xs text-foreground/70">

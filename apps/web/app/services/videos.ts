@@ -14,6 +14,7 @@ export type VideoRecord = {
 
 type UploadFileOptions = {
   onTransferComplete?: () => void;
+  onProgress?: (progress: { loaded: number; total: number }) => void;
 };
 
 const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
@@ -129,6 +130,7 @@ export const videoService = {
         }
 
         transferComplete = true;
+        options?.onProgress?.({ loaded: file.size, total: file.size });
         options?.onTransferComplete?.();
       };
 
@@ -139,6 +141,11 @@ export const videoService = {
       });
 
       xhr.upload.addEventListener("load", markTransferComplete);
+      xhr.upload.addEventListener("progress", (event) => {
+        const total = event.lengthComputable ? event.total : file.size;
+        const loaded = Math.min(event.loaded, total);
+        options?.onProgress?.({ loaded, total });
+      });
 
       xhr.onload = () => {
         markTransferComplete();
