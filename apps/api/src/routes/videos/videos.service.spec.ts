@@ -217,15 +217,6 @@ describe('VideosService', () => {
       expect(videoRepository.findOne).toHaveBeenCalledWith({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          title: true,
-          file: { id: true, path: true },
-          session: {
-            id: true,
-            patient: { uuid: true },
-            unit: { id: true },
-          },
-        },
       });
       expect(swift.putObjectStream).toHaveBeenCalled();
       expect(s3.presignedUrl).toHaveBeenCalled();
@@ -274,14 +265,6 @@ describe('VideosService', () => {
       expect(videoRepository.findOne).toHaveBeenCalledWith({
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
-        select: {
-          file: { id: true, path: true },
-          session: {
-            id: true,
-            patient: { uuid: true },
-            unit: { id: true },
-          },
-        },
       });
 
       expect(s3.presignedUrl).toHaveBeenCalledWith(
