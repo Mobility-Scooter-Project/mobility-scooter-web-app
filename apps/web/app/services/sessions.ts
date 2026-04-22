@@ -1,5 +1,6 @@
 ﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 
 /** Response shape returned by GET /api/v1/units/:unitId/sessions */
 export type SessionListItem = {
@@ -42,11 +43,17 @@ function authHeaders(): HeadersInit {
 }
 
 async function resolveUnitId(): Promise<string> {
-  const { user, fetchUser } = userAuthStore.getState();
+  const { user, fetchUser, refreshAccessToken } = userAuthStore.getState();
   if (user?.unitId) return user.unitId;
 
   const refreshedUser = await fetchUser();
   if (refreshedUser?.unitId) return refreshedUser.unitId;
+
+  const refreshed = await refreshAccessToken();
+  if (refreshed) {
+    const reloadedUser = await fetchUser();
+    if (reloadedUser?.unitId) return reloadedUser.unitId;
+  }
 
   throw new Error("User is missing unit assignment.");
 }
@@ -58,9 +65,11 @@ export const sessionService = {
    */
   getAll: async (): Promise<SessionListItem[]> => {
     const unitId = await resolveUnitId();
-    const res = await fetch(`${API_BASE_URL}/api/v1/units/${unitId}/sessions`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/units/${unitId}/sessions`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch sessions: ${res.status}`);
@@ -78,11 +87,13 @@ export const sessionService = {
    */
   create: async (dto: CreateSessionDto): Promise<CreateSessionResponse> => {
     const unitId = await resolveUnitId();
-    const res = await fetch(`${API_BASE_URL}/api/v1/units/${unitId}/sessions`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(dto),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/units/${unitId}/sessions`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(dto),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to create session: ${res.status}`);
@@ -102,9 +113,11 @@ export const sessionService = {
     sessionId: string,
   ): Promise<SessionVideoItem[]> => {
     const unitId = await resolveUnitId();
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/units/${unitId}/sessions/${sessionId}/videos`,
-      { headers: authHeaders() },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(
+        `${API_BASE_URL}/api/v1/units/${unitId}/sessions/${sessionId}/videos`,
+        { headers: authHeaders() },
+      ),
     );
 
     if (!res.ok) {

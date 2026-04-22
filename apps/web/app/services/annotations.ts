@@ -1,5 +1,6 @@
 ﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 
 /** Response shape returned by annotation endpoints. */
 export type AnnotationResponse = {
@@ -34,9 +35,11 @@ export const annotationService = {
    * Lists all annotations for a video.
    */
   getAll: async (videoId: string): Promise<AnnotationResponse[]> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/annotations`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/annotations`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch annotations: ${res.status}`);
@@ -53,11 +56,13 @@ export const annotationService = {
     videoId: string,
     dto: AnnotationDto,
   ): Promise<AnnotationResponse> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/annotations`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(dto),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/annotations`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(dto),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to create annotation: ${res.status}`);
@@ -75,13 +80,15 @@ export const annotationService = {
     annotationId: string,
     dto: AnnotationDto,
   ): Promise<AnnotationResponse> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
-      {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify(dto),
-      },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(
+        `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
+        {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify(dto),
+        },
+      ),
     );
 
     if (!res.ok) {
@@ -96,12 +103,14 @@ export const annotationService = {
    * Deletes an annotation.
    */
   delete: async (videoId: string, annotationId: string): Promise<void> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
-      {
-        method: "DELETE",
-        headers: authHeaders(),
-      },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(
+        `${API_BASE_URL}/api/v1/videos/${videoId}/annotations/${annotationId}`,
+        {
+          method: "DELETE",
+          headers: authHeaders(),
+        },
+      ),
     );
 
     if (!res.ok) {

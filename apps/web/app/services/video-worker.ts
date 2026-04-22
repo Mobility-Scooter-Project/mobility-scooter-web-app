@@ -1,5 +1,6 @@
 ﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 
 /** Processing status for a single worker step. */
 export type WorkerStepInfo = {
@@ -61,9 +62,11 @@ export const videoWorkerService = {
    * Returns the overall processing status and per-step breakdown.
    */
   getStatus: async (videoId: string): Promise<WorkerStatusInfo> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/video-worker/${videoId}/status`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/video-worker/${videoId}/status`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch worker status: ${res.status}`);
@@ -76,9 +79,10 @@ export const videoWorkerService = {
     videoId: string,
     step: string,
   ): Promise<WorkerStepStatusInfo> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/video-worker/${videoId}/${step}/status`,
-      { headers: authHeaders() },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/video-worker/${videoId}/${step}/status`, {
+        headers: authHeaders(),
+      }),
     );
 
     if (!res.ok) {

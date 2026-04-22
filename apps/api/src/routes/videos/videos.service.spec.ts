@@ -218,6 +218,7 @@ describe('VideosService', () => {
         where: { id: videoId },
         relations: { file: true, session: { patient: true, unit: true } },
         select: {
+          title: true,
           file: { id: true, path: true },
           session: {
             id: true,
@@ -250,6 +251,7 @@ describe('VideosService', () => {
           patient: { uuid: 'test-patient-id' },
           unit: { id: unitId },
         },
+        title: 'Front walk',
       } as any);
 
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({
@@ -308,6 +310,7 @@ describe('VideosService', () => {
             value: JSON.stringify({
               id: videoId,
               url: videoUrl,
+              title: 'Front walk',
               filename: filePath,
               transcriptPutUrl,
               transcriptGetUrl,

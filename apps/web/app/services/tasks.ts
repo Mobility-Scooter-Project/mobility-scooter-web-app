@@ -1,5 +1,6 @@
 ﻿import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 
 /** Response shape returned by GET /api/v1/videos/:videoId/tasks */
 export type VideoTaskEntry = {
@@ -40,9 +41,11 @@ export const taskService = {
    * Fetches task detection results for a video.
    */
   getAll: async (videoId: string): Promise<VideoTaskEntry[]> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/tasks`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/tasks`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch video tasks: ${res.status}`);
@@ -55,11 +58,13 @@ export const taskService = {
     videoId: string,
     dto: CreateVideoTaskDto,
   ): Promise<VideoTaskEntry> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/tasks`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(dto),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/tasks`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(dto),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to create video task: ${res.status}`);
@@ -73,13 +78,15 @@ export const taskService = {
     taskId: string,
     dto: UpdateVideoTaskDto,
   ): Promise<VideoTaskEntry> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/tasks/${taskId}`,
-      {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify(dto),
-      },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(
+        `${API_BASE_URL}/api/v1/videos/${videoId}/tasks/${taskId}`,
+        {
+          method: "PATCH",
+          headers: authHeaders(),
+          body: JSON.stringify(dto),
+        },
+      ),
     );
 
     if (!res.ok) {
@@ -90,12 +97,14 @@ export const taskService = {
   },
 
   delete: async (videoId: string, taskId: string): Promise<void> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/v1/videos/${videoId}/tasks/${taskId}`,
-      {
-        method: "DELETE",
-        headers: authHeaders(),
-      },
+    const res = await fetchWithAuthRetry(() =>
+      fetch(
+        `${API_BASE_URL}/api/v1/videos/${videoId}/tasks/${taskId}`,
+        {
+          method: "DELETE",
+          headers: authHeaders(),
+        },
+      ),
     );
 
     if (!res.ok) {

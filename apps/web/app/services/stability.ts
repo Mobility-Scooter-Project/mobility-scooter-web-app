@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "~/config/constants";
 import { userAuthStore } from "~/lib/auth";
+import { fetchWithAuthRetry } from "~/lib/fetchWithAuthRetry";
 
 export type StabilityInference = {
   startFrame: number;
@@ -24,9 +25,11 @@ export const stabilityService = {
    * Returns stability inference windows for a processed video.
    */
   getAll: async (videoId: string): Promise<StabilityInference[]> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/stability`, {
-      headers: authHeaders(),
-    });
+    const res = await fetchWithAuthRetry(() =>
+      fetch(`${API_BASE_URL}/api/v1/videos/${videoId}/stability`, {
+        headers: authHeaders(),
+      }),
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch stability inferences: ${res.status}`);
