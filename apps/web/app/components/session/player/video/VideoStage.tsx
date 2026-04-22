@@ -28,7 +28,7 @@ export function VideoStage({ activeView }: VideoStageProps) {
     activeView?.videoId,
     activeView?.videoUrl,
   );
-  const videoHandlers = useVideoSync(
+  const { isRetryingSource, ...videoHandlers } = useVideoSync(
     videoRef,
     activeView?.videoId,
     activeView?.id,
@@ -37,6 +37,8 @@ export function VideoStage({ activeView }: VideoStageProps) {
 
   const hasActiveView = Boolean(activeView);
   const hasPlaybackUrl = Boolean(playbackUrl);
+  const isUploadingMessageVisible =
+    Boolean(activeView?.videoId) && !activeView?.uploadError && isRetryingSource;
   const overlayControlsReady =
     Boolean(activeView?.videoId) && hasPlaybackUrl && frames.length > 0;
 
@@ -86,7 +88,21 @@ export function VideoStage({ activeView }: VideoStageProps) {
           </div>
         )}
 
-        {hasPlaybackUrl && isVideoLoading && (
+        {hasPlaybackUrl && isUploadingMessageVisible && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/45 px-6 text-center">
+            <div className="flex flex-col items-center gap-2 text-white/85">
+              <Loader2 className="size-5 animate-spin" />
+              <div className="space-y-1">
+                <p className="text-label">Currently uploading</p>
+                <p className="text-xs text-white/65">
+                  The video will appear here automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasPlaybackUrl && isVideoLoading && !isUploadingMessageVisible && (
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/15">
             <span className="inline-flex items-center gap-2 rounded-full bg-black/65 px-3 py-1.5 text-label text-white shadow-lg">
               <Loader2 className="size-4 animate-spin" />

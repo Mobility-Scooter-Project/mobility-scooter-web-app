@@ -26,15 +26,16 @@ export function AddViewDialog({
       uploadId="view-media-file"
       uploadLabel="Upload Media"
       submitLabel="Add Views"
-      submittingLabel="Adding..."
+      submittingLabel="Uploading..."
       submitErrorMessage="Failed to add views."
-      onSubmit={async (drafts) => {
+      onSubmit={async (drafts, { setUploadProgress }) => {
         const createdViewId = await addView(
           sessionId,
           drafts.map((draft) => ({
             title: draft.title.trim(),
             file: draft.media.file,
           })),
+          setUploadProgress,
         );
 
         onViewCreated?.(createdViewId);

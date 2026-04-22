@@ -32,6 +32,7 @@ export function useVideoPipeline(activeView: View | null) {
   const isUploading = activeView?.uploading ?? false;
   const uploadFailed = activeView?.uploadError ?? false;
   const hasLocalPreview = Boolean(activeView?.videoUrl?.startsWith("blob:"));
+  const hasUploadedVideo = Boolean(activeView?.videoId) && !isUploading;
   const statusResolved = poseStatus !== "unknown" || taskStatus !== "unknown";
   const shouldTrackPipeline =
     isUploading ||
@@ -44,8 +45,9 @@ export function useVideoPipeline(activeView: View | null) {
     let uploadStep: StepStatus = "pending";
     if (uploadFailed) uploadStep = "failed";
     else if (isUploading) uploadStep = "active";
-    else if (workerStarted) uploadStep = "completed";
-    else if (hasLocalPreview || statusResolved) uploadStep = "active";
+    else if (hasUploadedVideo || workerStarted || hasLocalPreview || statusResolved) {
+      uploadStep = "completed";
+    }
 
     let poseStep: StepStatus = "pending";
     if (uploadStep !== "completed") poseStep = "pending";
@@ -83,6 +85,7 @@ export function useVideoPipeline(activeView: View | null) {
       },
     ];
   }, [
+    hasUploadedVideo,
     hasLocalPreview,
     isUploading,
     poseStatus,
