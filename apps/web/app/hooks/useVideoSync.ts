@@ -1,4 +1,10 @@
-import { useEffect, useRef, type RefObject, type SyntheticEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+  type SyntheticEvent,
+} from "react";
 import { useSessionStore } from "~/stores/useSessionStore";
 import { useVideoStore } from "~/stores/useVideoStore";
 
@@ -27,6 +33,7 @@ export function useVideoSync(
 
   const sourceReloadingRef = useRef(false);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isRetryingSource, setIsRetryingSource] = useState(false);
 
   const clearRetryTimer = () => {
     if (retryTimerRef.current) {
@@ -97,6 +104,7 @@ export function useVideoSync(
     const video = videoRef.current;
     if (!video) {
       sourceReloadingRef.current = false;
+      setIsRetryingSource(false);
       setIsVideoLoading(false);
       clearRetryTimer();
       return;
@@ -104,6 +112,7 @@ export function useVideoSync(
 
     if (!playbackUrl) {
       sourceReloadingRef.current = false;
+      setIsRetryingSource(false);
       setIsVideoLoading(false);
       clearRetryTimer();
       return;
@@ -131,6 +140,7 @@ export function useVideoSync(
   const resumePlaybackIfNeeded = (video: HTMLVideoElement) => {
     clearRetryTimer();
     sourceReloadingRef.current = false;
+    setIsRetryingSource(false);
     video.playbackRate = playbackRate;
 
     if (isPlaying && video.paused) {
@@ -148,6 +158,7 @@ export function useVideoSync(
   };
 
   return {
+    isRetryingSource,
     onLoadStart: () => setIsVideoLoading(true),
     onLoadedMetadata: handleDurationChange,
     onLoadedData: (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -184,6 +195,7 @@ export function useVideoSync(
     onSeeked: () => setIsVideoLoading(false),
     onError: () => {
       sourceReloadingRef.current = false;
+      setIsRetryingSource(true);
       setIsVideoLoading(false);
       scheduleSourceRetry();
     },
