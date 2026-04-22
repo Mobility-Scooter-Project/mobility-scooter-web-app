@@ -6,6 +6,7 @@ import {
 } from "~/services/video-worker";
 import { create } from "zustand";
 import { isWorkerStarted, isWorkerTerminal } from "~/lib/video-worker-status";
+import { userAuthStore } from "~/lib/auth";
 
 type WorkerSyncListener = (event: WorkerSseEvent) => void;
 type StatusListener = (status: WorkerStatusInfo) => void;
@@ -74,6 +75,8 @@ function mergeWorkerEvent(
  * Other hooks register listeners via useWorkerEvent / useWorkerStatus.
  */
 export function useWorkerSync(videoId: string | undefined) {
+  const accessToken = userAuthStore((state) => state.accessToken);
+
   useEffect(() => {
     if (!videoId) return;
 
@@ -184,7 +187,7 @@ export function useWorkerSync(videoId: string | undefined) {
         statusListeners: new Set(),
       });
     };
-  }, [videoId]);
+  }, [accessToken, videoId]);
 }
 
 /**
