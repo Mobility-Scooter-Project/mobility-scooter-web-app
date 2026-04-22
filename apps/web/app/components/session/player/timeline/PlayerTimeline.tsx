@@ -4,6 +4,7 @@ import { TimelineTicks } from "./TimelineTicks";
 import { AnnotationTrack } from "./tracks/AnnotationTrack";
 import { RiskTrack } from "./tracks/RiskTrack";
 import { ChapterTrack } from "./tracks/ChapterTrack";
+import { StabilityInferenceTrack } from "./tracks/StabilityInferenceTrack";
 import { PlayerControls } from "./controls/PlayerControls";
 import { useVideoStore } from "~/stores/useVideoStore";
 
@@ -18,6 +19,7 @@ export function PlayerTimeline({ activeView }: PlayerTimelineProps) {
     <div className="flex flex-col gap-y-3">
       <div className="relative flex flex-col gap-y-3 w-full">
         <TimelinePlayhead />
+        <StabilityInferenceTrack videoId={activeView?.videoId} duration={duration} />
         <TimelineTicks duration={duration} />
         <AnnotationTrack />
         <RiskTrack activeView={activeView} duration={duration} />

@@ -95,6 +95,8 @@ type UploadProgressCallback = (progress: {
   completed: number;
   received: number;
   total: number;
+  transferredBytes: number;
+  totalBytes: number;
 }) => void;
 
 async function createMediaBatch(
@@ -152,14 +154,39 @@ async function uploadMediaBatch(
   onProgress?: UploadProgressCallback,
 ): Promise<CreatedMedia[]> {
   const total = media.length;
+  const totalBytes = media.reduce((sum, entry) => sum + entry.file.size, 0);
   let completed = 0;
   let received = 0;
+  let transferredBytes = 0;
+  const loadedByVideo = new Map<string, number>();
 
-  onProgress?.({ completed, received, total });
+  const emitProgress = () => {
+    onProgress?.({
+      completed,
+      received,
+      total,
+      transferredBytes,
+      totalBytes,
+    });
+  };
+
+  emitProgress();
 
   const results = await Promise.all(
     media.map(async (entry) => {
       let transferCounted = false;
+      loadedByVideo.set(entry.videoId, 0);
+
+      const syncLoadedBytes = (loaded: number) => {
+        const clampedLoaded = Math.max(0, Math.min(loaded, entry.file.size));
+        const previousLoaded = loadedByVideo.get(entry.videoId) ?? 0;
+        if (clampedLoaded === previousLoaded) {
+          return;
+        }
+
+        loadedByVideo.set(entry.videoId, clampedLoaded);
+        transferredBytes += clampedLoaded - previousLoaded;
+      };
 
       const markTransferComplete = () => {
         if (transferCounted) {
@@ -167,13 +194,18 @@ async function uploadMediaBatch(
         }
 
         transferCounted = true;
+        syncLoadedBytes(entry.file.size);
         received += 1;
-        onProgress?.({ completed, received, total });
+        emitProgress();
       };
 
       try {
         await videoService.uploadFile(entry.videoId, entry.file, {
           onTransferComplete: markTransferComplete,
+          onProgress: ({ loaded }) => {
+            syncLoadedBytes(loaded);
+            emitProgress();
+          },
         });
         return entry;
       } catch (error) {
@@ -181,7 +213,7 @@ async function uploadMediaBatch(
         return null;
       } finally {
         completed += 1;
-        onProgress?.({ completed, received, total });
+        emitProgress();
       }
     }),
   );
